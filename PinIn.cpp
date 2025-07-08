@@ -30,6 +30,25 @@ namespace PinInCpp {
 		return utf8;
 	}
 
+	static size_t getUTF8CharSize(char c) {
+		if ((c & 0x80) == 0) { // 0xxxxxxx
+			return 1;
+		}
+		else if ((c & 0xE0) == 0xC0) { // 110xxxxx
+			return 2;
+		}
+		else if ((c & 0xF0) == 0xE0) { // 1110xxxx
+			return 3;
+		}
+		else if ((c & 0xF8) == 0xF0) { // 11110xxx
+			return 4;
+		}
+		else {
+			//这是一个非法的UTF-8首字节
+			return 1; //作为错误恢复，把它当作一个单字节处理
+		}
+	}
+
 	int HexStrToInt(const std::string& str) {
 		int result;
 		sscanf_s(str.c_str(), "%X", &result);
@@ -51,35 +70,29 @@ namespace PinInCpp {
 		return result;
 	}
 
-	//用于处理utf8字符串
-	Utf8String::Utf8String(const std::string& input) {
-		uint8_t bitmask;//掩码
-		size_t i = 0;
-		size_t ByteSizeCount;
-		while (input[i]) {//遍历字符串
-			bitmask = 1;
-			ByteSizeCount = 0;
-			bitmask &= (input[i] >> (sizeof(char) * 8 - 1));
-			if (bitmask == 1) {//如果是1，代表需要计数得知字符大小
-				while (bitmask) {//计算字符长度
-					ByteSizeCount++;//自增一下
-					bitmask = 1;
-					bitmask &= (input[i] >> ((sizeof(char) * 8 - 1) - ByteSizeCount));//char大小不定，为了兼容性这样写
-				}
-				if (i + ByteSizeCount > input.size()) {
-					ByteSizeCount = input.size() - i;
-				}
-				str.push_back(input.substr(i, ByteSizeCount));//截取字符串
-				i += ByteSizeCount - 1;//对字符串索引进行一下更改
-			}
-			else {//代表是0，则只有一个字节大小
-				str.push_back(input.substr(i, 1));
-			}
-			i++;
+	Utf8StringView::Utf8StringView(const std::string_view& input) {
+		size_t cursor = 0;
+		size_t end = input.size();//string_view没有'\0'
+		while (cursor < end) {
+			size_t charSize = getUTF8CharSize(input[cursor]);
+			str.push_back(input.substr(cursor, charSize));
+			cursor += charSize;
 		}
 	}
 
-	size_t PinIn::CharPool::put(const std::string& s) {
+	//用于处理utf8字符串
+	Utf8String::Utf8String(const std::string& input) {
+		size_t cursor = 0;
+		char tempChar = input[cursor];
+		while (input[cursor]) {
+			size_t charSize = getUTF8CharSize(tempChar);
+			str.push_back(input.substr(cursor, charSize));
+			cursor += charSize;
+			tempChar = input[cursor];
+		}
+	}
+
+	size_t PinIn::CharPool::put(const std::string_view& s) {
 		size_t result = strs.size();
 		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
 		return result;
@@ -124,55 +137,59 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
-		while (std::getline(fs, str)) {//有点丑:(
-			Utf8String utf8str = Utf8String(str);//将字节流转换为utf8表示的字符串
+		while (std::getline(fs, str)) {
+			const Utf8StringView utf8str = Utf8StringView(str);//将字节流转换为utf8表示的字符串
 			size_t i = 0;
-			while (!utf8str[i].empty() && utf8str[i] != "#") {//#为注释
-				if (utf8str[i] == "U" && i < utf8str.size() - 1) {//判断是否合法
-					if (utf8str[i + 1] == "+") {
-						std::string key;
-						i = i + 2;//往后移两位，准备开始存储数字
-						while (!utf8str[i].empty() && utf8str[i] != ":") {//第一个是判空，第二个是判终点
-							key += utf8str[i];
-							i++;
-						}
-						i++;//不要:符号
-						uint8_t currentTone = 0;
-						size_t pinyinId = NullPinyinId;
-						//现在应该开始构造拼音表
-						while (!utf8str[i].empty() && utf8str[i] != "#") {
-							if (utf8str[i] == ",") {//这一段的时候需要存入音调再存入','
-								pool.putChar(currentTone + 48);//+48就是对应ASCII字符
-								pool.putChar(',');//存入分界符
-							}
-							else if (utf8str[i] != " ") {//跳过空格
-								auto it = toneMap.find(utf8str[i]);
-								if (it == toneMap.end()) {//没找到
-									size_t pos = pool.put(utf8str[i]);//原封不动
-									if (pinyinId == NullPinyinId) {//如果是默认值则赋值代表拼音id
-										pinyinId = pos;
-									}
-								}
-								else {//找到了
-									size_t pos = pool.putChar(it->second.c);//替换成无声调字符
-									if (pinyinId == NullPinyinId) {
-										pinyinId = pos;
-									}
-									currentTone = it->second.tone;
-								}
-							}
-							i++;
-						}
-						if (pinyinId != NullPinyinId) {
-							pool.putChar(currentTone + 48);//+48就是对应ASCII字符 追加到末尾，这是最后一个的
-							pool.putEnd();//结尾分隔
-							key = UnicodeToUtf8(HexStrToInt(key));
-							data[key] = pinyinId;//设置
-						}
-						break;//退出这次循环，读取下一行
-					}
+			while (!utf8str[i].empty() && utf8str[i] != "#") {//#为注释 !utf8str[i].empty()隐含了结尾空字符检测
+				if (utf8str[i] != "U") {//判断是否合法
+					i++;//不要忘记自增哦！ 卫语句减少嵌套增加可读性
+					continue;
 				}
-				i++;
+				if (utf8str[i + 1] != "+") {
+					i++;
+					continue;
+				}
+
+				std::string key;
+				i = i + 2;//往后移两位，准备开始存储数字
+				while (!utf8str[i].empty() && utf8str[i] != ":") {//第一个是判空，第二个是判终点
+					key += utf8str[i];
+					i++;
+				}
+				i++;//不要:符号
+				uint8_t currentTone = 0;
+				size_t pinyinId = NullPinyinId;
+				//现在应该开始构造拼音表
+				while (!utf8str[i].empty() && utf8str[i] != "#") {
+					if (utf8str[i] == ",") {//这一段的时候需要存入音调再存入','
+						pool.putChar(currentTone + 48);//+48就是对应ASCII字符
+						pool.putChar(',');//存入分界符
+					}
+					else if (utf8str[i] != " ") {//跳过空格
+						auto it = toneMap.find(utf8str[i]);
+						if (it == toneMap.end()) {//没找到
+							size_t pos = pool.put(utf8str[i]);//原封不动
+							if (pinyinId == NullPinyinId) {//如果是默认值则赋值代表拼音id
+								pinyinId = pos;
+							}
+						}
+						else {//找到了
+							size_t pos = pool.putChar(it->second.c);//替换成无声调字符
+							if (pinyinId == NullPinyinId) {
+								pinyinId = pos;
+							}
+							currentTone = it->second.tone;
+						}
+					}
+					i++;
+				}
+				if (pinyinId != NullPinyinId) {
+					pool.putChar(currentTone + 48);//+48就是对应ASCII字符 追加到末尾，这是最后一个的
+					pool.putEnd();//结尾分隔
+					key = UnicodeToUtf8(HexStrToInt(key));
+					data[key] = pinyinId;//设置
+				}
+				break;//退出这次循环，读取下一行
 			}
 		}
 	}

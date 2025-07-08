@@ -29,8 +29,8 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
-	system("pause");
 
+	system("pause");
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 	for (const auto& str : testPin.GetPinyin("佻", true)) {
 		std::cout << str << '\n';

@@ -56,8 +56,60 @@ namespace PinInCpp {
 			return str.end();
 		}
 
+		const auto begin()const {
+			return str.begin();
+		}
+
+		const auto end()const {
+			return str.end();
+		}
+
 	private:
 		std::vector<std::string> str;
+	};
+
+	class Utf8StringView {
+	public:
+		Utf8StringView(const std::string_view& input);
+
+		std::string_view& operator[](size_t i) {
+			return str[i];
+		}
+
+		const std::string_view& operator[](size_t i)const {
+			return str[i];
+		}
+
+		std::string_view& at(size_t i) {
+			return str.at(i);
+		}
+
+		const std::string_view& at(size_t i)const {
+			return str.at(i);
+		}
+
+		size_t size()const {
+			return str.size();
+		}
+
+		auto begin() {
+			return str.begin();
+		}
+
+		auto end() {
+			return str.end();
+		}
+
+		const auto begin()const {
+			return str.begin();
+		}
+
+		const auto end()const {
+			return str.end();
+		}
+
+	private:
+		std::vector<std::string_view> str;
 	};
 
 	class PinyinFileNoGet : public std::exception {
@@ -74,7 +126,7 @@ namespace PinInCpp {
 		std::vector<std::string> strs;
 	};*/
 
-	constexpr size_t NullPinyinId = (size_t)-1;
+	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
 	class PinIn {
 	public:
@@ -114,7 +166,7 @@ namespace PinInCpp {
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
-			size_t put(const std::string& s);
+			size_t put(const std::string_view& s);
 			size_t putChar(const char s);
 			void putEnd();
 			std::vector<std::string> getPinyinVec(size_t i)const;
@@ -138,7 +190,7 @@ namespace PinInCpp {
 			uint8_t tone;
 		};
 		//有声调拼音转无声调拼音关联表
-		inline static const std::unordered_map<std::string, ToneData> toneMap = std::unordered_map<std::string, ToneData>({
+		inline static const std::unordered_map<std::string_view, ToneData> toneMap = std::unordered_map<std::string_view, ToneData>({
 		{"ā", {'a', 1}}, {"á", {'a', 2}}, {"ǎ", {'a', 3}}, {"à", {'a', 4}},
 		{"ē", {'e', 1}}, {"é", {'e', 2}}, {"ě", {'e', 3}}, {"è", {'e', 4}},
 		{"ī", {'i', 1}}, {"í", {'i', 2}}, {"ǐ", {'i', 3}}, {"ì", {'i', 4}},
