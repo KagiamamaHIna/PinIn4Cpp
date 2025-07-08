@@ -13,9 +13,6 @@ struct ToneData {
 int main() {
 	system("chcp 65001");
 
-	//for (const auto& str : testPin.GetPinyin("佻", false)) {
-	//	std::cout << str << '\n';
-	//}
 
 	/*PinInCpp::StringPool test;
 
@@ -33,8 +30,11 @@ int main() {
 
 	std::cout << test.getchar(id2);*/
 	system("pause");
-	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 
+	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+	for (const auto& str : testPin.GetPinyin("佻", true)) {
+		std::cout << str << '\n';
+	}
 	/*std::fstream file("D:/repos/PinyinTest/small.txt");
 	std::string line;
 	while (std::getline(file, line)) {

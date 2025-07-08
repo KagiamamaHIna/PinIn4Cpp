@@ -79,6 +79,42 @@ namespace PinInCpp {
 		}
 	}
 
+	size_t PinIn::CharPool::put(const std::string& s) {
+		size_t result = strs.size();
+		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
+		return result;
+	}
+
+	size_t PinIn::CharPool::putChar(const char s) {
+		size_t result = strs.size();
+		strs.push_back(s);
+		return result;
+	}
+
+	void PinIn::CharPool::putEnd() {
+		strs.push_back('\0');
+	}
+
+	std::vector<std::string> PinIn::CharPool::getPinyinVec(size_t i)const {//根据理论上的正确格式来讲，应当是用','字符分隔拼音，然后用'\0'作为拼音数据末尾
+		//编辑i当作索引id即可
+		size_t cursor = 0;//直接在result上构造字符串，用这个代表当前访问的字符串
+		std::vector<std::string> result(1);//提前构造一个字符串
+
+		char tempChar = strs[i];//局部拷贝，避免多次访问
+		while (tempChar) {//结尾符就退出
+			if (tempChar == ',') {//不保存这个，压入下一个空字符串，移动cursor
+				result.push_back("");
+				cursor++;
+			}
+			else {
+				result[cursor].push_back(tempChar);
+			}
+			i++;
+			tempChar = strs[i];//自增完成后再取下一个字符
+		}
+		return result;
+	}
+
 	//PinIn类
 	PinIn::PinIn(const std::string& path) {
 		std::fstream fs = std::fstream(path, std::ios::in);
@@ -88,7 +124,7 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
-		while (std::getline(fs, str)) {
+		while (std::getline(fs, str)) {//有点丑:(
 			Utf8String utf8str = Utf8String(str);//将字节流转换为utf8表示的字符串
 			size_t i = 0;
 			while (!utf8str[i].empty() && utf8str[i] != "#") {//#为注释
@@ -101,34 +137,38 @@ namespace PinInCpp {
 							i++;
 						}
 						i++;//不要:符号
-						std::vector<std::string> pinyinbuf(1);//先构造一个，方便后续使用
-						size_t bufCursor = 0;
 						uint8_t currentTone = 0;
+						size_t pinyinId = NullPinyinId;
 						//现在应该开始构造拼音表
 						while (!utf8str[i].empty() && utf8str[i] != "#") {
-							if (utf8str[i] == ",") {//往下存储一个
-								pinyinbuf[bufCursor] += (std::to_string(currentTone));//追加到末尾
-								bufCursor++;
-								pinyinbuf.push_back("");
-								currentTone = 0;//初始化，无声调就是0
+							if (utf8str[i] == ",") {//这一段的时候需要存入音调再存入','
+								pool.putChar(currentTone + 48);//+48就是对应ASCII字符
+								pool.putChar(',');//存入分界符
 							}
 							else if (utf8str[i] != " ") {//跳过空格
 								auto it = toneMap.find(utf8str[i]);
 								if (it == toneMap.end()) {//没找到
-									pinyinbuf[bufCursor] += utf8str[i];//原封不动
+									size_t pos = pool.put(utf8str[i]);//原封不动
+									if (pinyinId == NullPinyinId) {//如果是默认值则赋值代表拼音id
+										pinyinId = pos;
+									}
 								}
 								else {//找到了
-									pinyinbuf[bufCursor].push_back(it->second.c);//替换成无声调字符
+									size_t pos = pool.putChar(it->second.c);//替换成无声调字符
+									if (pinyinId == NullPinyinId) {
+										pinyinId = pos;
+									}
 									currentTone = it->second.tone;
 								}
 							}
 							i++;
 						}
-						pinyinbuf[bufCursor] += (std::to_string(currentTone));//追加到末尾，这是最后一个的
-
-						key = UnicodeToUtf8(HexStrToInt(key));
-						data[key] = pinyinbuf;//设置
-
+						if (pinyinId != NullPinyinId) {
+							pool.putChar(currentTone + 48);//+48就是对应ASCII字符 追加到末尾，这是最后一个的
+							pool.putEnd();//结尾分隔
+							key = UnicodeToUtf8(HexStrToInt(key));
+							data[key] = pinyinId;//设置
+						}
 						break;//退出这次循环，读取下一行
 					}
 				}
@@ -140,19 +180,41 @@ namespace PinInCpp {
 		return static_cast<bool>(data.count(str));
 	}
 
+	std::vector<std::string> PinIn::GetPinyinById(const size_t id, bool hasTone)const {
+		if (id == NullPinyinId) {
+			return {};
+		}
+		if (hasTone) {
+			std::vector<std::string> result = pool.getPinyinVec(id);
+			return result;
+		}
+		else {
+			std::vector<std::string> result;
+			std::set<std::string> HasResult;//创建结果集，排除重复选项
+			for (const auto& str : pool.getPinyinVec(id)) {//直接遍历容器，把有需要的取出来即可
+				std::string temp = str.substr(0, str.size() - 1);
+				if (!HasResult.count(temp)) {
+					result.push_back(temp);
+					HasResult.insert(temp);
+				}
+			}
+			return result;
+		}
+	}
+
 	std::vector<std::string> PinIn::GetPinyin(const std::string& str, bool hasTone)const {
 		auto it = data.find(str);
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string>{str};
 		}
 		if (hasTone) {//如果需要音调就直接返回
-			return std::vector<std::string>(it->second);//深拷贝一份副本
+			return pool.getPinyinVec(it->second);//直接返回这个方法返回的值
 		}
 
 		//不需要音调需要处理
 		std::vector<std::string> result;
 		std::set<std::string> HasResult;//创建结果集，排除重复选项
-		for (const auto& str : it->second) {//直接遍历容器，把有需要的取出来即可
+		for (const auto& str : pool.getPinyinVec(it->second)) {//直接遍历容器，把有需要的取出来即可
 			std::string temp = str.substr(0, str.size() - 1);
 			if (!HasResult.count(temp)) {
 				result.push_back(temp);

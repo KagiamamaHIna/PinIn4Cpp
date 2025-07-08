@@ -9,22 +9,13 @@
 #include "StringPool.h"
 
 namespace PinInCpp {
-	//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
-	class CharPool {
-	public:
-		size_t put(const std::string& s);
-		std::string get(size_t i)const;
-	private:
-		std::vector<char> strs;
-	};
-
 	//Unicode码转utf8字节流
 	std::string UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
 
 	std::vector<std::string> split(const std::string& str, char delimiter);
-	class CharPool;
+
 	class Utf8String {
 	public:
 		Utf8String(const std::string& input);
@@ -83,11 +74,22 @@ namespace PinInCpp {
 		std::vector<std::string> strs;
 	};*/
 
+	constexpr size_t NullPinyinId = (size_t)-1;
+
 	class PinIn {
 	public:
 		PinIn(const std::string& path);
+		size_t GetPinyinId(const std::string& hanzi)const {
+			auto it = data.find(hanzi);
+			if (it == data.end()) {
+				return NullPinyinId;
+			}
+			return it->second;
+		}
+		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
 		std::vector<std::string> GetPinyin(const std::string& str, bool hasTone = false)const;//处理单汉字的拼音
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string& str, bool hasTone = false)const;//处理多汉字的拼音
+
 		bool HasPinyin(const std::string& str)const;
 
 		static bool hasInitial(const std::string& s) {//判断是否有声母
@@ -109,8 +111,18 @@ namespace PinInCpp {
 		}
 
 	private:
-		std::unordered_map<std::string, std::vector<std::string>> data;//用数字(int32_t)id代表内部拼音方便比较
-		//CharPool pool;
+		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
+		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
+		public:
+			size_t put(const std::string& s);
+			size_t putChar(const char s);
+			void putEnd();
+			std::vector<std::string> getPinyinVec(size_t i)const;
+		private:
+			std::vector<char> strs;//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
+		};
+		CharPool pool;
+		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
 
 		bool fZh2Z = false;
 		bool fSh2S = false;
