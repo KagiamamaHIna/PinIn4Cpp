@@ -32,7 +32,7 @@ int main() {
 
 	system("pause");
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	for (const auto& str : testPin.GetPinyin("佻", true)) {
+	for (const auto& str : testPin.GetPinyinView("佻", true)) {
 		std::cout << str << '\n';
 	}
 	/*std::fstream file("D:/repos/PinyinTest/small.txt");

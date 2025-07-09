@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <set>
 
-#include "StringPool.h"
-
 namespace PinInCpp {
 	//Unicode码转utf8字节流
 	std::string UnicodeToUtf8(char32_t);
@@ -139,8 +137,16 @@ namespace PinInCpp {
 			return it->second;
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
+		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口
+
 		std::vector<std::string> GetPinyin(const std::string& str, bool hasTone = false)const;//处理单汉字的拼音
+		std::vector<std::string_view> GetPinyinView(const std::string& str, bool hasTone = false)const;//只读版接口
+
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string& str, bool hasTone = false)const;//处理多汉字的拼音
+		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string& str, bool hasTone = false)const;//只读版接口
+		bool empty()const {//返回有效性，真即有效，假即无效
+			return pool.empty();
+		}
 
 		bool HasPinyin(const std::string& str)const;
 
@@ -170,11 +176,28 @@ namespace PinInCpp {
 			size_t putChar(const char s);
 			void putEnd();
 			std::vector<std::string> getPinyinVec(size_t i)const;
+			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
+			bool empty()const {
+				return strs.empty();
+			}
 		private:
 			std::vector<char> strs;//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
 		};
 		CharPool pool;
 		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+
+		template<typename T>//不需要音调需要处理
+		static std::vector<T> DeletaTone(const PinIn* ctx, size_t id) {
+			std::vector<T> result;
+			std::set<std::string_view> HasResult;//创建结果集，排除重复选项
+			for (const auto& str : ctx->pool.getPinyinViewVec(id, false)) {//直接遍历容器，把有需要的取出来即可，只读的字符串，不涉及拷贝，所需的才会拷贝
+				if (!HasResult.count(str)) {
+					result.push_back(T(str));//深拷贝
+					HasResult.insert(str);
+				}
+			}
+			return result;
+		}
 
 		bool fZh2Z = false;
 		bool fSh2S = false;
