@@ -117,13 +117,6 @@ namespace PinInCpp {
 		}
 	};
 
-	/*class Phoneme {
-	public:
-
-	private:
-		std::vector<std::string> strs;
-	};*/
-
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
 	class PinIn {
@@ -187,7 +180,7 @@ namespace PinInCpp {
 		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
 
 		template<typename T>//不需要音调需要处理
-		static std::vector<T> DeletaTone(const PinIn* ctx, size_t id) {
+		static std::vector<T> DeleteTone(const PinIn* ctx, size_t id) {
 			std::vector<T> result;
 			std::set<std::string_view> HasResult;//创建结果集，排除重复选项
 			for (const auto& str : ctx->pool.getPinyinViewVec(id, false)) {//直接遍历容器，把有需要的取出来即可，只读的字符串，不涉及拷贝，所需的才会拷贝

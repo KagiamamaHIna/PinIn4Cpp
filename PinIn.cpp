@@ -81,12 +81,11 @@ namespace PinInCpp {
 	//用于处理utf8字符串
 	Utf8String::Utf8String(const std::string& input) {
 		size_t cursor = 0;
-		char tempChar = input[cursor];
-		while (input[cursor]) {
-			size_t charSize = getUTF8CharSize(tempChar);
+		size_t end = input.size();//std::string不强制有'\0'
+		while (cursor < end) {
+			size_t charSize = getUTF8CharSize(input[cursor]);
 			str.push_back(input.substr(cursor, charSize));
 			cursor += charSize;
-			tempChar = input[cursor];
 		}
 	}
 
@@ -227,7 +226,7 @@ namespace PinInCpp {
 			return pool.getPinyinVec(id);
 		}
 		else {
-			return DeletaTone<std::string>(this, id);
+			return DeleteTone<std::string>(this, id);
 		}
 	}
 
@@ -239,7 +238,7 @@ namespace PinInCpp {
 			return pool.getPinyinViewVec(id);
 		}
 		else {
-			return DeletaTone<std::string_view>(this, id);
+			return DeleteTone<std::string_view>(this, id);
 		}
 	}
 
@@ -251,7 +250,7 @@ namespace PinInCpp {
 		if (hasTone) {//如果需要音调就直接返回
 			return pool.getPinyinVec(it->second);//直接返回这个方法返回的值
 		}
-		return DeletaTone<std::string>(this, it->second);
+		return DeleteTone<std::string>(this, it->second);
 	}
 
 	std::vector<std::string_view> PinIn::GetPinyinView(const std::string& str, bool hasTone)const {
@@ -262,7 +261,7 @@ namespace PinInCpp {
 		if (hasTone) {//有声调
 			return pool.getPinyinViewVec(it->second, true);//直接返回这个方法返回的值
 		}
-		return DeletaTone<std::string_view>(this, it->second);
+		return DeleteTone<std::string_view>(this, it->second);
 	}
 
 	std::vector<std::vector<std::string>> PinIn::GetPinyinList(const std::string& str, bool hasTone)const {
