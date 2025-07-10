@@ -9,7 +9,7 @@ namespace PinInCpp {
 	class Phoneme {
 	public:
 
-		void reload(const std::string str, const PinIn& p) {
+		void reload(const std::string& str, const PinIn& p) {
 			strs = {};
 			strs.push_back(str);
 

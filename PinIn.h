@@ -6,7 +6,10 @@
 #include <unordered_map>
 #include <set>
 
+#include "Keyboard.h"
+
 namespace PinInCpp {
+
 	//Unicode码转utf8字节流
 	std::string UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
@@ -14,10 +17,18 @@ namespace PinInCpp {
 
 	std::vector<std::string> split(const std::string& str, char delimiter);
 
-	class Utf8String {
+	template<typename StrType>
+	class UTF8StringTemplate {
 	public:
-		Utf8String(const std::string& input);
-
+		UTF8StringTemplate(const StrType& input) {
+			size_t cursor = 0;
+			size_t end = input.size();
+			while (cursor < end) {
+				size_t charSize = getUTF8CharSize(input[cursor]);
+				str.push_back(input.substr(cursor, charSize));
+				cursor += charSize;
+			}
+		}
 		std::string ToStream()const {
 			std::string result;
 			for (const auto& v : str) {
@@ -25,90 +36,55 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-
-		std::string& operator[](size_t i) {
+		StrType& operator[](size_t i) {
 			return str[i];
 		}
-
-		const std::string& operator[](size_t i)const {
+		const StrType& operator[](size_t i)const {
 			return str[i];
 		}
-
-		std::string& at(size_t i) {
+		StrType& at(size_t i) {
 			return str.at(i);
 		}
-
-		const std::string& at(size_t i)const {
+		const StrType& at(size_t i)const {
 			return str.at(i);
 		}
-
 		size_t size()const {
 			return str.size();
 		}
-
 		auto begin() {
 			return str.begin();
 		}
-
 		auto end() {
 			return str.end();
 		}
-
 		const auto begin()const {
 			return str.begin();
 		}
-
 		const auto end()const {
 			return str.end();
 		}
-
 	private:
-		std::vector<std::string> str;
+		static size_t getUTF8CharSize(char c) {
+			if ((c & 0x80) == 0) { // 0xxxxxxx
+				return 1;
+			}
+			else if ((c & 0xE0) == 0xC0) { // 110xxxxx
+				return 2;
+			}
+			else if ((c & 0xF0) == 0xE0) { // 1110xxxx
+				return 3;
+			}
+			else if ((c & 0xF8) == 0xF0) { // 11110xxx
+				return 4;
+			}
+			else {//这是一个非法的UTF-8首字节
+				return 1; //作为错误恢复，把它当作一个单字节处理
+			}
+		}
+		std::vector<StrType> str;
 	};
-
-	class Utf8StringView {
-	public:
-		Utf8StringView(const std::string_view& input);
-
-		std::string_view& operator[](size_t i) {
-			return str[i];
-		}
-
-		const std::string_view& operator[](size_t i)const {
-			return str[i];
-		}
-
-		std::string_view& at(size_t i) {
-			return str.at(i);
-		}
-
-		const std::string_view& at(size_t i)const {
-			return str.at(i);
-		}
-
-		size_t size()const {
-			return str.size();
-		}
-
-		auto begin() {
-			return str.begin();
-		}
-
-		auto end() {
-			return str.end();
-		}
-
-		const auto begin()const {
-			return str.begin();
-		}
-
-		const auto end()const {
-			return str.end();
-		}
-
-	private:
-		std::vector<std::string_view> str;
-	};
+	using Utf8String = UTF8StringTemplate<std::string>;
+	using Utf8StringView = UTF8StringTemplate<std::string_view>;
 
 	class PinyinFileNoGet : public std::exception {
 	public:
@@ -140,25 +116,94 @@ namespace PinInCpp {
 		bool empty()const {//返回有效性，真即有效，假即无效
 			return pool.empty();
 		}
-
 		bool HasPinyin(const std::string& str)const;
 
-		static bool hasInitial(const std::string& s) {//判断是否有声母
-			if (s.empty()) {
-				return false;
+		class Ticket {
+		public:
+			Ticket(const PinIn& ctx, const std::function<void()>& fn) : runnable{ fn }, ctx{ ctx } {
+				modification = ctx.modification;
 			}
-			//检查第一个字符
-			switch (s.front()) {
-			case 'a':
-			case 'e':
-			case 'i':
-			case 'o':
-			case 'u':
-			case 'v': //'v' 代表 'ü'
-				return false; //如果是元音开头，说明没有（辅音）声母
-			default:
-				return true;  //其他所有情况（辅音开头），说明有声母
+			void renew() {
+				int i = ctx.modification;
+				if (modification != i) {
+					modification = i;
+					runnable();
+				}
 			}
+		private:
+			const PinIn& ctx;//绑定的拼音上下文
+			const std::function<void()> runnable;//任务
+			int modification;
+		};
+		Ticket ticket(const std::function<void()>& r)const {
+			return Ticket(*this, r);
+		}
+
+		const Keyboard& getkeyboard()const {
+			return keyboard;
+		}
+		bool getfZh2Z()const {
+			return fZh2Z;
+		}
+		bool getfSh2S()const {
+			return fSh2S;
+		}
+		bool getfCh2C()const {
+			return fCh2C;
+		}
+		bool getfAng2An()const {
+			return fAng2An;
+		}
+		bool getfIng2In()const {
+			return fIng2In;
+		}
+		bool getfEng2En()const {
+			return fEng2En;
+		}
+		bool getfU2V()const {
+			return fU2V;
+		}
+		class Config {
+		public://不提供函数式的链式调用接口了
+			Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
+				//剩下构造一些浅拷贝也无影响的
+				fZh2Z = ctx.fZh2Z;
+				fSh2S = ctx.fSh2S;
+				fCh2C = ctx.fCh2C;
+				fAng2An = ctx.fAng2An;
+				fIng2In = ctx.fIng2In;
+				fEng2En = ctx.fEng2En;
+				fU2V = ctx.fU2V;
+				accelerate = ctx.accelerate;
+			}
+			Keyboard keyboard;
+			bool fZh2Z = false;
+			bool fSh2S = false;
+			bool fCh2C = false;
+			bool fAng2An = false;
+			bool fIng2In = false;
+			bool fEng2En = false;
+			bool fU2V = false;
+			bool accelerate = false;
+			//将当前Config对象中的所有设置应用到PinIn上下文中。此方法总会触发数据的更改，无论配置是否实际发生变化，调用者应负责避免不必要的或重复的commit()调用
+			void commit() {
+				ctx.keyboard = keyboard;
+				ctx.fZh2Z = fZh2Z;
+				ctx.fSh2S = fSh2S;
+				ctx.fCh2C = fCh2C;
+				ctx.fAng2An = fAng2An;
+				ctx.fIng2In = fIng2In;
+				ctx.fEng2En = fEng2En;
+				ctx.fU2V = fU2V;
+				ctx.accelerate = accelerate;
+
+				ctx.modification++;
+			}
+		private:
+			PinIn& ctx;//绑定的拼音上下文
+		};
+		Config config() {//修改拼音类配置
+			return Config(*this);
 		}
 
 	private:
@@ -192,6 +237,8 @@ namespace PinInCpp {
 			return result;
 		}
 
+		Keyboard keyboard = Keyboard::QUANPIN;
+		int modification = 0;
 		bool fZh2Z = false;
 		bool fSh2S = false;
 		bool fCh2C = false;

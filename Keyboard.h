@@ -4,14 +4,14 @@
 #include <optional>
 #include <functional>
 
-#include "PinIn.h"
-
 /*
 	拼音上下文是带声调的！
 	拼音字符应当都是ASCII可表示的字符，不然字符串处理会出问题
 */
 
 namespace PinInCpp {
+	bool hasInitial(const std::string& s);//本质上就是一个处理函数，直接放这里也没啥
+
 	using OptionalStrMap = std::optional<std::map<std::string, std::string>>;
 	using CutterFn = std::function<std::vector<std::string>(const std::string&)>;
 
@@ -43,6 +43,6 @@ namespace PinInCpp {
 	private:
 		OptionalStrMap MapLocal;
 		OptionalStrMap MapKeys;
-		CutterFn cutter;
+		CutterFn cutter = standard;
 	};
 }

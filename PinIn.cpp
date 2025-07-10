@@ -30,25 +30,6 @@ namespace PinInCpp {
 		return utf8;
 	}
 
-	static size_t getUTF8CharSize(char c) {
-		if ((c & 0x80) == 0) { // 0xxxxxxx
-			return 1;
-		}
-		else if ((c & 0xE0) == 0xC0) { // 110xxxxx
-			return 2;
-		}
-		else if ((c & 0xF0) == 0xE0) { // 1110xxxx
-			return 3;
-		}
-		else if ((c & 0xF8) == 0xF0) { // 11110xxx
-			return 4;
-		}
-		else {
-			//这是一个非法的UTF-8首字节
-			return 1; //作为错误恢复，把它当作一个单字节处理
-		}
-	}
-
 	int HexStrToInt(const std::string& str) {
 		return std::stoi(str, nullptr, 16);
 	}
@@ -66,27 +47,6 @@ namespace PinInCpp {
 
 		result.push_back(str.substr(start));
 		return result;
-	}
-
-	Utf8StringView::Utf8StringView(const std::string_view& input) {
-		size_t cursor = 0;
-		size_t end = input.size();//string_view没有'\0'
-		while (cursor < end) {
-			size_t charSize = getUTF8CharSize(input[cursor]);
-			str.push_back(input.substr(cursor, charSize));
-			cursor += charSize;
-		}
-	}
-
-	//用于处理utf8字符串
-	Utf8String::Utf8String(const std::string& input) {
-		size_t cursor = 0;
-		size_t end = input.size();//std::string不强制有'\0'
-		while (cursor < end) {
-			size_t charSize = getUTF8CharSize(input[cursor]);
-			str.push_back(input.substr(cursor, charSize));
-			cursor += charSize;
-		}
 	}
 
 	size_t PinIn::CharPool::put(const std::string_view& s) {
