@@ -197,7 +197,7 @@ namespace PinInCpp {
 			void reload();
 		private:
 			friend PinIn;
-			Phoneme(const PinIn& ctx, const std::string_view& src) :ctx{ ctx }, src{ src } {
+			Phoneme(const PinIn& ctx, const std::string_view src) :ctx{ ctx }, src{ src } {
 				reload();
 			}
 			const PinIn& ctx;//可以之间绑定上下文，方便reload
