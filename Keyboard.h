@@ -17,28 +17,7 @@ namespace PinInCpp {
 
 	class Keyboard {
 	public:
-		Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence)
-			:cutter{ cutter }, duo{ duo }, sequence{ sequence } {
-			//在插入完成数据之前，构建视图都是不安全的行为，因为容器可能会随时扩容
-			//所以需要缓存数据，在插入完成后再根据数据构建视图
-			std::vector<InsertStrData> MapLocalData;
-			std::vector<InsertStrData> MapKeysData;
-			if (MapLocalArg != std::nullopt) {//不为空
-				InsertDataFn(MapLocalArg, MapLocalData);
-			}
-			if (MapKeysArg != std::nullopt) {
-				InsertDataFn(MapKeysArg, MapKeysData);
-			}
-			//数据均插入完成了，可以开始构建视图了
-			if (!MapLocalData.empty()) {//检查容器是否为空，防止map里也是空的情况下构造了map，因为那样是无用的
-				MapLocal = std::map<std::string_view, std::string_view>();//构建！
-				CreateViewOnMap(MapLocal.value(), MapLocalData);
-			}
-			if (!MapKeysData.empty()) {
-				MapKeys = std::map<std::string_view, std::string_view>();
-				CreateViewOnMap(MapKeys.value(), MapKeysData);
-			}
-		}
+		Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence);
 		virtual ~Keyboard() = default;
 
 		std::string_view keys(const std::string_view& s)const;
@@ -68,24 +47,8 @@ namespace PinInCpp {
 			size_t valueStart;
 		};
 		//DRY!
-		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data) {
-			for (const auto& [key, value] : srcData.value()) {
-				size_t keySize = key.size();
-				size_t keyStart = pool.put(key);
-
-				size_t valueSize = value.size();
-				size_t valueStart = pool.put(value);
-				data.push_back({ keySize,keyStart,valueSize,valueStart });
-			}
-		}
-		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data) {
-			char* poolptr = pool.data();
-			for (const auto& data : data) {
-				std::string_view key(poolptr + data.keyStart, data.keySize);
-				std::string_view value(poolptr + data.valueStart, data.valueSize);
-				Target[key] = value;
-			}
-		}
+		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data);
+		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data);
 		//不是StringPoolBase的派生类，是用于Keyboard持有字符串生命周期的内存池
 		class StrPool {
 		public: //作为字符串视图的数据源，他不需要终止符
