@@ -173,6 +173,7 @@ namespace PinInCpp {
 				break;//退出这次循环，读取下一行
 			}
 		}
+		//这里应该写 模糊音兼容
 	}
 	bool PinIn::HasPinyin(const std::string& str)const {
 		return static_cast<bool>(data.count(str));

@@ -5,15 +5,8 @@
 
 #include "Keyboard.h"
 
-struct ToneData {
-	char c;
-	uint8_t tone;
-};
-
 int main() {
 	system("chcp 65001");
-
-
 	/*PinInCpp::StringPool test;
 
 	size_t id1 = test.put("你好！");
@@ -29,12 +22,26 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
-
-	system("pause");
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	for (const auto& str : testPin.GetPinyinView("佻", true)) {
-		std::cout << str << '\n';
+	auto cfg = testPin.config();
+	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
+	cfg.commit();
+
+	auto vec = testPin.GetPinyinView("置", true);
+
+	for (const auto& str : vec) {
+		std::cout << str << ':';
+		for (const auto& s : testPin.getkeyboard().split(str)) {
+			std::cout << s;
+		}
+		std::cout << std::endl;
 	}
+
+	//system("pause");
+	//PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+	//for (const auto& str : testPin.GetPinyinView("佻", true)) {
+	//	std::cout << str << '\n';
+	//}
 	/*std::fstream file("D:/repos/PinyinTest/small.txt");
 	std::string line;
 	while (std::getline(file, line)) {

@@ -1,7 +1,7 @@
 #include "Keyboard.h"
 
 namespace PinInCpp {
-	bool hasInitial(const std::string& s) {//判断是否有声母
+	bool hasInitial(const std::string_view& s) {//判断是否有声母
 		if (s.empty()) {
 			return false;
 		}
@@ -19,11 +19,11 @@ namespace PinInCpp {
 		}
 	}
 
-	std::string Keyboard::keys(const std::string& s)const {
+	std::string_view Keyboard::keys(const std::string_view& s)const {
 		if (MapKeys == std::nullopt) {
 			return s;
 		}
-		const std::map<std::string, std::string>& Keys = MapKeys.value();
+		const std::map<std::string_view, std::string_view>& Keys = MapKeys.value();
 		auto it = Keys.find(s);
 		//指向结尾为未找到
 		if (it != Keys.end()) {
@@ -33,47 +33,49 @@ namespace PinInCpp {
 		return s;
 	}
 
-	std::vector<std::string> Keyboard::split(const std::string& s)const {
+	std::vector<std::string_view> Keyboard::split(const std::string_view& s)const {
 		if (s.empty()) { //可选？ 要为了性能不检查吧（
 			return {};
 		}
-		if (MapLocal != std::nullopt) {
-			const std::map<std::string, std::string>& Local = MapLocal.value();
+		std::string_view body = s.substr(0, s.size() - 1);
+		std::string_view tone = s.substr(s.size() - 1);
 
-			std::string cut = s.substr(0, s.size() - 1);
+		if (MapLocal != std::nullopt) {
+			const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
+
+			std::string_view cut = s.substr(0, s.size() - 1);
 			auto it = Local.find(cut);
 			if (it != Local.end()) {
-				return cutter(it->second + s.back());
+				body = it->second;//这个映射是没声调的，确实应该直接赋值
 			}
 		}
-		return cutter(s);
-	}
-
-	std::vector<std::string> Keyboard::standard(const std::string& s) {
-		std::vector<std::string> result;
-		size_t cursor = 0;
-		if (hasInitial(s)) {
-			cursor = s.size() > 2 && s[1] == 'h' ? 2 : 1;//原始代码会把2字符的给判断错误，这里写大于等于才是正确的(?)
-			result.push_back(s.substr(0, cursor));
-		}
-		//final
-		if (s.size() != cursor + 1) {
-			result.push_back(s.substr(cursor, (s.length() - 1) - cursor));
-		}
-
-		//tone
-		result.push_back(std::string(1, s.back()));//取最后一个字符构造字符串(声调)
+		std::vector<std::string_view> result = cutter(body);
+		result.push_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
 	}
 
-	std::vector<std::string> Keyboard::zero(const std::string& s) {
-		std::vector<std::string> ss = standard(s);
+	std::vector<std::string_view> Keyboard::standard(const std::string_view& s) {
+		std::vector<std::string_view> result;
+		size_t cursor = 0;
+		if (hasInitial(s)) {
+			cursor = s.size() >= 2 && s[1] == 'h' ? 2 : 1;//原始代码会把2字符的给判断错误，这里写大于等于才是正确的
+			result.push_back(s.substr(0, cursor));
+		}
+		//final
+		if (s.size() != cursor) {
+			result.push_back(s.substr(cursor, s.size() - cursor));
+		}
+		return result;
+	}
+
+	std::vector<std::string_view> Keyboard::zero(const std::string_view& s) {
+		std::vector<std::string_view> ss = standard(s);
 		if (ss.size() == 2) {
-			std::string finale = ss[0];//取字符串第一个元素
-			ss[0] = std::string(1, finale[0]);//覆写第一个元素为其字符串开头的字符
+			std::string_view finale = ss[0];//取字符串第一个元素
+			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
 
 			if (finale.size() == 2) {
-				ss.insert(ss.begin() + 1, std::string(1, finale[1]));
+				ss.insert(ss.begin() + 1, finale.substr(1, 1));//第二个字符，长度1
 			}
 			else {
 				ss.insert(ss.begin() + 1, finale);

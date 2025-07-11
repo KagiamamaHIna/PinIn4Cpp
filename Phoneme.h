@@ -15,6 +15,6 @@ namespace PinInCpp {
 
 		}
 	private:
-		std::vector<std::string> strs;
+		std::vector<std::string_view> strs;
 	};
 }

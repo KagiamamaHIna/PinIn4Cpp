@@ -95,6 +95,8 @@ namespace PinInCpp {
 
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
+	//应当设计一个拼音类，他存储着音素类，通过将拼音字符串重解析，生成一套音素
+
 	class PinIn {
 	public:
 		PinIn(const std::string& path);
@@ -186,6 +188,7 @@ namespace PinInCpp {
 			bool fU2V = false;
 			bool accelerate = false;
 			//将当前Config对象中的所有设置应用到PinIn上下文中。此方法总会触发数据的更改，无论配置是否实际发生变化，调用者应负责避免不必要的或重复的commit()调用
+			//重载完成后，音素这样的数据的视图不再合法，需要重载，可以用Ticket类注册一个异步操作，在每次执行前检查后按需重载(执行Ticket::renew触发回调函数)
 			void commit() {
 				ctx.keyboard = keyboard;
 				ctx.fZh2Z = fZh2Z;
@@ -196,7 +199,7 @@ namespace PinInCpp {
 				ctx.fEng2En = fEng2En;
 				ctx.fU2V = fU2V;
 				ctx.accelerate = accelerate;
-
+				//需要补齐重载逻辑
 				ctx.modification++;
 			}
 		private:
