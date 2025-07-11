@@ -327,5 +327,9 @@ namespace PinInCpp {
 		if (strs.empty()) {
 			strs.push_back(src);//都没有就把你自己插进去
 		}
+
+		for (auto& str : strs) {
+			str = ctx.keyboard.keys(str);//处理映射逻辑
+		}
 	}
 }
