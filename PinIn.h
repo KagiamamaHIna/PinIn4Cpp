@@ -102,10 +102,7 @@ namespace PinInCpp {
 		PinIn(const std::string& path);
 		size_t GetPinyinId(const std::string& hanzi)const {
 			auto it = data.find(hanzi);
-			if (it == data.end()) {
-				return NullPinyinId;
-			}
-			return it->second;
+			return it == data.end() ? NullPinyinId : it->second;
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
 		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口
@@ -186,6 +183,27 @@ namespace PinInCpp {
 		Config config() {//修改拼音类配置
 			return Config(*this);
 		}
+		class Phoneme {
+		public:
+			/*
+			我发现模糊匹配这个流程，字符串拼接、查找表等也是能避免的，只需要做简单的字符串/字符比较，理由如下：
+			z/s/c的模糊音，非常简单，不过多论述
+			v->u的模糊音，遇到j/q/x/y的时候，v不再写为v，而是写为u，
+			导致其只有v和ve的操作需要单独列出来，这将数据量压到了一个非常小范围，我们可以做一次字符串长度检查完成是v还是ve的操作
+			ang/eng/ing和an/en/in的模糊音，
+			实际上和z/s/c的情况类似了，因为不需要前缀拼接，即他们是单独的音素，而不是一个完整的拼音，所以简化成了z/s/c的模糊音规则即可，
+			最后把对应的结果用字符串字面量写进去:)
+			*/
+			void reload();
+		private:
+			friend PinIn;
+			Phoneme(const PinIn& ctx, const std::string src) :ctx{ ctx }, src{ src } {
+				reload();
+			}
+			const PinIn& ctx;//可以之间绑定上下文，方便reload
+			const std::string_view src;//原始的字符串视图，方便reload
+			std::vector<std::string_view> strs;//真正用于处理的数据
+		};
 
 	private:
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
@@ -196,6 +214,9 @@ namespace PinInCpp {
 			void putEnd();
 			std::vector<std::string> getPinyinVec(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
+			std::string_view getStrView(size_t i, size_t size) {//通过偏移+长度构造一份视图，用于音素数据
+				return std::string_view(strs.data() + i, size);
+			}
 			bool empty()const {
 				return strs.empty();
 			}
@@ -204,6 +225,7 @@ namespace PinInCpp {
 		};
 		CharPool pool;
 		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+		std::unordered_map<std::string_view, std::string_view> fuzzyPhoneme;//原始音素到模糊音素的映射
 
 		template<typename T>//不需要音调需要处理
 		static std::vector<T> DeleteTone(const PinIn* ctx, size_t id) {

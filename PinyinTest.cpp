@@ -5,6 +5,11 @@
 
 #include "Keyboard.h"
 
+/*
+TODO:
+拼音格式化类应该用一个函数实现，其重量级的实现放在cpp文件中，用枚举类确定其行为
+*/
+
 int main() {
 	system("chcp 65001");
 	/*PinInCpp::StringPool test;
@@ -22,7 +27,12 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
-	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+
+	for (const auto& v : PinInCpp::Keyboard::standard("ze")) {
+		std::cout << v << '\n';
+	}
+
+	/*PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 	auto cfg = testPin.config();
 	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
 	cfg.commit();
@@ -35,7 +45,7 @@ int main() {
 			std::cout << s;
 		}
 		std::cout << std::endl;
-	}
+	}*/
 
 	//system("pause");
 	//PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");

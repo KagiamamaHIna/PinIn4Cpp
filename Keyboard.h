@@ -23,7 +23,7 @@ namespace PinInCpp {
 		std::string_view keys(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
 
-		static std::vector<std::string_view> standard(const std::string_view& s);
+		static std::vector<std::string_view> standard(const std::string_view& s);//本身就是一个标准的，处理全拼音素的全局函数
 		static std::vector<std::string_view> zero(const std::string_view& s);
 
 		static const Keyboard QUANPIN;//类内不完整，所以这些的构造放cpp文件了

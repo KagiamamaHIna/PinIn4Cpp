@@ -1,5 +1,15 @@
 #include "PinIn.h"
 
+const inline static std::unordered_map<std::string_view, std::vector<std::string_view>> FUZZY_PAIRS = {
+	{"zh", {"z"}}, {"z", {"zh"}},
+	{"ch", {"c"}}, {"c", {"ch"}},
+	{"sh", {"s"}}, {"s", {"sh"}},
+	{"ang", {"an"}}, {"an", {"ang"}},
+	{"eng", {"en"}}, {"en", {"eng"}},
+	{"ing", {"in"}}, {"in", {"ing"}},
+	{"v", {"u"}}, {"ve", {"ue"}}, {"van", {"uan"}}, {"vn", {"un"}}
+};
+
 namespace PinInCpp {
 	//函数定义
 	//Unicode码转utf8字节流
@@ -104,9 +114,6 @@ namespace PinInCpp {
 		}
 		//保存最后一个
 		result.push_back(std::string_view(strs.data() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
-		cursor++;
-		StrStart = i + 1;//记录下一个字符串的开头
-
 		return result;
 	}
 
@@ -143,8 +150,9 @@ namespace PinInCpp {
 				size_t pinyinId = NullPinyinId;
 				//现在应该开始构造拼音表
 				while (i < size && utf8str[i] != "#") {
-					if (utf8str[i] == ",") {//这一段的时候需要存入音调再存入','
-						pool.putChar(currentTone + 48);//+48就是对应ASCII字符
+					if (utf8str[i] == "," && pinyinId != NullPinyinId) {//这一段的时候需要存入音调再存入','
+						//序列化步骤
+						pool.putChar(currentTone + '0');//+48就是对应ASCII字符，ASCII字符是有序排列的
 						pool.putChar(',');//存入分界符
 					}
 					else if (utf8str[i] != " ") {//跳过空格
@@ -269,5 +277,53 @@ namespace PinInCpp {
 		ctx.accelerate = accelerate;
 		//需要补齐重载逻辑
 		ctx.modification++;
+	}
+
+	void PinIn::Phoneme::reload() {
+		if (src.empty()) {//没数据？非法的吧！，不过就直接结束了也算一种处理了
+			return;
+		}
+		strs.clear();
+		if (ctx.fCh2C && src[0] == 'c') {
+			strs.push_back("ch");
+			strs.push_back("c");
+		}
+		else if (ctx.fSh2S && src[0] == 's') {
+			strs.push_back("sh");
+			strs.push_back("s");
+		}
+		else if (ctx.fZh2Z && src[0] == 'z') {
+			strs.push_back("zh");
+			strs.push_back("z");
+		}
+		else if (ctx.fU2V && src[0] == 'v') {//我们可以做一次字符串长度检查完成是v还是ve的操作
+			if (src.size() == 2) {
+				strs.push_back("ue");
+			}
+			else {
+				strs.push_back("v");
+			}
+		}
+		else if (src.size() >= 2 && src[1] == 'n') {
+			//需要有边界检查，他原本的逻辑是检查如果为ang，则添加an，反过来也一样
+			//那么为什么我不直接检查到an，就两个都添加呢？反正手动插入避免查重了 下面的同理
+			//还有可以提前检查n
+			if (ctx.fAng2An && src[0] == 'a') {
+				strs.push_back("an");
+				strs.push_back("ang");
+			}
+			else if (ctx.fEng2En && src[0] == 'e') {
+				strs.push_back("en");
+				strs.push_back("eng");
+			}
+			else if (ctx.fIng2In && src[0] == 'i') {
+				strs.push_back("in");
+				strs.push_back("ing");
+			}
+		}
+
+		if (strs.empty()) {
+			strs.push_back(src);//都没有就把你自己插进去
+		}
 	}
 }

@@ -145,9 +145,7 @@
   <ItemGroup>
     <ClInclude Include="Accelerator.h" />
     <ClInclude Include="Keyboard.h" />
-    <ClInclude Include="Phoneme.h" />
     <ClInclude Include="PinIn.h" />
-    <ClInclude Include="Pinyin.h" />
     <ClInclude Include="StringPool.h" />
     <ClInclude Include="TreeSearcher.h" />
   </ItemGroup>

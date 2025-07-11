@@ -19,12 +19,6 @@
     <Filter Include="源文件\utils">
       <UniqueIdentifier>{38428313-6cfa-4762-afd0-ca295192b971}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\elements">
-      <UniqueIdentifier>{eadc29d1-ee63-43d8-a0fe-2f5639498d83}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\elements">
-      <UniqueIdentifier>{990a7641-2ab6-4dc0-a8de-05a17c8c861d}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PinyinTest.cpp">
@@ -55,12 +49,6 @@
     </ClInclude>
     <ClInclude Include="StringPool.h">
       <Filter>头文件\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="Phoneme.h">
-      <Filter>头文件\elements</Filter>
-    </ClInclude>
-    <ClInclude Include="Pinyin.h">
-      <Filter>头文件\elements</Filter>
     </ClInclude>
     <ClInclude Include="TreeSearcher.h">
       <Filter>头文件</Filter>
