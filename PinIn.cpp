@@ -244,4 +244,30 @@ namespace PinInCpp {
 		}
 		return result;
 	}
+
+	PinIn::Config::Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
+		//剩下构造一些浅拷贝也无影响的
+		fZh2Z = ctx.fZh2Z;
+		fSh2S = ctx.fSh2S;
+		fCh2C = ctx.fCh2C;
+		fAng2An = ctx.fAng2An;
+		fIng2In = ctx.fIng2In;
+		fEng2En = ctx.fEng2En;
+		fU2V = ctx.fU2V;
+		accelerate = ctx.accelerate;
+	}
+
+	void PinIn::Config::commit() {
+		ctx.keyboard = keyboard;
+		ctx.fZh2Z = fZh2Z;
+		ctx.fSh2S = fSh2S;
+		ctx.fCh2C = fCh2C;
+		ctx.fAng2An = fAng2An;
+		ctx.fIng2In = fIng2In;
+		ctx.fEng2En = fEng2En;
+		ctx.fU2V = fU2V;
+		ctx.accelerate = accelerate;
+		//需要补齐重载逻辑
+		ctx.modification++;
+	}
 }

@@ -167,17 +167,7 @@ namespace PinInCpp {
 		}
 		class Config {
 		public://不提供函数式的链式调用接口了
-			Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
-				//剩下构造一些浅拷贝也无影响的
-				fZh2Z = ctx.fZh2Z;
-				fSh2S = ctx.fSh2S;
-				fCh2C = ctx.fCh2C;
-				fAng2An = ctx.fAng2An;
-				fIng2In = ctx.fIng2In;
-				fEng2En = ctx.fEng2En;
-				fU2V = ctx.fU2V;
-				accelerate = ctx.accelerate;
-			}
+			Config(PinIn& ctx);
 			Keyboard keyboard;
 			bool fZh2Z = false;
 			bool fSh2S = false;
@@ -189,19 +179,7 @@ namespace PinInCpp {
 			bool accelerate = false;
 			//将当前Config对象中的所有设置应用到PinIn上下文中。此方法总会触发数据的更改，无论配置是否实际发生变化，调用者应负责避免不必要的或重复的commit()调用
 			//重载完成后，音素这样的数据的视图不再合法，需要重载，可以用Ticket类注册一个异步操作，在每次执行前检查后按需重载(执行Ticket::renew触发回调函数)
-			void commit() {
-				ctx.keyboard = keyboard;
-				ctx.fZh2Z = fZh2Z;
-				ctx.fSh2S = fSh2S;
-				ctx.fCh2C = fCh2C;
-				ctx.fAng2An = fAng2An;
-				ctx.fIng2In = fIng2In;
-				ctx.fEng2En = fEng2En;
-				ctx.fU2V = fU2V;
-				ctx.accelerate = accelerate;
-				//需要补齐重载逻辑
-				ctx.modification++;
-			}
+			void commit();
 		private:
 			PinIn& ctx;//绑定的拼音上下文
 		};
