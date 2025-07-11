@@ -42,9 +42,7 @@ namespace PinInCpp {
 
 		if (MapLocal != std::nullopt) {
 			const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
-
-			std::string_view cut = s.substr(0, s.size() - 1);
-			auto it = Local.find(cut);
+			auto it = Local.find(body);//之前分割的cut其实就和body一致
 			if (it != Local.end()) {
 				body = it->second;//这个映射是没声调的，确实应该直接赋值
 			}
