@@ -214,9 +214,6 @@ namespace PinInCpp {
 			void putEnd();
 			std::vector<std::string> getPinyinVec(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
-			std::string_view getStrView(size_t i, size_t size) {//通过偏移+长度构造一份视图，用于音素数据
-				return std::string_view(strs.data() + i, size);
-			}
 			bool empty()const {
 				return strs.empty();
 			}
@@ -225,7 +222,6 @@ namespace PinInCpp {
 		};
 		CharPool pool;
 		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
-		std::unordered_map<std::string_view, std::string_view> fuzzyPhoneme;//原始音素到模糊音素的映射
 
 		template<typename T>//不需要音调需要处理
 		static std::vector<T> DeleteTone(const PinIn* ctx, size_t id) {
