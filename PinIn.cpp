@@ -299,8 +299,10 @@ namespace PinInCpp {
 		else if (ctx.fU2V && src[0] == 'v') {//我们可以做一次字符串长度检查完成是v还是ve的操作
 			if (src.size() == 2) {
 				strs.push_back("ue");
+				strs.push_back("ve");
 			}
 			else {
+				strs.push_back("u");
 				strs.push_back("v");
 			}
 		}
