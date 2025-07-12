@@ -5,6 +5,7 @@
 #include <exception>
 #include <unordered_map>
 #include <set>
+#include <cmath>
 
 #include "Keyboard.h"
 
@@ -200,16 +201,20 @@ namespace PinInCpp {
 			会被区分后分割出来，
 			所以！只有v+后缀字符串是真正需要在有Local的情况下查表匹配的，我们可以将这两个的逻辑简单的分离成私有成员方法，就能完美的实现了
 			*/
-			void reload(std::string_view newSrc);
+			void reload(const std::string_view NewPhoneme);
+			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
+				return strs.empty();
+			}
+			bool matchSequence(char c);
+			std::set<size_t> match(const std::string_view& source, size_t start, bool partial);
 		private:
 			friend PinIn;
-			void reloadNoMap();
-			void reloadHasMap();
+			void reloadNoMap(const std::string_view& src);
+			void reloadHasMap(const std::string_view& src);
 			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {
 				reload(src);
 			}
 			const PinIn& ctx;//可以之间绑定上下文，方便reload
-			std::string_view src;//原始的字符串视图，方便reload，需要可变性，因为每次reload都可能传递不一样的音素
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
 

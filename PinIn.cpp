@@ -59,6 +59,16 @@ namespace PinInCpp {
 		return result;
 	}
 
+	static size_t StrCmp(const std::string_view& a, const std::string_view& b, size_t aStart) {
+		size_t len = std::min(a.size() - aStart, b.size());
+		for (size_t i = 0; i < len; i++) {
+			if (a[i + aStart] != b[i]) {
+				return i;
+			}
+		}
+		return len;
+	}
+
 	size_t PinIn::CharPool::put(const std::string_view& s) {
 		size_t result = strs.size();
 		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
@@ -279,7 +289,33 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	void PinIn::Phoneme::reloadNoMap() {
+	bool PinIn::Phoneme::matchSequence(char c) {
+		for (const auto& str : strs) {
+			if (str[0] == 'c') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::set<size_t> PinIn::Phoneme::match(const std::string_view& source, size_t start, bool partial) {
+		std::set<size_t> result;
+		if (empty()) {
+			return result;
+		}
+		for (const auto& str : strs) {
+			int size = StrCmp(source, str, start);
+			if (partial && start + size == source.size()) {
+				result.insert(size);  // ending match
+			}
+			else if (size == str.size()) {
+				result.insert(size); // full match
+			}
+		}
+		return result;
+	}
+
+	void PinIn::Phoneme::reloadNoMap(const std::string_view& src) {
 		if (ctx.fCh2C && src[0] == 'c') {
 			strs.push_back("ch");
 			strs.push_back("c");
@@ -328,7 +364,7 @@ namespace PinInCpp {
 			str = ctx.keyboard.keys(str);//处理映射逻辑
 		}
 	}
-	void PinIn::Phoneme::reloadHasMap() {
+	void PinIn::Phoneme::reloadHasMap(const std::string_view& src) {
 		//这次需要查重了
 		std::set<std::string_view> StrSet;
 		StrSet.insert(src);
@@ -363,21 +399,20 @@ namespace PinInCpp {
 		}
 	}
 
-	void PinIn::Phoneme::reload(std::string_view newSrc) {
-		src = newSrc;//替换视图
+	void PinIn::Phoneme::reload(const std::string_view NewPhoneme) {
 		strs.clear();//应该前置，因为是在重载，非法的话就当然置空了
-		if (src.empty()) {//没数据？非法的吧！，不过就直接结束了也算一种处理了
+		if (NewPhoneme.empty()) {//没数据？非法的吧！，不过就直接结束了也算一种处理了
 			return;
 		}
-		if (src.size() == 1 && src[0] >= '0' && src[0] <= '4') {
-			strs.push_back(src); //声调就是它自己，直接处理完毕返回！
+		if (NewPhoneme.size() == 1 && NewPhoneme[0] >= '0' && NewPhoneme[0] <= '4') {
+			strs.push_back(NewPhoneme); //声调就是它自己，直接处理完毕返回！
 			return;
 		}
 		if (ctx.keyboard.GetHasFuuzyLocal()) {
-			reloadHasMap();//非标准音素，部分纯逻辑加查表实现
+			reloadHasMap(NewPhoneme);//非标准音素，部分纯逻辑加查表实现
 		}
 		else {
-			reloadNoMap();//标准音素，纯逻辑实现
+			reloadNoMap(NewPhoneme);//标准音素，纯逻辑实现
 		}
 	}
 }

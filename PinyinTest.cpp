@@ -2,6 +2,8 @@
 #include "PinIn.h"
 #include <fstream>
 #include "TreeSearcher.h"
+#include <chrono>
+
 
 #include "Keyboard.h"
 
@@ -28,9 +30,13 @@ int main() {
 
 	std::cout << test.getchar(id2);*/
 	system("pause");
-
+	long long Start = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	auto cfg = testPin.config();
+	long long End = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
+
+	std::cout << End - Start << '\n';
+
+	/*auto cfg = testPin.config();
 	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
 	cfg.commit();
 
@@ -42,7 +48,7 @@ int main() {
 			std::cout << s << ' ';
 		}
 		std::cout << std::endl;
-	}
+	}*/
 
 	//PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 	//for (const auto& str : testPin.GetPinyinView("佻", true)) {
