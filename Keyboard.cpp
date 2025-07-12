@@ -134,7 +134,7 @@ namespace PinInCpp {
 		return GetOnMapData(MapKeys, s);
 	}
 
-	std::string_view Keyboard::GetFuzzyPhoneme(const std::string_view& s) {
+	std::string_view Keyboard::GetFuzzyPhoneme(const std::string_view& s)const {
 		return GetOnMapData(MapLocalFuuzy, s);
 	}
 

@@ -27,27 +27,23 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
+	system("pause");
 
-	for (const auto& v : PinInCpp::Keyboard::standard("ze")) {
-		std::cout << v << '\n';
-	}
-
-	/*PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 	auto cfg = testPin.config();
 	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
 	cfg.commit();
 
-	auto vec = testPin.GetPinyinView("置", true);
+	auto vec = testPin.GetPinyinView("圈", true);
 
 	for (const auto& str : vec) {
 		std::cout << str << ':';
 		for (const auto& s : testPin.getkeyboard().split(str)) {
-			std::cout << s;
+			std::cout << s << ' ';
 		}
 		std::cout << std::endl;
-	}*/
+	}
 
-	//system("pause");
 	//PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
 	//for (const auto& str : testPin.GetPinyinView("佻", true)) {
 	//	std::cout << str << '\n';

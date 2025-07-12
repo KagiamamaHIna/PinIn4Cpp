@@ -200,14 +200,16 @@ namespace PinInCpp {
 			会被区分后分割出来，
 			所以！只有v+后缀字符串是真正需要在有Local的情况下查表匹配的，我们可以将这两个的逻辑简单的分离成私有成员方法，就能完美的实现了
 			*/
-			void reload();
+			void reload(std::string_view newSrc);
 		private:
 			friend PinIn;
-			Phoneme(const PinIn& ctx, const std::string_view src) :ctx{ ctx }, src{ src } {
-				reload();
+			void reloadNoMap();
+			void reloadHasMap();
+			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {
+				reload(src);
 			}
 			const PinIn& ctx;//可以之间绑定上下文，方便reload
-			const std::string_view src;//原始的字符串视图，方便reload
+			std::string_view src;//原始的字符串视图，方便reload，需要可变性，因为每次reload都可能传递不一样的音素
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
 

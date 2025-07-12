@@ -23,8 +23,11 @@ namespace PinInCpp {
 		virtual ~Keyboard() = default;
 
 		std::string_view keys(const std::string_view& s)const;
-		std::string_view GetFuzzyPhoneme(const std::string_view& s);
+		std::string_view GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
+		bool GetHasFuuzyLocal()const {//用于确定音素reload是否进行查表和纯逻辑行为
+			return MapLocalFuuzy.has_value();
+		}
 
 		static std::vector<std::string_view> standard(const std::string_view& s);//本身就是一个标准的，处理全拼音素的全局函数
 		static std::vector<std::string_view> zero(const std::string_view& s);
