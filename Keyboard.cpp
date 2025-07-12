@@ -81,13 +81,13 @@ namespace PinInCpp {
 		std::string_view body = s.substr(0, s.size() - 1);
 		std::string_view tone = s.substr(s.size() - 1);
 
-		if (MapLocal != std::nullopt) {
-			const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
-			auto it = Local.find(body);//之前分割的cut其实就和body一致
-			if (it != Local.end()) {
-				body = it->second;//这个映射是没声调的，确实应该直接赋值
-			}
-		}
+		//if (MapLocal != std::nullopt) {不需要了，映射逻辑交给音素类reload方法完成
+		//	const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
+		//	auto it = Local.find(body);//之前分割的cut其实就和body一致
+		//	if (it != Local.end()) {
+		//		body = it->second;//这个映射是没声调的，确实应该直接赋值
+		//	}
+		//}
 		std::vector<std::string_view> result = cutter(body);
 		result.push_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
