@@ -29,12 +29,14 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
-	system("pause");
-	long long Start = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	long long End = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
+	size_t id = testPin.GetPinyinId("调");
+	std::cout << testPin.Test(id + 6) << '\n';
+	for (const auto& str : testPin.GetPinyinById(id, true)) {
+		std::cout << str << '\n';
+	}
 
-	std::cout << End - Start << '\n';
+	system("pause");
 
 	/*auto cfg = testPin.config();
 	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;

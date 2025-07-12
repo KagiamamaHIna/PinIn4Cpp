@@ -59,16 +59,6 @@ namespace PinInCpp {
 		return result;
 	}
 
-	static size_t StrCmp(const std::string_view& a, const std::string_view& b, size_t aStart) {
-		size_t len = std::min(a.size() - aStart, b.size());
-		for (size_t i = 0; i < len; i++) {
-			if (a[i + aStart] != b[i]) {
-				return i;
-			}
-		}
-		return len;
-	}
-
 	size_t PinIn::CharPool::put(const std::string_view& s) {
 		size_t result = strs.size();
 		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
@@ -103,6 +93,14 @@ namespace PinInCpp {
 			tempChar = strs[i];//自增完成后再取下一个字符
 		}
 		return result;
+	}
+
+	std::string_view PinIn::CharPool::getPinyinView(size_t i) const {
+		const size_t start = i;
+		while (strs[i] != ',' && strs[i] != '\0') {
+			i++;
+		}
+		return std::string_view(strs.data() + start, i - start);
 	}
 
 	std::vector<std::string_view> PinIn::CharPool::getPinyinViewVec(size_t i, bool hasTone)const {
@@ -289,7 +287,17 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	bool PinIn::Phoneme::matchSequence(char c) {
+	static size_t StrCmp(const std::string_view& a, const std::string_view& b, size_t aStart) {
+		size_t len = std::min(a.size() - aStart, b.size());
+		for (size_t i = 0; i < len; i++) {
+			if (a[i + aStart] != b[i]) {
+				return i;
+			}
+		}
+		return len;
+	}
+
+	bool PinIn::Phoneme::matchSequence(char c)const {
 		for (const auto& str : strs) {
 			if (str[0] == 'c') {
 				return true;
@@ -298,18 +306,31 @@ namespace PinInCpp {
 		return false;
 	}
 
-	std::set<size_t> PinIn::Phoneme::match(const std::string_view& source, size_t start, bool partial) {
-		std::set<size_t> result;
+	IndexSet PinIn::Phoneme::match(const std::string_view& source, IndexSet idx, size_t start, bool partial)const {
+		if (empty()) {
+			return idx;
+		}
+		IndexSet result;
+		result.foreach([&](uint32_t i) {//&为捕获所有参数的引用，因为在函数内，所以是安全的，他不是注册一个异步操作
+			IndexSet is = match(source, start + i, partial);
+			is.offset(i);
+			result.merge(is);
+		});
+		return result;
+	}
+
+	IndexSet PinIn::Phoneme::match(const std::string_view& source, size_t start, bool partial)const {
+		IndexSet result;
 		if (empty()) {
 			return result;
 		}
 		for (const auto& str : strs) {
-			int size = StrCmp(source, str, start);
+			size_t size = StrCmp(source, str, start);
 			if (partial && start + size == source.size()) {
-				result.insert(size);  // ending match
+				result.set(size);  // ending match
 			}
 			else if (size == str.size()) {
-				result.insert(size); // full match
+				result.set(size); // full match
 			}
 		}
 		return result;
@@ -414,5 +435,45 @@ namespace PinInCpp {
 		else {
 			reloadNoMap(NewPhoneme);//标准音素，纯逻辑实现
 		}
+	}
+
+	void PinIn::Pinyin::reload() {
+		std::string_view str = ctx.pool.getPinyinView(id);//临时获取视图
+		duo = ctx.keyboard.duo;
+		sequence = ctx.keyboard.sequence;
+		phonemes.clear();//清空
+
+		for (const auto& str : ctx.keyboard.split(str)) {
+			phonemes.push_back(Phoneme(ctx, str));//构建音素后缓存进去
+		}
+	}
+
+	IndexSet PinIn::Pinyin::match(std::string_view str, size_t start, bool partial)const {
+		IndexSet ret;
+		if (duo) {
+			// in shuangpin we require initial and final both present,
+			// the phoneme, which is tone here, is optional
+			ret = IndexSet::ZERO;
+			ret = phonemes[0].match(str, ret, start, partial);
+			ret = phonemes[1].match(str, ret, start, partial);
+			ret.merge(phonemes[2].match(str, ret, start, partial));
+		}
+		else {
+			// in other keyboards, match of precedent phoneme
+			// is compulsory to match subsequent phonemes
+			// for example, zhong1, z+h+ong+1 cannot match zong or zh1
+			IndexSet active = IndexSet::ZERO;
+			ret = IndexSet();
+			for (Phoneme phoneme : phonemes) {
+				active = phoneme.match(str, active, start, partial);
+				if (active.empty()) break;
+				ret.merge(active);
+			}
+		}
+		if (sequence && phonemes[0].matchSequence(str[start])) {
+			ret.set(1);
+		}
+
+		return ret;
 	}
 }

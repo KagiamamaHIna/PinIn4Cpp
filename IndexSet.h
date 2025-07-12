@@ -6,6 +6,7 @@ namespace PinInCpp {
 	using IntPredicate = std::function<bool(uint32_t)>;
 	using IntConsumer = std::function<void(uint32_t)>;
 
+	//平凡类型，非常高效
 	class IndexSet {
 	public:
 		IndexSet() = default;

@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "Keyboard.h"
+#include "IndexSet.h"
 
 namespace PinInCpp {
 
@@ -113,6 +114,7 @@ namespace PinInCpp {
 
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string& str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string& str, bool hasTone = false)const;//只读版接口
+
 		bool empty()const {//返回有效性，真即有效，假即无效
 			return pool.empty();
 		}
@@ -184,9 +186,12 @@ namespace PinInCpp {
 		Config config() {//修改拼音类配置
 			return Config(*this);
 		}
+		class Pinyin;
 		class Phoneme {
 		public:
 			/*
+			你应该在Config.commit后把自己缓存的音素重载了
+
 			我发现模糊匹配这个流程，字符串拼接、查找表等也是能避免的，只需要做简单的字符串/字符比较，理由如下：
 			z/s/c的模糊音，非常简单，不过多论述
 			v->u的模糊音，遇到j/q/x/y的时候，v不再写为v，而是写为u，
@@ -205,19 +210,39 @@ namespace PinInCpp {
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
-			bool matchSequence(char c);
-			std::set<size_t> match(const std::string_view& source, size_t start, bool partial);
+			bool matchSequence(char c)const;
+			IndexSet match(const std::string_view& source, IndexSet idx, size_t start, bool partial)const;
+			IndexSet match(const std::string_view& source, size_t start, bool partial)const;
 		private:
-			friend PinIn;
-			void reloadNoMap(const std::string_view& src);
-			void reloadHasMap(const std::string_view& src);
-			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {
+			friend Pinyin;//由Pinyin类执行构建
+			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
 				reload(src);
 			}
-			const PinIn& ctx;//可以之间绑定上下文，方便reload
+			void reloadNoMap(const std::string_view& src);//无Local表的纯逻辑处理
+			void reloadHasMap(const std::string_view& src);//有Local表的逻辑查表混合处理
+
+			const PinIn& ctx;//直接绑定拼音上下文，方便reload
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
+		class Pinyin {
+		public:
+			const std::vector<Phoneme> GetPhonemes()const {
+				return phonemes;
+			}
+			void reload();
+			IndexSet match(std::string_view str, size_t start, bool partial)const;
+		private:
+			Pinyin(const PinIn& p, size_t id) :ctx{ p }, id{ id } {
+				reload();
+			}
 
+			const PinIn& ctx;
+			const size_t id;//原始设计也是不变的，轻量级id设计，不持有字符串视图
+			bool duo = false;
+			bool sequence = false;
+
+			std::vector<Phoneme> phonemes;
+		};
 	private:
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
@@ -226,6 +251,7 @@ namespace PinInCpp {
 			size_t putChar(const char s);
 			void putEnd();
 			std::vector<std::string> getPinyinVec(size_t i)const;
+			std::string_view getPinyinView(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
 			bool empty()const {
 				return strs.empty();
