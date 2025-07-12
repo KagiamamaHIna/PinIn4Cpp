@@ -467,7 +467,7 @@ namespace PinInCpp {
 		size_t currentId = id;
 		for (const auto& str : p.GetPinyinViewById(id, true)) {//split需要处理带声调的版本
 			pinyin.push_back(Pinyin(ctx, currentId));
-			currentId += str.size() + 2;//因为有个分隔符，要跳过直到下一个字符串起始
+			currentId += str.size() + 2;//因为有个分隔符和声调，所以要+2要跳过直到下一个字符串起始
 		}
 	}
 
