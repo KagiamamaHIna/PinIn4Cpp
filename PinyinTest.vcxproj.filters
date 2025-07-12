@@ -39,6 +39,9 @@
     <ClCompile Include="Accelerator.cpp">
       <Filter>源文件\utils</Filter>
     </ClCompile>
+    <ClCompile Include="IndexSet.cpp">
+      <Filter>源文件\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -54,6 +57,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Accelerator.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="IndexSet.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
   </ItemGroup>

@@ -136,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Accelerator.cpp" />
+    <ClCompile Include="IndexSet.cpp" />
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="PinIn.cpp" />
     <ClCompile Include="PinyinTest.cpp" />
@@ -144,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Accelerator.h" />
+    <ClInclude Include="IndexSet.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="PinIn.h" />
     <ClInclude Include="StringPool.h" />
