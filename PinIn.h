@@ -17,8 +17,6 @@ namespace PinInCpp {
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
 
-	std::vector<std::string> split(const std::string& str, char delimiter);
-
 	template<typename StrType>
 	class UTF8StringTemplate {
 	public:
@@ -101,6 +99,7 @@ namespace PinInCpp {
 
 	class PinIn {
 	public:
+		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(const std::string& path);
 		size_t GetPinyinId(const std::string& hanzi)const {
 			auto it = data.find(hanzi);
@@ -114,6 +113,10 @@ namespace PinInCpp {
 
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string& str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string& str, bool hasTone = false)const;//只读版接口
+
+		Character GetChar(const std::string& str)const {
+			return Character(*this, str);
+		}
 
 		bool empty()const {//返回有效性，真即有效，假即无效
 			return pool.empty();
@@ -186,8 +189,16 @@ namespace PinInCpp {
 		Config config() {//修改拼音类配置
 			return Config(*this);
 		}
+
+		//权责关系:Phoneme->Pinyin->Character->PinIn
+		class Element {//基类，确保这些成分都像原始的设计一样，可以被转换为这个基本的类
+		public:
+			virtual ~Element() = default;
+			virtual IndexSet match(const std::string_view& source, size_t start, bool partial)const = 0;
+			virtual std::string ToString()const = 0;
+		};
 		class Pinyin;
-		class Phoneme {
+		class Phoneme : public Element {
 		public:
 			/*
 			你应该在Config.commit后把自己缓存的音素重载了
@@ -206,6 +217,10 @@ namespace PinInCpp {
 			会被区分后分割出来，
 			所以！只有v+后缀字符串是真正需要在有Local的情况下查表匹配的，我们可以将这两个的逻辑简单的分离成私有成员方法，就能完美的实现了
 			*/
+			virtual ~Phoneme() = default;
+			virtual std::string ToString()const {
+				return std::string(strs[0]);
+			}
 			void reload(const std::string_view NewPhoneme);
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
@@ -213,6 +228,9 @@ namespace PinInCpp {
 			bool matchSequence(char c)const;
 			IndexSet match(const std::string_view& source, IndexSet idx, size_t start, bool partial)const;
 			IndexSet match(const std::string_view& source, size_t start, bool partial)const;
+			const std::vector<std::string_view>& GetAtoms()const {//获取这个音素的最小成分(原子)，即它表达了什么音素
+				return strs;
+			}
 		private:
 			friend Pinyin;//由Pinyin类执行构建
 			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
@@ -224,24 +242,51 @@ namespace PinInCpp {
 			const PinIn& ctx;//直接绑定拼音上下文，方便reload
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
-		class Pinyin {
+		class Pinyin : public Element {
 		public:
-			const std::vector<Phoneme> GetPhonemes()const {
+			virtual ~Pinyin() = default;
+			const std::vector<Phoneme>& GetPhonemes()const {//只读接口
 				return phonemes;
 			}
+			virtual std::string ToString()const {
+				return std::string(ctx.pool.getPinyinView(id));
+			}
 			void reload();
-			IndexSet match(std::string_view str, size_t start, bool partial)const;
+			IndexSet match(const std::string_view& str, size_t start, bool partial)const;
+			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
 		private:
+			friend Character;//由Character类执行构建
 			Pinyin(const PinIn& p, size_t id) :ctx{ p }, id{ id } {
 				reload();
 			}
-
 			const PinIn& ctx;
-			const size_t id;//原始设计也是不变的，轻量级id设计，不持有字符串视图
 			bool duo = false;
 			bool sequence = false;
-
 			std::vector<Phoneme> phonemes;
+		};
+		class Character : public Element {
+		public:
+			virtual ~Character() = default;
+			virtual std::string ToString()const {
+				return ch;
+			}
+			bool IsPinyinValid()const {//检查是否拼音有效 替代Dummy类型
+				return id == NullPinyinId;
+			}
+			const std::string& get()const {
+				return ch;
+			}
+			const std::vector<Pinyin>& GetPinyins()const {
+				return pinyin;
+			}
+			IndexSet match(const std::string_view& str, size_t start, bool partial)const;
+			const size_t id;//代表这个字符的一个主拼音id
+		private:
+			friend PinIn;//由PinIn类执行构建
+			Character(const PinIn& p, const std::string& ch);
+			const PinIn& ctx;
+			const std::string ch;//需要持有一个字符串，因为这个是依赖输入源的，不是拼音数据
+			std::vector<Pinyin> pinyin;
 		};
 	private:
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类

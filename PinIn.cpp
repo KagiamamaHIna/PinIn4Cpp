@@ -44,21 +44,6 @@ namespace PinInCpp {
 		return std::stoi(str, nullptr, 16);
 	}
 
-	std::vector<std::string> split(const std::string& str, char delimiter) {
-		std::vector<std::string> result;
-		size_t start = 0;
-		size_t end = str.find(delimiter);
-
-		while (end != std::string::npos) {
-			result.push_back(str.substr(start, end - start));
-			start = end + 1;
-			end = str.find(delimiter, start);
-		}
-
-		result.push_back(str.substr(start));
-		return result;
-	}
-
 	size_t PinIn::CharPool::put(const std::string_view& s) {
 		size_t result = strs.size();
 		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
@@ -326,11 +311,11 @@ namespace PinInCpp {
 		}
 		for (const auto& str : strs) {
 			size_t size = StrCmp(source, str, start);
-			if (partial && start + size == source.size()) {
-				result.set(size);  // ending match
+			if (partial && start + size == source.size()) {//显式手动转换，表明我知道这个转换且需要，避免编译期警告
+				result.set(static_cast<uint32_t>(size));  // ending match
 			}
 			else if (size == str.size()) {
-				result.set(size); // full match
+				result.set(static_cast<uint32_t>(size)); // full match
 			}
 		}
 		return result;
@@ -442,13 +427,12 @@ namespace PinInCpp {
 		duo = ctx.keyboard.duo;
 		sequence = ctx.keyboard.sequence;
 		phonemes.clear();//清空
-
 		for (const auto& str : ctx.keyboard.split(str)) {
 			phonemes.push_back(Phoneme(ctx, str));//构建音素后缓存进去
 		}
 	}
 
-	IndexSet PinIn::Pinyin::match(std::string_view str, size_t start, bool partial)const {
+	IndexSet PinIn::Pinyin::match(const std::string_view& str, size_t start, bool partial)const {
 		IndexSet ret;
 		if (duo) {
 			// in shuangpin we require initial and final both present,
@@ -474,6 +458,26 @@ namespace PinInCpp {
 			ret.set(1);
 		}
 
+		return ret;
+	}
+
+	PinIn::Character::Character(const PinIn& p, const std::string& ch) :ctx{ p }, id{ p.GetPinyinId(ch) }, ch{ ch } {
+		if (id == NullPinyinId) {
+			return;//无效拼音数据
+		}
+		size_t currentId = id;
+		for (const auto& str : p.GetPinyinViewById(id, true)) {//split需要处理带声调的版本
+			pinyin.push_back(Pinyin(ctx, currentId));
+			currentId += str.size() + 2;//因为有个分隔符，要跳过直到下一个字符串起始
+		}
+	}
+
+	IndexSet PinIn::Character::match(const std::string_view& str, size_t start, bool partial)const {
+		Utf8StringView u8str(str);
+		IndexSet ret = (u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE).copy();
+		for (const auto& p : pinyin) {
+			ret.merge(p.match(str, start, partial));
+		}
 		return ret;
 	}
 }

@@ -29,13 +29,17 @@ int main() {
 	std::cout << id3 << '\n';
 
 	std::cout << test.getchar(id2);*/
-	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	size_t id = testPin.GetPinyinId("调");
-	std::cout << testPin.Test(id + 6) << '\n';
-	for (const auto& str : testPin.GetPinyinById(id, true)) {
-		std::cout << str << '\n';
-	}
 
+	auto iter = PinInCpp::UTF8IterFnObj("你好，世界！");
+	iter.foreach([](std::string_view str) {
+		std::cout << str << '\n';
+	});
+
+	/*PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+	PinInCpp::PinIn::Character Char = testPin.GetChar("栓");
+	for (const auto& py : Char.GetPinyins()) {
+		std::cout << py.ToString() << '\n';
+	}*/
 	system("pause");
 
 	/*auto cfg = testPin.config();
