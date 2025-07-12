@@ -19,14 +19,65 @@ namespace PinInCpp {
 		}
 	}
 
-	void Keyboard::InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data) {
-		for (const auto& [key, value] : srcData.value()) {
-			size_t keySize = key.size();
-			size_t keyStart = pool.put(key);
+	void Keyboard::InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data, std::vector<InsertStrData>* LocalFuzzyData) {
+		if (LocalFuzzyData) {//有的话，循环的同时需要进行动态模糊音匹配
+			std::set<std::string_view> HasData;
+			for (const auto& [key, value] : srcData.value()) {
+				size_t keySize = key.size();
+				size_t keyStart = pool.put(key);
 
-			size_t valueSize = value.size();
-			size_t valueStart = pool.put(value);
-			data.push_back({ keySize,keyStart,valueSize,valueStart });
+				size_t valueSize = value.size();
+				size_t valueStart = pool.put(value);
+				data.push_back({ keySize,keyStart,valueSize,valueStart });
+				for (const auto& str : Keyboard::standard(value)) {//key是基于标准拼音的，所以只用检查value
+					if (HasData.count(str)) {//有就直接跳过
+						continue;
+					}
+					//没有就先插入，避免重复判断
+					HasData.insert(str);
+					size_t keySize = std::string::npos;
+					size_t keyStart;
+
+					size_t valueSize;
+					size_t valueStart;
+					if (str[0] == 'v') {//如果开头是v，那么就是要对应匹配的
+						keySize = str.size();
+						keyStart = pool.put(str);//插入原始匹配的
+
+						valueStart = pool.putChar('u');
+						valueSize = keySize;//本质上相当于一次文本替换，那长度当然不变
+						pool.putCharPtr(str.data() + 1, keySize - 1);//偏移一位，然后记录长度减一就行
+					}
+					else if (str.ends_with("ang") || str.ends_with("eng") || str.ends_with("ing")) {
+						keySize = str.size();
+						keyStart = pool.put(str);//插入原始匹配的
+
+						valueSize = keySize - 1;//本质上相当于一次字符串裁剪，只是剪掉了g，所以-1，且可以复用
+						valueStart = keyStart;
+					}
+					else if (str.ends_with("an") || str.ends_with("en") || str.ends_with("in")) {
+						keySize = str.size();
+						keyStart = pool.put(str);//插入原始匹配的
+
+						valueSize = keySize + 1;//本质上相当于一次字符串拼接，只是增加了g，所以+1，且可以复用
+						pool.putChar('g');//插入一个g进去
+						valueStart = keyStart;
+					}
+					if (keySize != std::string::npos) {//既然不是无效宽度了，那么就代表检查成功了，即符合某一模糊音匹配规则
+						LocalFuzzyData->push_back({ keySize,keyStart,valueSize,valueStart });
+					}
+				}
+			}
+		}
+		else {
+			for (const auto& [key, value] : srcData.value()) {
+				size_t keySize = key.size();
+				size_t keyStart = pool.put(key);
+
+				size_t valueSize = value.size();
+				size_t valueStart = pool.put(value);
+				data.push_back({ keySize,keyStart,valueSize,valueStart });
+			}
 		}
 	}
 	void Keyboard::CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data) {
@@ -42,9 +93,10 @@ namespace PinInCpp {
 		//在插入完成数据之前，构建视图都是不安全的行为，因为容器可能会随时扩容
 		//所以需要缓存数据，在插入完成后再根据数据构建视图
 		std::vector<InsertStrData> MapLocalData;
+		std::vector<InsertStrData> FuzzyPhoneme;
 		std::vector<InsertStrData> MapKeysData;
 		if (MapLocalArg != std::nullopt) {//不为空
-			InsertDataFn(MapLocalArg, MapLocalData);
+			InsertDataFn(MapLocalArg, MapLocalData, &FuzzyPhoneme);
 		}
 		if (MapKeysArg != std::nullopt) {
 			InsertDataFn(MapKeysArg, MapKeysData);
@@ -54,17 +106,21 @@ namespace PinInCpp {
 			MapLocal = std::map<std::string_view, std::string_view>();//构建！
 			CreateViewOnMap(MapLocal.value(), MapLocalData);
 		}
+		if (!FuzzyPhoneme.empty()) {
+			MapLocalFuuzy = std::map<std::string_view, std::string_view>();
+			CreateViewOnMap(MapLocalFuuzy.value(), FuzzyPhoneme);
+		}
 		if (!MapKeysData.empty()) {
 			MapKeys = std::map<std::string_view, std::string_view>();
 			CreateViewOnMap(MapKeys.value(), MapKeysData);
 		}
 	}
 
-	std::string_view Keyboard::keys(const std::string_view& s)const {
-		if (MapKeys == std::nullopt) {
+	std::string_view Keyboard::GetOnMapData(const OptionalStrViewMap& map, const std::string_view s) {
+		if (map == std::nullopt) {
 			return s;
 		}
-		const std::map<std::string_view, std::string_view>& Keys = MapKeys.value();
+		const std::map<std::string_view, std::string_view>& Keys = map.value();
 		auto it = Keys.find(s);
 		//指向结尾为未找到
 		if (it != Keys.end()) {
@@ -74,6 +130,14 @@ namespace PinInCpp {
 		return s;
 	}
 
+	std::string_view Keyboard::keys(const std::string_view& s)const {
+		return GetOnMapData(MapKeys, s);
+	}
+
+	std::string_view Keyboard::GetFuzzyPhoneme(const std::string_view& s) {
+		return GetOnMapData(MapLocalFuuzy, s);
+	}
+
 	std::vector<std::string_view> Keyboard::split(const std::string_view& s)const {
 		if (s.empty()) { //可选？ 要为了性能不检查吧（
 			return {};
@@ -81,13 +145,13 @@ namespace PinInCpp {
 		std::string_view body = s.substr(0, s.size() - 1);
 		std::string_view tone = s.substr(s.size() - 1);
 
-		//if (MapLocal != std::nullopt) {不需要了，映射逻辑交给音素类reload方法完成
-		//	const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
-		//	auto it = Local.find(body);//之前分割的cut其实就和body一致
-		//	if (it != Local.end()) {
-		//		body = it->second;//这个映射是没声调的，确实应该直接赋值
-		//	}
-		//}
+		if (MapLocal != std::nullopt) {//不需要了，映射逻辑交给音素类reload方法完成
+			const std::map<std::string_view, std::string_view>& Local = MapLocal.value();
+			auto it = Local.find(body);//之前分割的cut其实就和body一致
+			if (it != Local.end()) {
+				body = it->second;//这个映射是没声调的，确实应该直接赋值
+			}
+		}
 		std::vector<std::string_view> result = cutter(body);
 		result.push_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
