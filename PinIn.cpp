@@ -166,7 +166,7 @@ namespace PinInCpp {
 					i++;
 				}
 				if (pinyinId != NullPinyinId) {
-					pool.putChar(currentTone + 48);//+48就是对应ASCII字符 追加到末尾，这是最后一个的
+					pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 					pool.putEnd();//结尾分隔
 					key = UnicodeToUtf8(HexStrToInt(key));
 					data[key] = pinyinId;//设置
@@ -386,20 +386,19 @@ namespace PinInCpp {
 			StrSet.insert("zh");
 			StrSet.insert("z");
 		}
-		//这里开始写else分支是因为，同一key返回结果都一样，所以查询了其中一次后，就不必要去查询第二次
-		if (ctx.fU2V && src[0] == 'v') {//简单的检查字符串可以避免内部查表
-			StrSet.insert(ctx.keyboard.GetFuzzyPhoneme(src));
+		//将匹配逻辑内聚
+		if (ctx.fU2V && src[0] == 'v'//简单的检查字符串可以避免内部查表
+			|| (ctx.fAng2An && src.ends_with("ang"))
+			|| (ctx.fEng2En && src.ends_with("eng"))
+			|| (ctx.fIng2In && src.ends_with("ing"))
+			|| (ctx.fAng2An && src.ends_with("an"))
+			|| (ctx.fEng2En && src.ends_with("en"))
+			|| (ctx.fIng2In && src.ends_with("in"))) {
+			for (const auto& str : ctx.keyboard.GetFuzzyPhoneme(src)) {
+				StrSet.insert(str);
+			}
 		}
-		else if ((ctx.fAng2An && src.ends_with("ang"))
-		|| (ctx.fEng2En && src.ends_with("eng"))
-		|| (ctx.fIng2In && src.ends_with("ing"))) {
-			StrSet.insert(ctx.keyboard.GetFuzzyPhoneme(src));
-		}
-		else if ((ctx.fAng2An && src.ends_with("an"))
-		|| (ctx.fEng2En && src.ends_with("en"))
-		|| (ctx.fIng2In && src.ends_with("in"))) {
-			StrSet.insert(ctx.keyboard.GetFuzzyPhoneme(src));
-		}
+
 		for (const auto& str : StrSet) {
 			strs.push_back(ctx.keyboard.keys(str));//将视图压入向量
 		}

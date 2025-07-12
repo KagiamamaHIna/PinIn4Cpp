@@ -23,7 +23,7 @@ namespace PinInCpp {
 		virtual ~Keyboard() = default;
 
 		std::string_view keys(const std::string_view& s)const;
-		std::string_view GetFuzzyPhoneme(const std::string_view& s)const;
+		std::vector<std::string_view> GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
 		bool GetHasFuuzyLocal()const {//用于确定音素reload是否进行查表和纯逻辑行为
 			return MapLocalFuuzy.has_value();
@@ -46,6 +46,7 @@ namespace PinInCpp {
 		bool sequence;
 	private:
 		using OptionalStrViewMap = std::optional<std::map<std::string_view, std::string_view>>;
+		using OptionalStrViewVecMap = std::optional<std::map<std::string_view, std::vector<std::string_view>>>;
 		struct InsertStrData {
 			size_t keySize;
 			size_t keyStart;
@@ -53,10 +54,19 @@ namespace PinInCpp {
 			size_t valueSize;
 			size_t valueStart;
 		};
+		struct InsertStrMultiData {
+			size_t keySize;//一键对多个值
+			size_t keyStart;
+			struct value {
+				size_t valueSize;
+				size_t valueStart;
+			};
+			std::vector<value> values;
+		};
 		//DRY!
-		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data, std::vector<InsertStrData>* LocalFuzzyData = nullptr);
+		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data, std::vector<InsertStrMultiData>* LocalFuzzyData = nullptr);
 		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data);
-		static std::string_view GetOnMapData(const OptionalStrViewMap& map, const std::string_view s);
+
 		//不是StringPoolBase的派生类，是用于Keyboard持有字符串生命周期的内存池
 		class StrPool {
 		public: //作为字符串视图的数据源，他不需要终止符
@@ -82,8 +92,8 @@ namespace PinInCpp {
 			std::vector<char> strs;
 		};
 		StrPool pool;
+		OptionalStrViewVecMap MapLocalFuuzy;
 		OptionalStrViewMap MapLocal;
-		OptionalStrViewMap MapLocalFuuzy;
 		OptionalStrViewMap MapKeys;
 		CutterFn cutter = standard;
 	};
