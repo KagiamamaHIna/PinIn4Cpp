@@ -1,5 +1,4 @@
 #pragma once
-
 #include <set>
 
 #include "StringPool.h"
@@ -9,24 +8,20 @@ namespace PinInCpp {
 	public:
 		Accelerator(const PinIn& p) : ctx{ p } {
 		}
-
 		void search(const std::string& s) {
 			if (s != searchStr.ToStream()) {
 				searchStr = s;
 				reset();
 			}
 		}
-
 		void reset() {
 			cache.clear();
 		}
-
 		//接收一个外部的、长生命周期的provider
 		void setProvider(StringPoolBase* provider_ptr) {
 			provider = provider_ptr;
-			owned_provider.reset(); // 置空另一个
+			owned_provider.reset(); //置空另一个
 		}
-
 		//字符串版本
 		void setProvider(const std::string& s) {
 			provider = nullptr; //置空另一个

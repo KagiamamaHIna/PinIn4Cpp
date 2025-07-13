@@ -109,7 +109,7 @@ namespace PinInCpp {
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static int NDenseThreshold = 128;
 		constexpr static int NMapThreshold = 32;//分支节点转换临界点
-		std::unique_ptr<StringPoolBase> strs;
+		std::unique_ptr<StringPoolBase> strs;//应当继续贯彻零拷贝设计
 		Logic logic;
 		const PinIn context;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;

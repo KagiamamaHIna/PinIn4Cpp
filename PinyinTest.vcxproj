@@ -24,6 +24,7 @@
     <ProjectGuid>{c43f9a60-7479-44c5-a976-dc7af4e7c067}</ProjectGuid>
     <RootNamespace>PinyinTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>PinInCpp</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
