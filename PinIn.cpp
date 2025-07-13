@@ -447,7 +447,7 @@ namespace PinInCpp {
 			// for example, zhong1, z+h+ong+1 cannot match zong or zh1
 			IndexSet active = IndexSet::ZERO;
 			ret = IndexSet();
-			for (Phoneme phoneme : phonemes) {
+			for (const Phoneme& phoneme : phonemes) {
 				active = phoneme.match(str, active, start, partial);
 				if (active.empty()) break;
 				ret.merge(active);
