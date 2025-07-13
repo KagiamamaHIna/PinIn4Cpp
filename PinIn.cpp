@@ -169,7 +169,7 @@ namespace PinInCpp {
 					pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 					pool.putEnd();//结尾分隔
 					key = UnicodeToUtf8(HexStrToInt(key));
-					data[key] = pinyinId;//设置
+					data.insert_or_assign(key, pinyinId);//设置
 				}
 				break;//退出这次循环，读取下一行
 			}
@@ -255,7 +255,6 @@ namespace PinInCpp {
 		fIng2In = ctx.fIng2In;
 		fEng2En = ctx.fEng2En;
 		fU2V = ctx.fU2V;
-		accelerate = ctx.accelerate;
 	}
 
 	void PinIn::Config::commit() {
@@ -267,7 +266,6 @@ namespace PinInCpp {
 		ctx.fIng2In = fIng2In;
 		ctx.fEng2En = fEng2En;
 		ctx.fU2V = fU2V;
-		ctx.accelerate = accelerate;
 		//需要补齐重载逻辑
 		ctx.modification++;
 	}

@@ -84,7 +84,7 @@ namespace PinInCpp {
 		for (const auto& data : data) {
 			std::string_view key(poolptr + data.keyStart, data.keySize);
 			std::string_view value(poolptr + data.valueStart, data.valueSize);
-			Target[key] = value;
+			Target.insert_or_assign(key, value);
 		}
 	}
 	Keyboard::Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence)
@@ -111,7 +111,7 @@ namespace PinInCpp {
 			char* poolptr = pool.data();
 			for (const auto& data : FuzzyPhoneme) {
 				std::string_view key(poolptr + data.keyStart, data.keySize);
-				Target[key] = {};
+				Target[key];//会触发默认构造，所以不用显式赋值
 				for (const auto& item : data.values) {//将数据集插入
 					std::string_view str(poolptr + item.valueStart, item.valueSize);
 					Target[key].push_back(str);

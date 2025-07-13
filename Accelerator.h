@@ -8,6 +8,9 @@ namespace PinInCpp {
 	public:
 		Accelerator(const PinIn& p) : ctx{ p } {
 		}
+		const Utf8String& search() {
+			return searchStr;
+		}
 		void search(const std::string& s) {
 			if (s != searchStr.ToStream()) {
 				searchStr = s;

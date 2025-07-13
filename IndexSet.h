@@ -41,7 +41,7 @@ namespace PinInCpp {
 		class Storage {
 		public:
 			void set(const IndexSet& is, uint32_t index) {
-				data[index] = is.value + 1;
+				data.insert_or_assign(index, is.value + 1);
 			}
 			IndexSet get(size_t index) {
 				auto it = data.find(index);
