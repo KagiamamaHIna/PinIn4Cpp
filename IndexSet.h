@@ -19,7 +19,7 @@ namespace PinInCpp {
 		void set(uint32_t index) {
 			value |= (0x1 << index);
 		}
-		bool get(int index)const {
+		bool get(uint32_t index)const {
 			return (value & (0x1 << index)) != 0;
 		}
 		void merge(const IndexSet& s) {

@@ -41,12 +41,92 @@ namespace PinInCpp {
 		else if (owned_provider) {
 			const Utf8String& str = owned_provider.value();
 			for (size_t i = 0; i < max; i++) {//限定循环范围，跳出后返回max，和原始代码同逻辑
-				if (s1 + i >= str.size()) {//查询到结尾时强制退出，也是空检查置前
+				if (utf8_string_end(str, s1 + i)) {//查询到结尾时强制退出，也是空检查置前
 					return i;
 				}
 				if (str[s1 + i] != str[s2 + i]) return i;
 			}
 		}
 		return max;
+	}
+
+	bool Accelerator::check(size_t offset, size_t start) {
+		if (provider) {
+			if (offset == searchStr.size()) {
+				return partial || provider->end(start);
+			}
+			if (provider->end(start)) {
+				return false;
+			}
+
+			IndexSet s = get(provider->getchar(start), offset);
+
+			if (provider->end(start + 1)) {
+				size_t i = searchStr.size() - offset;
+				return s.get(i);
+			}
+			else {
+				return s.traverse([&](uint32_t i) {
+					return check(offset + i, start + 1);
+				});
+			}
+		}
+		else if (owned_provider) {
+			const Utf8String& str = owned_provider.value();
+			if (offset == searchStr.size()) {
+				return partial || utf8_string_end(str, start);
+			}
+			if (utf8_string_end(str, start)) {
+				return false;
+			}
+
+			IndexSet s = get(str[start], offset);
+
+			if (utf8_string_end(str, start + 1)) {
+				size_t i = searchStr.size() - offset;
+				return s.get(i);
+			}
+			else {
+				return s.traverse([&](uint32_t i) {
+					return check(offset + i, start + 1);
+				});
+			}
+		}
+		return false;//都没有就给我返回假
+	}
+
+	bool Accelerator::matches(size_t offset, size_t start) {
+		if (partial) {
+			partial = false;
+			reset();
+		}
+		return check(offset, start);
+	}
+
+	bool Accelerator::begins(size_t offset, size_t start) {
+		if (!partial) {
+			partial = true;
+			reset();
+		}
+		return check(offset, start);
+	}
+
+	bool Accelerator::contains(size_t offset, size_t start) {
+		if (!partial) {
+			partial = true;
+			reset();
+		}
+		if (provider) {
+			for (int i = start; !provider->end(i); i++) {
+				if (check(offset, i)) return true;
+			}
+		}
+		else if (owned_provider) {
+			const Utf8String& str = owned_provider.value();
+			for (int i = start; !utf8_string_end(str, i); i++) {
+				if (check(offset, i)) return true;
+			}
+		}
+		return false;
 	}
 }

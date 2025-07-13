@@ -35,6 +35,13 @@ namespace PinInCpp {
 		IndexSet get(const PinIn::Pinyin& p, int offset);
 		IndexSet get(const std::string& ch, int offset);
 		size_t common(size_t s1, size_t s2, size_t max);
+		bool check(size_t offset, size_t start);
+		bool matches(size_t offset, size_t start);
+		bool begins(size_t offset, size_t start);
+		bool contains(size_t offset, size_t start);
+		const Utf8String& getSearchStr() {
+			return searchStr;
+		}
 	private:
 		//两个数据源成员，互斥存在
 		StringPoolBase* provider = nullptr;     //观察者指针，不拥有
