@@ -157,16 +157,43 @@ namespace PinInCpp {
 
 			}
 			virtual void get(std::unordered_set<size_t>& ret) {
+				exit_node->get(ret);
 			}
 			virtual Node* put(size_t keyword, size_t id) {
-				return this;
+				size_t length = end - start;
+				size_t match = p.acc.common(start, keyword, length);
+				Node* n;
+				if (match >= length) {
+					n = exit_node->put(keyword + length, id);
+				}
+				else {
+					cut(start + match);
+					n = exit_node->put(keyword + match, id);
+				}
+				if (exit_node.get() != n) {
+					exit_node.reset(n);
+				}
+				return start == end ? exit_node.release() : this;
 			}
 		private:
 			friend NDense;//由NDense进行节点转换的构造
 			NSlice(size_t start, size_t end, TreeSearcher& p) :start{ start }, end{ end }, Node(p) {
-				//exit = std::make_unique<NMap>(p);
+				exit_node = std::make_unique<NMap>(p);
 			}
-			std::unique_ptr<Node> exit = nullptr;
+			void cut(size_t offset) {
+				NMap* insert = new NMap(p);
+				if (offset + 1 == end) {//当前exit_node的所有权都会被转移
+					insert->put(p.strs->getchar(offset), std::move(exit_node));
+				}
+				else {
+					NSlice* half = new NSlice(offset + 1, end, p);
+					half->exit_node = std::move(exit_node);
+					insert->put(p.strs->getchar(offset), std::unique_ptr<Node>(half));
+				}
+				exit_node.reset(insert);
+				end = offset;
+			}
+			std::unique_ptr<Node> exit_node = nullptr;
 			size_t start;
 			size_t end;
 		};
