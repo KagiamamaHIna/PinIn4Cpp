@@ -29,10 +29,13 @@ namespace PinInCpp {
 	class TreeSearcher {
 	public:
 		virtual ~TreeSearcher() = default;
-		TreeSearcher(Logic logic, PinIn input_context, StringPoolBase* strpool = nullptr)
+		TreeSearcher(Logic logic, const PinIn& input_context, std::unique_ptr<StringPoolBase> strpool = nullptr)//你不应该持有strpool!
 			:logic{ logic }, context{ input_context }, acc{ Accelerator(strs, context) } {
 			if (strpool == nullptr) {//如果没有指针，就分配一个UTF8的进去
 				strs = std::make_unique<UTF8StringPool>();
+			}
+			else {
+				strs = std::move(strpool);//显式移动，代表所有权转移
 			}
 		}
 
@@ -104,7 +107,7 @@ namespace PinInCpp {
 		constexpr static int NMapThreshold = 32;//分支节点转换临界点
 		std::unique_ptr<StringPoolBase> strs;
 		Logic logic;
-		PinIn context;//PinIn
+		const PinIn& context;//PinIn
 		Accelerator acc;
 
 		std::unique_ptr<Node> root = std::make_unique<NDense>();

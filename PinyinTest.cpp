@@ -6,7 +6,7 @@
 
 
 #include "Keyboard.h"
-
+#include "TreeSearcher.h"
 /*
 TODO:
 拼音格式化类应该用一个函数实现，其重量级的实现放在cpp文件中，用枚举类确定其行为
@@ -14,31 +14,29 @@ TODO:
 
 int main() {
 	system("chcp 65001");
-	/*PinInCpp::StringPool test;
+	PinInCpp::UTF8StringPool test;
 
 	size_t id1 = test.put("你好！");
-	std::cout << test.getLastStrUTF8Size() << '\n';
 	size_t id2 = test.put("草uckyou!");
-	std::cout << test.getLastStrUTF8Size() << '\n';
 	size_t id3 = test.put("逆天");
-	for (const auto& v : test.offsets()) {
+	/*for (const auto& v : test.offsets()) {
 		std::cout << v << '\n';
-	}
+	}*/
 	std::cout << id1 << '\n';
 	std::cout << id2 << '\n';
 	std::cout << id3 << '\n';
 
-	std::cout << test.getchar(id2);*/
-
-
+	std::cout << test.getstr_view(id2);
 
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
+	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, testPin, std::make_unique<PinInCpp::UTF8StringPool>());
+
+
+	system("pause");
 	PinInCpp::PinIn::Character Char = testPin.GetChar("栓");
 	for (const auto& py : Char.GetPinyins()) {
 		std::cout << py.ToString() << '\n';
 	}
-	system("pause");
-
 	/*auto cfg = testPin.config();
 	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
 	cfg.commit();

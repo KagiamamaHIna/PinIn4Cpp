@@ -7,7 +7,7 @@
 namespace PinInCpp {
 	class Accelerator {
 	public:
-		Accelerator(std::unique_ptr<StringPoolBase>& provider, PinIn& context) :provider{ provider }, context{ context } {
+		Accelerator(std::unique_ptr<StringPoolBase>& provider, const PinIn& p) :provider{ provider }, ctx{ p } {
 		}
 
 		void search(const std::string& s) {
@@ -59,7 +59,7 @@ namespace PinInCpp {
 		}
 	private:
 		std::unique_ptr<StringPoolBase>& provider;
-		PinIn& context;
+		const PinIn& ctx;
 		//这个容器是 vector<字符串索引 对 map<拼音id 对 匹配结果>> 后端的size_t类型是不是应该改为std::set<size_t>?
 		std::vector<std::unique_ptr<std::unordered_map<size_t, size_t>>> cache;
 		std::string searchStr;
