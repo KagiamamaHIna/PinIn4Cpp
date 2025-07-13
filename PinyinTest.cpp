@@ -6,7 +6,6 @@
 
 
 #include "Keyboard.h"
-#include "TreeSearcher.h"
 /*
 TODO:
 拼音格式化类应该用一个函数实现，其重量级的实现放在cpp文件中，用枚举类确定其行为
@@ -31,7 +30,7 @@ int main() {
 	std::string a("\0\0\0\0\0");
 
 	std::string_view b(a.data(), a.size());
-	std::cout << (b[0] == '\0') << '\n';
+	/*std::cout << (b[0] == '\0') << '\n';*/
 
 	system("pause");
 	/*PinInCpp::PinIn::Character Char = testPin.GetChar("栓");

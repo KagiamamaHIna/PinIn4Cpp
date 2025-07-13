@@ -93,7 +93,6 @@ namespace PinInCpp {
 			return "File not successfully opened";
 		}
 	};
-
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
 	//应当设计一个拼音类，他存储着音素类，通过将拼音字符串重解析，生成一套音素
@@ -221,7 +220,7 @@ namespace PinInCpp {
 			virtual std::string ToString()const {
 				return std::string(strs[0]);
 			}
-			void reload(const std::string_view NewPhoneme);
+			void reload();//本质上只需要代表好它的对象即可
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
@@ -231,15 +230,18 @@ namespace PinInCpp {
 			const std::vector<std::string_view>& GetAtoms()const {//获取这个音素的最小成分(原子)，即它表达了什么音素
 				return strs;
 			}
+			const std::string_view& GetSrc()const {
+				return src;
+			}
 		private:
 			friend Pinyin;//由Pinyin类执行构建
-			Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
-				reload(src);
+			explicit Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
 			}
-			void reloadNoMap(const std::string_view& src);//无Local表的纯逻辑处理
-			void reloadHasMap(const std::string_view& src);//有Local表的逻辑查表混合处理
+			void reloadNoMap();//无Local表的纯逻辑处理
+			void reloadHasMap();//有Local表的逻辑查表混合处理
 
 			const PinIn& ctx;//直接绑定拼音上下文，方便reload
+			const std::string_view src;
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
 		class Pinyin : public Element {
@@ -345,5 +347,14 @@ namespace PinInCpp {
 		{"ń", {'n', 2}}, {"ň", {'n', 3}}, {"ǹ", {'n', 4}},
 		{"ḿ", {'m', 2}}, {"m̀", {'m', 4}}
 		});
+	};
+	bool operator==(const PinIn::Phoneme& lhs, const PinIn::Phoneme& rhs);
+}
+namespace std {
+	template <>//特化一个这样的类
+	struct hash<PinInCpp::PinIn::Phoneme> {
+		std::size_t operator()(const PinInCpp::PinIn::Phoneme& p) const {
+			return std::hash<std::string_view>{}(p.GetSrc());
+		}
 	};
 }
