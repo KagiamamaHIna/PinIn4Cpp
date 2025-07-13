@@ -29,14 +29,18 @@ namespace PinInCpp {
 	class TreeSearcher {
 	public:
 		virtual ~TreeSearcher() = default;
-		TreeSearcher(Logic logic, const PinIn& input_context, std::unique_ptr<StringPoolBase> strpool = nullptr)//你不应该持有strpool!
-			:logic{ logic }, context{ input_context }, acc{ Accelerator(strs, context) } {
+		TreeSearcher(Logic logic, const std::string& PinyinDictionary, std::unique_ptr<StringPoolBase> strpool = nullptr)//你不应该持有strpool!
+			:logic{ logic }, context(PinyinDictionary), acc{ Accelerator(context) } {
 			if (strpool == nullptr) {//如果没有指针，就分配一个UTF8的进去
 				strs = std::make_unique<UTF8StringPool>();
 			}
 			else {
 				strs = std::move(strpool);//显式移动，代表所有权转移
 			}
+			acc.setProvider(strs.get());
+			ticket = context.ticket([]() {
+
+			});
 		}
 
 		void put(const std::string& keyword);
@@ -107,7 +111,8 @@ namespace PinInCpp {
 		constexpr static int NMapThreshold = 32;//分支节点转换临界点
 		std::unique_ptr<StringPoolBase> strs;
 		Logic logic;
-		const PinIn& context;//PinIn
+		const PinIn context;//PinIn
+		std::unique_ptr<PinIn::Ticket> ticket;
 		Accelerator acc;
 
 		std::unique_ptr<Node> root = std::make_unique<NDense>();

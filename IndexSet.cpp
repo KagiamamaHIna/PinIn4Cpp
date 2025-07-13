@@ -30,4 +30,7 @@ namespace PinInCpp {
 			v >>= 1;
 		}
 	}
+	bool operator==(IndexSet a, IndexSet b) {
+		return a.value == b.value;
+	}
 }

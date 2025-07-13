@@ -34,6 +34,7 @@ namespace PinInCpp {
 		IndexSet copy()const {
 			return IndexSet(value);
 		}
+
 		bool traverse(IntPredicate p)const;
 		void foreach(IntConsumer c)const;
 
@@ -54,5 +55,8 @@ namespace PinInCpp {
 		};
 	private:
 		uint32_t value = 0;
+		friend bool operator==(IndexSet a, IndexSet b);
 	};
+
+	bool operator==(IndexSet a, IndexSet b);
 }

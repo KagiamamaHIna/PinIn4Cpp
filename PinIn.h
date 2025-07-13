@@ -20,6 +20,7 @@ namespace PinInCpp {
 	template<typename StrType>
 	class UTF8StringTemplate {
 	public:
+		UTF8StringTemplate() {}
 		UTF8StringTemplate(const StrType& input) {
 			size_t cursor = 0;
 			size_t end = input.size();
@@ -81,7 +82,7 @@ namespace PinInCpp {
 				return 1; //作为错误恢复，把它当作一个单字节处理
 			}
 		}
-		std::vector<StrType> str;
+		std::vector<StrType> str = {};
 	};
 	using Utf8String = UTF8StringTemplate<std::string>;
 	using Utf8StringView = UTF8StringTemplate<std::string_view>;
@@ -140,8 +141,8 @@ namespace PinInCpp {
 			const std::function<void()> runnable;//任务
 			int modification;
 		};
-		Ticket ticket(const std::function<void()>& r)const {
-			return Ticket(*this, r);
+		std::unique_ptr<Ticket> ticket(const std::function<void()>& r)const {//转移所有权，让你能持有这个对象
+			return std::make_unique<Ticket>(*this, r);
 		}
 
 		const Keyboard& getkeyboard()const {
