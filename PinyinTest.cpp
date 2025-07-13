@@ -29,7 +29,6 @@ int main() {
 	std::cout << test.getstr_view(id2);
 
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");
-	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, testPin, std::make_unique<PinInCpp::UTF8StringPool>());
 
 
 	system("pause");

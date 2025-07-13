@@ -5,7 +5,7 @@ namespace PinInCpp {
 		return index >= str.size();
 	}
 
-	IndexSet Accelerator::get(const PinIn::Pinyin& p, int offset) {
+	IndexSet Accelerator::get(const PinIn::Pinyin& p, size_t offset) {
 		if (cache.size() <= offset) {//检查是否过小
 			cache.resize(offset + 1);//过小触发resize，重设置大小
 		}
@@ -18,7 +18,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	IndexSet Accelerator::get(const std::string& ch, int offset) {
+	IndexSet Accelerator::get(const std::string& ch, size_t offset) {
 		PinIn::Character c = ctx.GetChar(ch);
 		IndexSet ret = (searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE).copy();
 		for (const PinIn::Pinyin& p : c.GetPinyins()) {
@@ -63,7 +63,7 @@ namespace PinInCpp {
 
 			if (provider->end(start + 1)) {
 				size_t i = searchStr.size() - offset;
-				return s.get(i);
+				return s.get(static_cast<uint32_t>(i));
 			}
 			else {
 				return s.traverse([&](uint32_t i) {
@@ -84,7 +84,7 @@ namespace PinInCpp {
 
 			if (utf8_string_end(str, start + 1)) {
 				size_t i = searchStr.size() - offset;
-				return s.get(i);
+				return s.get(static_cast<uint32_t>(i));
 			}
 			else {
 				return s.traverse([&](uint32_t i) {
@@ -117,13 +117,13 @@ namespace PinInCpp {
 			reset();
 		}
 		if (provider) {
-			for (int i = start; !provider->end(i); i++) {
+			for (size_t i = start; !provider->end(i); i++) {
 				if (check(offset, i)) return true;
 			}
 		}
 		else if (owned_provider) {
 			const Utf8String& str = owned_provider.value();
-			for (int i = start; !utf8_string_end(str, i); i++) {
+			for (size_t i = start; !utf8_string_end(str, i); i++) {
 				if (check(offset, i)) return true;
 			}
 		}
