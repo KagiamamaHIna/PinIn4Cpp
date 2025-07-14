@@ -193,7 +193,7 @@ namespace PinInCpp {
 		class Element {//基类，确保这些成分都像原始的设计一样，可以被转换为这个基本的类
 		public:
 			virtual ~Element() = default;
-			virtual IndexSet match(const std::string_view& source, size_t start, bool partial)const = 0;
+			virtual IndexSet match(const Utf8String& source, size_t start, bool partial)const = 0;
 			virtual std::string ToString()const = 0;
 		};
 		class Pinyin;
@@ -224,9 +224,9 @@ namespace PinInCpp {
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
-			bool matchSequence(char c)const;
-			IndexSet match(const std::string_view& source, IndexSet idx, size_t start, bool partial)const;
-			IndexSet match(const std::string_view& source, size_t start, bool partial)const;
+			bool matchSequence(const Utf8String& c)const;
+			IndexSet match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const;
+			IndexSet match(const Utf8String& source, size_t start, bool partial)const;
 			const std::vector<std::string_view>& GetAtoms()const {//获取这个音素的最小成分(原子)，即它表达了什么音素
 				return strs;
 			}
@@ -254,7 +254,7 @@ namespace PinInCpp {
 				return std::string(ctx.pool.getPinyinView(id));
 			}
 			void reload();
-			IndexSet match(const std::string_view& str, size_t start, bool partial)const;
+			IndexSet match(const Utf8String& str, size_t start, bool partial)const;
 			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
 		private:
 			friend Character;//由Character类执行构建
@@ -281,7 +281,7 @@ namespace PinInCpp {
 			const std::vector<Pinyin>& GetPinyins()const {
 				return pinyin;
 			}
-			IndexSet match(const std::string_view& str, size_t start, bool partial)const;
+			IndexSet match(const Utf8String& str, size_t start, bool partial)const;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建

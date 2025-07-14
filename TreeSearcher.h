@@ -29,22 +29,27 @@ namespace PinInCpp {
 	class TreeSearcher {
 	public:
 		virtual ~TreeSearcher() = default;
-		TreeSearcher(Logic logic, const std::string& PinyinDictionary, std::unique_ptr<StringPoolBase> strpool = nullptr)//你不应该持有strpool!
-			:logic{ logic }, context(PinyinDictionary), acc{ Accelerator(context) } {
-			if (strpool == nullptr) {//如果没有指针，就分配一个UTF8的进去
-				strs = std::make_unique<UTF8StringPool>();
-			}
-			else {
-				strs = std::move(strpool);//显式移动，代表所有权转移
-			}
-			//root = std::make_unique<NDense>(*this);
+		TreeSearcher(Logic logic, const std::string& PinyinDictionary)
+			:logic{ logic }, context(PinyinDictionary), acc(context) {
+			root = std::make_unique<NDense>(*this);
 			acc.setProvider(strs.get());
-			ticket = context.ticket([]() {
-
+			ticket = context.ticket([this]() {
+				for (const auto& i : this->naccs) {
+					i->reload();
+				}
+				this->acc.reset();
 			});
 		}
 
 		void put(const std::string& keyword);
+		std::vector<std::string> ExecuteSearch(const std::string& s);
+		std::vector<std::string_view> ExecuteSearchView(const std::string& s);
+		void refresh() {
+			ticket->renew();
+		}
+		const PinIn& GetPinIn() {
+			return context;
+		}
 	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
 		class Node {
 		public:
@@ -153,7 +158,7 @@ namespace PinInCpp {
 						it->second->get(result, offset + 1);
 					}
 					for (const auto& [k, v] : index_node) {
-						if (!k.match(p.acc.search().ToStream(), offset, true).empty()) {
+						if (!k.match(p.acc.search(), offset, true).empty()) {
 							for (const auto& str : v) {
 								p.acc.get(str, offset).foreach([&](uint32_t j) {
 									this->NodeMap.children->operator[](str)->get(result, offset + j);
@@ -266,7 +271,7 @@ namespace PinInCpp {
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static int NDenseThreshold = 128;
 		constexpr static int NMapThreshold = 32;//分支节点转换临界点
-		std::unique_ptr<StringPoolBase> strs;//应当继续贯彻零拷贝设计
+		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
 		const PinIn context;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;

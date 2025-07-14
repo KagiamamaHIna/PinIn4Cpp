@@ -3,6 +3,7 @@
 namespace PinInCpp {
 
 	void TreeSearcher::put(const std::string& keyword) {
+		ticket->renew();
 		size_t pos = strs->put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs->getLastStrSize() : 1;
 
@@ -12,6 +13,34 @@ namespace PinInCpp {
 				root.reset(result);
 			}
 		}
+	}
+
+	std::vector<std::string> TreeSearcher::ExecuteSearch(const std::string& s) {
+		ticket->renew();
+		acc.search(s);
+		std::unordered_set<size_t> ret;
+		root->get(ret, 0);
+
+		std::vector<std::string> result;
+		std::cout << "start!" << '\n';
+		for (const auto id : ret) {//基本类型复制更高效
+			/*result.push_back(strs->getstr(id));*/
+			std::cout << id << '\n';
+		}
+		return result;
+	}
+
+	std::vector<std::string_view> TreeSearcher::ExecuteSearchView(const std::string& s) {
+		ticket->renew();
+		acc.search(s);
+		std::unordered_set<size_t> ret;
+		root->get(ret, 0);
+
+		std::vector<std::string_view> result;
+		for (const auto id : ret) {//基本类型复制更高效
+			result.push_back(strs->getstr_view(id));
+		}
+		return result;
 	}
 
 	void TreeSearcher::NDense::get(std::unordered_set<size_t>& ret, size_t offset) {

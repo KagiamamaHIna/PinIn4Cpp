@@ -111,10 +111,9 @@ namespace PinInCpp {
 			char* poolptr = pool.data();
 			for (const auto& data : FuzzyPhoneme) {
 				std::string_view key(poolptr + data.keyStart, data.keySize);
-				Target[key];//会触发默认构造，所以不用显式赋值
 				for (const auto& item : data.values) {//将数据集插入
 					std::string_view str(poolptr + item.valueStart, item.valueSize);
-					Target[key].push_back(str);
+					Target[key].push_back(str);//会触发默认构造，所以不用显式赋值
 				}
 			}
 		}

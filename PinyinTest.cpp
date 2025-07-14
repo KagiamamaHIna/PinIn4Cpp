@@ -26,9 +26,10 @@ int main() {
 
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");*/
 
-	std::string a("\0\0\0\0\0");
+	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "D:/repos/PinyinTest/pinyin.txt");
+	tree.put("你");
+	tree.ExecuteSearch("ni3");
 
-	std::string_view b(a.data(), a.size());
 	/*std::cout << (b[0] == '\0') << '\n';*/
 
 	system("pause");

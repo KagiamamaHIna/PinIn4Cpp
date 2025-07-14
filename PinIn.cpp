@@ -274,7 +274,7 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	static size_t StrCmp(const std::string_view& a, const std::string_view& b, size_t aStart) {
+	static size_t StrCmp(const Utf8String& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
 		for (size_t i = 0; i < len; i++) {
 			if (a[i + aStart] != b[i]) {
@@ -284,7 +284,7 @@ namespace PinInCpp {
 		return len;
 	}
 
-	bool PinIn::Phoneme::matchSequence(char c)const {
+	bool PinIn::Phoneme::matchSequence(const Utf8String& c)const {
 		for (const auto& str : strs) {
 			if (str[0] == 'c') {
 				return true;
@@ -293,7 +293,7 @@ namespace PinInCpp {
 		return false;
 	}
 
-	IndexSet PinIn::Phoneme::match(const std::string_view& source, IndexSet idx, size_t start, bool partial)const {
+	IndexSet PinIn::Phoneme::match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const {
 		if (empty()) {
 			return idx;
 		}
@@ -306,7 +306,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	IndexSet PinIn::Phoneme::match(const std::string_view& source, size_t start, bool partial)const {
+	IndexSet PinIn::Phoneme::match(const Utf8String& source, size_t start, bool partial)const {
 		IndexSet result;
 		if (empty()) {
 			return result;
@@ -433,7 +433,7 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Pinyin::match(const std::string_view& str, size_t start, bool partial)const {
+	IndexSet PinIn::Pinyin::match(const Utf8String& str, size_t start, bool partial)const {
 		IndexSet ret;
 		if (duo) {
 			// in shuangpin we require initial and final both present,
@@ -473,11 +473,10 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Character::match(const std::string_view& str, size_t start, bool partial)const {
-		Utf8StringView u8str(str);
+	IndexSet PinIn::Character::match(const Utf8String& u8str, size_t start, bool partial)const {
 		IndexSet ret = (u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE).copy();
 		for (const auto& p : pinyin) {
-			ret.merge(p.match(str, start, partial));
+			ret.merge(p.match(u8str, start, partial));
 		}
 		return ret;
 	}
