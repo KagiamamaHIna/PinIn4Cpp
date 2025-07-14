@@ -100,4 +100,94 @@ namespace PinInCpp {
 			}
 		}
 	}
+
+	void TreeSearcher::NAcc::get(std::unordered_set<size_t>& result, size_t offset) {
+		if (p.acc.search().size() == offset) {
+			if (p.logic == Logic::EQUAL) {
+				for (const auto& v : NodeMap.leaves) {
+					result.insert(v);
+				}
+			}
+			else {
+				NodeMap.get(result);//直接调用原始的这个，避免中间层开销
+			}
+		}
+		else {
+			auto it = NodeMap.children->find(p.acc.search()[offset]);
+			if (it != NodeMap.children->end()) {
+				it->second->get(result, offset + 1);
+			}
+			for (const auto& [k, v] : index_node) {
+				if (!k.match(p.acc.search(), offset, true).empty()) {
+					for (const auto& str : v) {
+						p.acc.get(str, offset).foreach([&](uint32_t j) {
+							this->NodeMap.children->operator[](str)->get(result, offset + j);
+						});
+					}
+				}
+			}
+		}
+	}
+
+	void TreeSearcher::NAcc::index(const std::string& c) {
+		PinIn::Character ch = p.context.GetChar(c);
+		for (const auto& py : ch.GetPinyins()) {
+			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
+			auto it = index_node.find(ph);
+			if (it == index_node.end()) {//对应的是字符集合为空
+				index_node.insert_or_assign(ph, std::unordered_set<std::string>{c});//把汉字插进去
+			}
+			else {//不为空
+				it->second.insert(c);
+			}
+		}
+	}
+
+	TreeSearcher::Node* TreeSearcher::NSlice::put(size_t keyword, size_t id) {
+		size_t length = end - start;
+		size_t match = p.acc.common(start, keyword, length);
+		Node* n;
+		if (match >= length) {
+			n = exit_node->put(keyword + length, id);
+		}
+		else {
+			cut(start + match);
+			n = exit_node->put(keyword + match, id);
+		}
+		if (exit_node.get() != n) {
+			exit_node.reset(n);
+		}
+		return start == end ? exit_node.release() : this;
+	}
+
+	void TreeSearcher::NSlice::cut(size_t offset) {
+		std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
+		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
+			insert->put(p.strs->getchar(offset), std::move(exit_node));
+		}
+		else {
+			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
+			half->exit_node = std::move(exit_node);
+			insert->put(p.strs->getchar(offset), std::move(half));
+		}
+		exit_node = std::move(insert);
+		end = offset;
+	}
+
+	void TreeSearcher::NSlice::get(std::unordered_set<size_t>& ret, size_t offset, size_t start) {
+		if (this->start + start == end) {
+			exit_node->get(ret, offset);
+		}
+		else if (offset == p.acc.search().size()) {
+			if (p.logic != Logic::EQUAL) {
+				exit_node->get(ret);
+			}
+		}
+		else {
+			std::string ch = p.strs->getchar(this->start + start);
+			p.acc.get(ch, offset).foreach([&](uint32_t i) {
+				get(ret, offset + i, start + 1);
+			});
+		}
+	}
 }

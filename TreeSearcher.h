@@ -137,36 +137,9 @@ namespace PinInCpp {
 				reload();
 				p.naccs.push_back(this);
 			}
-			virtual void get(std::unordered_set<size_t>& result, size_t offset) {
-				if (p.acc.search().size() == offset) {
-					if (p.logic == Logic::EQUAL) {
-						for (const auto& v : NodeMap.leaves) {
-							result.insert(v);
-						}
-					}
-					else {
-						NodeMap.get(result);//直接调用原始的这个，避免中间层开销
-					}
-				}
-				else {
-					auto it = NodeMap.children->find(p.acc.search()[offset]);
-					if (it != NodeMap.children->end()) {
-						it->second->get(result, offset + 1);
-					}
-					for (const auto& [k, v] : index_node) {
-						if (!k.match(p.acc.search(), offset, true).empty()) {
-							for (const auto& str : v) {
-								p.acc.get(str, offset).foreach([&](uint32_t j) {
-									this->NodeMap.children->operator[](str)->get(result, offset + j);
-								});
-							}
-						}
-					}
-				}
-			}
+			virtual void get(std::unordered_set<size_t>& result, size_t offset);
 			virtual void get(std::unordered_set<size_t>& result) {
 				NodeMap.get(result);//直接调用原始的版本，因为原版Java代码写的是继承，所以没有显式实现
-
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
@@ -184,19 +157,7 @@ namespace PinInCpp {
 				NodeMap.children = std::move(src.children);
 				NodeMap.leaves = std::move(src.leaves);
 			}
-			void index(const std::string& c) {
-				PinIn::Character ch = p.context.GetChar(c);
-				for (const auto& py : ch.GetPinyins()) {
-					const PinIn::Phoneme& ph = py.GetPhonemes()[0];
-					auto it = index_node.find(ph);
-					if (it == index_node.end()) {//对应的是字符集合为空
-						index_node.insert_or_assign(ph, std::unordered_set<std::string>{c});//把汉字插进去
-					}
-					else {//不为空
-						it->second.insert(c);
-					}
-				}
-			}
+			void index(const std::string& c);
 			std::unordered_map<PinIn::Phoneme, std::unordered_set<std::string>> index_node;
 			NMapOwned NodeMap;
 		};
@@ -213,52 +174,10 @@ namespace PinInCpp {
 			virtual void get(std::unordered_set<size_t>& ret) {
 				exit_node->get(ret);
 			}
-			virtual Node* put(size_t keyword, size_t id) {
-				size_t length = end - start;
-				size_t match = p.acc.common(start, keyword, length);
-				Node* n;
-				if (match >= length) {
-					n = exit_node->put(keyword + length, id);
-				}
-				else {
-					cut(start + match);
-					n = exit_node->put(keyword + match, id);
-				}
-				if (exit_node.get() != n) {
-					exit_node.reset(n);
-				}
-				return start == end ? exit_node.release() : this;
-			}
+			virtual Node* put(size_t keyword, size_t id);
 		private:
-			void cut(size_t offset) {
-				std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
-				if (offset + 1 == end) {//当前exit_node的所有权都会被转移
-					insert->put(p.strs->getchar(offset), std::move(exit_node));
-				}
-				else {
-					std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
-					half->exit_node = std::move(exit_node);
-					insert->put(p.strs->getchar(offset), std::move(half));
-				}
-				exit_node = std::move(insert);
-				end = offset;
-			}
-			void get(std::unordered_set<size_t>& ret, size_t offset, size_t start) {
-				if (this->start + start == end) {
-					exit_node->get(ret, offset);
-				}
-				else if (offset == p.acc.search().size()) {
-					if (p.logic != Logic::EQUAL) {
-						exit_node->get(ret);
-					}
-				}
-				else {
-					std::string ch = p.strs->getchar(this->start + start);
-					p.acc.get(ch, offset).foreach([&](uint32_t i) {
-						get(ret, offset + i, start + 1);
-					});
-				}
-			}
+			void cut(size_t offset);
+			void get(std::unordered_set<size_t>& ret, size_t offset, size_t start);
 			std::unique_ptr<Node> exit_node = nullptr;
 			size_t start;
 			size_t end;
@@ -267,7 +186,6 @@ namespace PinInCpp {
 		//密集节点转换临界点 原始版本是128，因为还用一个元素代表了存储的元素列表，这里直接把字符串本身当作元素
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static int NDenseThreshold = 128;
-		constexpr static int NMapThreshold = 32;//分支节点转换临界点
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
 		PinIn context;//PinIn

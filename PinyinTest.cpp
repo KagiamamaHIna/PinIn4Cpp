@@ -50,7 +50,7 @@ int main() {
 	//std::cout << end - now << '\n';
 
 	now = GetTimestampMS();
-	for (const auto& v : tree.ExecuteSearchView("lizihf")) {
+	for (const auto& v : tree.ExecuteSearchView("lizhuafen")) {
 		std::cout << v << '\n';
 	}
 	end = GetTimestampMS();
