@@ -21,6 +21,7 @@ namespace PinInCpp {
 		root->get(ret, 0);
 
 		std::vector<std::string> result;
+		result.reserve(ret.size());
 		for (const auto id : ret) {//基本类型复制更高效
 			result.push_back(strs->getstr(id));
 		}
@@ -34,6 +35,7 @@ namespace PinInCpp {
 		root->get(ret, 0);
 
 		std::vector<std::string_view> result;
+		result.reserve(ret.size());
 		for (const auto id : ret) {//基本类型复制更高效
 			result.push_back(strs->getstr_view(id));
 		}
