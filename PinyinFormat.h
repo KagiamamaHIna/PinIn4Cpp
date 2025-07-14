@@ -1,5 +1,7 @@
 #pragma once
-
+/*
+	非必须，且没什么用
+*/
 #include "PinIn.h"
 
 namespace PinInCpp {
