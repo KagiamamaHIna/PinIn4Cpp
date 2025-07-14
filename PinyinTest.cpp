@@ -10,7 +10,6 @@
 TODO:
 拼音格式化类应该用一个函数实现，其重量级的实现放在cpp文件中，用枚举类确定其行为
 */
-
 int main() {
 	system("chcp 65001");
 	PinInCpp::UTF8StringPool test;
