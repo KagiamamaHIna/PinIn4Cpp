@@ -20,7 +20,7 @@ static long long GetTimestampMS() {//获取当前毫秒的时间戳
 }
 
 int main() {
-	system("chcp 65001");//编码切换
+	system("chcp 65001");//编码切换，windows平台的cmd命令
 
 	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "pinyin.txt");
 	//第二个参数为拼音数据的文件路径，请使用https://github.com/mozillazg/pinyin-data中提供的，当然本项目也放有pinyin.txt，你可以直接使用
@@ -47,6 +47,9 @@ int main() {
 	long long end = GetTimestampMS();
 	std::cout << end - now << '\n';
 	//插入耗时，比Java的慢，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
+	//或许可以考虑用char32_t存单字符，不过这改动可就大了
+	//而且为了保证内存池的utf8字符串O1的随机访问，我实现了一个UTF8StringPool::chars_offset成员，必不可少但是也耗费更多内存了
+	//内存占用的问题部分还来源size_t类型，因为64位下是八字节大的，基本上是翻倍了
 
 	while (true) {//死循环，你可以随便搜索测试集的内容用于测试
 		std::cout << "input:";
