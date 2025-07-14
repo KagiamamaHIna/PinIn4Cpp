@@ -173,7 +173,7 @@ namespace PinInCpp {
 
 			}
 			virtual Node* put(size_t keyword, size_t id) {
-				NodeMap.put(keyword, id);
+				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
 				index(p.strs->getchar(keyword));
 				return this;
 			}
@@ -234,16 +234,16 @@ namespace PinInCpp {
 			}
 		private:
 			void cut(size_t offset) {
-				NMap* insert = new NMap(p);
+				std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
 				if (offset + 1 == end) {//当前exit_node的所有权都会被转移
 					insert->put(p.strs->getchar(offset), std::move(exit_node));
 				}
 				else {
-					NSlice* half = new NSlice(offset + 1, end, p);
+					std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
 					half->exit_node = std::move(exit_node);
-					insert->put(p.strs->getchar(offset), std::unique_ptr<Node>(half));
+					insert->put(p.strs->getchar(offset), std::move(half));
 				}
-				exit_node.reset(insert);
+				exit_node = std::move(insert);
 				end = offset;
 			}
 			void get(std::unordered_set<size_t>& ret, size_t offset, size_t start) {
@@ -283,7 +283,7 @@ namespace PinInCpp {
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
 	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(size_t keyword, size_t id) {
-		if (p.strs->getchar_view(keyword).empty()) {//字符串视图不会尝试指向一个\0的字符，用empty判断是最安全且合法的
+		if (p.strs->end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用empty判断是最安全且合法的
 			leaves.insert(id);
 		}
 		else {

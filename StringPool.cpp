@@ -61,7 +61,6 @@ namespace PinInCpp {
 
 	std::string_view UTF8StringPool::getchar_view(size_t i)const {
 		i++;//+1让原本效果为1起始的变为0起始
-
 		size_t size = chars_offset[i];
 		size_t last = chars_offset[i - 1];
 

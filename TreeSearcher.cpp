@@ -6,7 +6,6 @@ namespace PinInCpp {
 		ticket->renew();
 		size_t pos = strs->put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs->getLastStrSize() : 1;
-
 		for (size_t i = 0; i < end; i++) {
 			Node* result = root->put(pos + i, pos);
 			if (root.get() != result) {
@@ -24,8 +23,7 @@ namespace PinInCpp {
 		std::vector<std::string> result;
 		std::cout << "start!" << '\n';
 		for (const auto id : ret) {//基本类型复制更高效
-			/*result.push_back(strs->getstr(id));*/
-			std::cout << id << '\n';
+			result.push_back(strs->getstr(id));
 		}
 		return result;
 	}
@@ -67,12 +65,20 @@ namespace PinInCpp {
 	TreeSearcher::Node* TreeSearcher::NDense::put(size_t keyword, size_t id) {
 		if (data.size() >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
-			Node* result = new NSlice(pattern, pattern + match(), p);
+			std::unique_ptr<Node> result = std::make_unique<NSlice>(pattern, pattern + match(), p);
+			Node* other = result.get();
 			for (size_t j = 0; j < data.size() / 2; j++) {
-				result->put(data[j * 2], data[j * 2 + 1]);
+				other = result->put(data[j * 2], data[j * 2 + 1]);
+				if (other != result.get()) {//当源指针不等于新返回的指针时
+					result.reset(other);
+					other = result.get();
+				}
 			}
-			result->put(keyword, id);
-			return result;
+			other = result->put(keyword, id);
+			if (other != result.get()) {//当源指针不等于新返回的指针时
+				result.reset(other);
+			}
+			return result.release();
 		}
 		else {
 			data.push_back(keyword);
@@ -89,7 +95,9 @@ namespace PinInCpp {
 			std::string a = p.strs->getchar(data[0] + i);
 			for (size_t j = 1; j < data.size() / 2; j++) {
 				std::string b = p.strs->getchar(data[j * 2] + i);
-				if (a != b) return i;//空检查置前了，所以这里可以删除空检查
+				if (a != b) {//空检查置前了，所以这里可以删除空检查
+					return i;
+				}
 			}
 		}
 	}

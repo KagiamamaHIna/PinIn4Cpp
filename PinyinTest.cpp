@@ -12,7 +12,6 @@ TODO:
 */
 int main() {
 	system("chcp 65001");
-	PinInCpp::UTF8StringPool test;
 
 	/*size_t id1 = test.put("你好！");
 	size_t id2 = test.put("草uckyou!");
@@ -27,8 +26,15 @@ int main() {
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");*/
 
 	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "D:/repos/PinyinTest/pinyin.txt");
-	tree.put("你");
-	tree.ExecuteSearch("ni3");
+	std::fstream file("D:/repos/PinyinTest/small.txt");
+	std::string line;
+	while (std::getline(file, line)) {
+		tree.put(line);
+	}
+
+	for (const auto& v : tree.ExecuteSearchView("qiu")) {
+		std::cout << v << '\n';
+	}
 
 	/*std::cout << (b[0] == '\0') << '\n';*/
 
@@ -55,11 +61,7 @@ int main() {
 	//for (const auto& str : testPin.GetPinyinView("佻", true)) {
 	//	std::cout << str << '\n';
 	//}
-	/*std::fstream file("D:/repos/PinyinTest/small.txt");
-	std::string line;
-	while (std::getline(file, line)) {
-		test.put(line);
-	}*/
+
 
 	system("pause");
 }
