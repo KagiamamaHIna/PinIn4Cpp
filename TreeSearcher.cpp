@@ -21,7 +21,6 @@ namespace PinInCpp {
 		root->get(ret, 0);
 
 		std::vector<std::string> result;
-		std::cout << "start!" << '\n';
 		for (const auto id : ret) {//基本类型复制更高效
 			result.push_back(strs->getstr(id));
 		}
@@ -69,13 +68,13 @@ namespace PinInCpp {
 			Node* other = result.get();
 			for (size_t j = 0; j < data.size() / 2; j++) {
 				other = result->put(data[j * 2], data[j * 2 + 1]);
-				if (other != result.get()) {//当源指针不等于新返回的指针时
+				if (other != result.get()) {//节点升级
 					result.reset(other);
 					other = result.get();
 				}
 			}
 			other = result->put(keyword, id);
-			if (other != result.get()) {//当源指针不等于新返回的指针时
+			if (other != result.get()) {//节点升级
 				result.reset(other);
 			}
 			return result.release();

@@ -12,16 +12,6 @@
 #include "Keyboard.h"
 
 namespace PinInCpp {
-	/*设计思路：
-		把待选项的字符串统一存入Compressor中
-		put返回的字符串首段索引可以当作字符串唯一id
-		如果需要压缩字典树，只需要标记偏移量(长度)即可
-		存储额外的偏移量，当作压缩字典树
-
-		原作者写了一个字符封装类，在上面有拼音数据
-		拼音类也和我们的设计思路不一样
-	*/
-
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
 		BEGIN, CONTAIN, EQUAL
 	};
@@ -64,6 +54,7 @@ namespace PinInCpp {
 		};
 		class NDense : public Node {//密集节点本质上就是数组
 		public:
+			virtual ~NDense() = default;
 			NDense(TreeSearcher& p) : Node(p) {}
 			virtual void get(std::unordered_set<size_t>& ret, size_t offset);
 			virtual void get(std::unordered_set<size_t>& ret);
@@ -80,6 +71,7 @@ namespace PinInCpp {
 		class NMapTemplate : public Node {
 		public:
 			NMapTemplate(TreeSearcher& p) : Node(p) {}
+			virtual ~NMapTemplate() = default;
 			virtual void get(std::unordered_set<size_t>& ret, size_t offset) {
 				if (p.acc.search().size() == offset) {
 					if (p.logic == Logic::EQUAL) {
@@ -136,6 +128,7 @@ namespace PinInCpp {
 
 		class NAcc : public Node {//组合而非继承
 		public:
+			virtual ~NAcc() = default;
 			NAcc(TreeSearcher& p, NMap& src) :Node(p), NodeMap{ p } {
 				GetOwned(src);//获取所有权，本质上相当于原始代码里的那个引用拷贝
 				reload();
@@ -207,6 +200,7 @@ namespace PinInCpp {
 
 		class NSlice : public Node {
 		public:
+			virtual ~NSlice() = default;
 			NSlice(size_t start, size_t end, TreeSearcher& p) :start{ start }, end{ end }, Node(p) {
 				exit_node = std::make_unique<NMap>(p);
 			}

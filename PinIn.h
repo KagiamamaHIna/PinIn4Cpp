@@ -236,6 +236,7 @@ namespace PinInCpp {
 		private:
 			friend Pinyin;//由Pinyin类执行构建
 			explicit Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
+				reload();
 			}
 			void reloadNoMap();//无Local表的纯逻辑处理
 			void reloadHasMap();//有Local表的逻辑查表混合处理

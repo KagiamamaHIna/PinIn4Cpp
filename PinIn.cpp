@@ -178,7 +178,6 @@ namespace PinInCpp {
 				break;//退出这次循环，读取下一行
 			}
 		}
-		//这里应该写 模糊音兼容
 	}
 	bool PinIn::HasPinyin(const std::string& str)const {
 		return static_cast<bool>(data.count(str));
@@ -448,7 +447,6 @@ namespace PinInCpp {
 			// is compulsory to match subsequent phonemes
 			// for example, zhong1, z+h+ong+1 cannot match zong or zh1
 			IndexSet active = IndexSet::ZERO;
-			ret = IndexSet();
 			for (const Phoneme& phoneme : phonemes) {
 				active = phoneme.match(str, active, start, partial);
 				if (active.empty()) break;

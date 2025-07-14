@@ -4,7 +4,11 @@
 #include "TreeSearcher.h"
 #include <chrono>
 
-
+static long long GetTimestampMS() {//获取当前毫秒的时间戳
+	auto now = std::chrono::steady_clock::now();
+	//将时间点转换为时间戳
+	return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+}
 #include "Keyboard.h"
 /*
 TODO:
@@ -24,21 +28,33 @@ int main() {
 	std::cout << test.getstr_view(id2);
 
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");*/
-
+	system("pause");
 	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "D:/repos/PinyinTest/pinyin.txt");
-	std::fstream file("D:/repos/PinyinTest/small.txt");
-	std::string line;
-	while (std::getline(file, line)) {
-		tree.put(line);
-	}
+	tree.put("114514");
+	tree.put("中文");
+	tree.put("1919810");
 
-	for (const auto& v : tree.ExecuteSearchView("qiu")) {
+	for (const auto& v : tree.ExecuteSearchView("zhongwen")) {
 		std::cout << v << '\n';
 	}
 
+	/*std::fstream file("D:/repos/PinyinTest/small.txt");
+	std::string line;
+	long long now = GetTimestampMS();
+	while (std::getline(file, line)) {
+		tree->put(line);
+	}
+	long long end = GetTimestampMS();
+	std::cout << end - now << '\n';
+
+	now = GetTimestampMS();
+	tree->ExecuteSearchView("中");
+	end = GetTimestampMS();
+
+	std::cout << end - now << '\n';*/
+
 	/*std::cout << (b[0] == '\0') << '\n';*/
 
-	system("pause");
 	/*PinInCpp::PinIn::Character Char = testPin.GetChar("栓");
 	for (const auto& py : Char.GetPinyins()) {
 		std::cout << py.ToString() << '\n';

@@ -12,7 +12,7 @@ namespace PinInCpp {
 		IndexSet::Storage& data = cache[offset];
 		IndexSet ret = data.get(p.id);
 		if (ret == IndexSet::NONE) {
-			ret = p.match(searchStr.ToStream(), offset, partial);
+			ret = p.match(searchStr, offset, partial);
 			data.set(ret, static_cast<uint32_t>(p.id));
 		}
 		return ret;
@@ -58,7 +58,6 @@ namespace PinInCpp {
 			if (provider->end(start)) {
 				return false;
 			}
-
 			IndexSet s = get(provider->getchar(start), offset);
 
 			if (provider->end(start + 1)) {
