@@ -37,7 +37,10 @@ namespace PinInCpp {
 		void refresh() {
 			ticket->renew();
 		}
-		const PinIn& GetPinIn() {
+		const PinIn& GetPinIn()const {
+			return context;
+		}
+		PinIn& GetPinIn() {
 			return context;
 		}
 	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
@@ -267,7 +270,7 @@ namespace PinInCpp {
 		constexpr static int NMapThreshold = 32;//分支节点转换临界点
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
-		const PinIn context;//PinIn
+		PinIn context;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
 		Accelerator acc;
 

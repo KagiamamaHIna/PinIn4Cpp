@@ -30,28 +30,32 @@ int main() {
 	PinInCpp::PinIn testPin("D:/repos/PinyinTest/pinyin.txt");*/
 	system("pause");
 	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "D:/repos/PinyinTest/pinyin.txt");
-	tree.put("114514");
-	tree.put("中文");
-	tree.put("1919810");
+	PinInCpp::PinIn::Config cfg = tree.GetPinIn().config();
+	cfg.fZh2Z = true;
+	cfg.fSh2S = true;
+	cfg.fCh2C = true;
+	cfg.fAng2An = true;
+	cfg.fIng2In = true;
+	cfg.fEng2En = true;
+	cfg.fU2V = true;
+	cfg.commit();
 
-	for (const auto& v : tree.ExecuteSearchView("zhongwen")) {
-		std::cout << v << '\n';
-	}
-
-	/*std::fstream file("D:/repos/PinyinTest/small.txt");
+	std::fstream file("D:/repos/PinyinTest/small.txt");
 	std::string line;
 	long long now = GetTimestampMS();
 	while (std::getline(file, line)) {
-		tree->put(line);
+		tree.put(line);
 	}
 	long long end = GetTimestampMS();
-	std::cout << end - now << '\n';
+	//std::cout << end - now << '\n';
 
 	now = GetTimestampMS();
-	tree->ExecuteSearchView("中");
+	for (const auto& v : tree.ExecuteSearchView("krzlsmb")) {
+		std::cout << v << '\n';
+	}
 	end = GetTimestampMS();
 
-	std::cout << end - now << '\n';*/
+	//std::cout << end - now << '\n';
 
 	/*std::cout << (b[0] == '\0') << '\n';*/
 
