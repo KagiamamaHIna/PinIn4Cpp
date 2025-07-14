@@ -293,9 +293,9 @@ namespace PinInCpp {
 		return len;
 	}
 
-	bool PinIn::Phoneme::matchSequence(const Utf8String& c)const {
+	bool PinIn::Phoneme::matchSequence(const char c)const {
 		for (const auto& str : strs) {
-			if (str[0] == 'c') {
+			if (str[0] == c) {
 				return true;
 			}
 		}
@@ -477,7 +477,7 @@ namespace PinInCpp {
 				ret.merge(active);
 			}
 		}
-		if (sequence && phonemes[0].matchSequence(str[start])) {
+		if (sequence && phonemes[0].matchSequence(str[start][0])) {//内部音素都是ASCII范围内的，所以本质上就是在比较ASCII，直接取字符丢进去比较就行
 			ret.set(1);
 		}
 

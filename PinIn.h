@@ -222,7 +222,7 @@ namespace PinInCpp {
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
-			bool matchSequence(const Utf8String& c)const;
+			bool matchSequence(const char c)const;
 			IndexSet match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const;
 			IndexSet match(const Utf8String& source, size_t start, bool partial)const;
 			const std::vector<std::string_view>& GetAtoms()const {//获取这个音素的最小成分(原子)，即它表达了什么音素

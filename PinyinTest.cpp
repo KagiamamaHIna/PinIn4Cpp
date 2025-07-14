@@ -49,6 +49,7 @@ int main() {
 	//插入耗时，比Java的慢，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 
 	while (true) {//死循环，你可以随便搜索测试集的内容用于测试
+		std::cout << "input:";
 		std::getline(std::cin, line);
 		now = GetTimestampMS();
 		auto vec = tree.ExecuteSearchView(line);

@@ -15,6 +15,7 @@ namespace PinInCpp {
 			ret = p.match(searchStr, offset, partial);
 			data.set(ret, static_cast<uint32_t>(p.id));
 		}
+
 		return ret;
 	}
 
@@ -53,14 +54,14 @@ namespace PinInCpp {
 	bool Accelerator::check(size_t offset, size_t start) {
 		if (provider) {
 			if (offset == searchStr.size()) {
-				return partial || provider->end(start);
+				return partial || provider->end(start);//这里也有问题
 			}
 			if (provider->end(start)) {
 				return false;
 			}
 			IndexSet s = get(provider->getchar(start), offset);
 
-			if (provider->end(start + 1)) {
+			if (provider->end(start + 1)) {//这里有问题
 				size_t i = searchStr.size() - offset;
 				return s.get(static_cast<uint32_t>(i));
 			}
