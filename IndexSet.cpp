@@ -7,7 +7,7 @@ namespace PinInCpp {
 
 	bool IndexSet::traverse(IntPredicate p)const {
 		uint32_t v = value;
-		for (uint32_t i = 0; i < 7; i++) {
+		for (uint32_t i = 0; i < 32; i++) {
 			if ((v & 0x1) == 0x1 && p(i)) {
 				return true;
 			}
@@ -20,7 +20,7 @@ namespace PinInCpp {
 	}
 	void IndexSet::foreach(IntConsumer c)const {
 		uint32_t v = value;
-		for (uint32_t i = 0; i < 7; i++) {
+		for (uint32_t i = 0; i < 32; i++) {
 			if ((v & 0x1) == 0x1) {
 				c(i);
 			}
