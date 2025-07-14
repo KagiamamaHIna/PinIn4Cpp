@@ -179,6 +179,7 @@ namespace PinInCpp {
 			bool fIng2In = false;
 			bool fEng2En = false;
 			bool fU2V = false;
+			bool fFirstChar = false;
 			//将当前Config对象中的所有设置应用到PinIn上下文中。此方法总会触发数据的更改，无论配置是否实际发生变化，调用者应负责避免不必要的或重复的commit()调用
 			//重载完成后，音素这样的数据的视图不再合法，需要重载，可以用Ticket类注册一个异步操作，在每次执行前检查后按需重载(执行Ticket::renew触发回调函数)
 			void commit();
@@ -332,6 +333,7 @@ namespace PinInCpp {
 		bool fIng2In = false;
 		bool fEng2En = false;
 		bool fU2V = false;
+		bool fFirstChar = false;//开启首字母匹配，实现更加混合模式的输入(
 
 		struct ToneData {
 			char c;

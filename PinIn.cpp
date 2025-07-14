@@ -269,7 +269,8 @@ namespace PinInCpp {
 		ctx.fIng2In = fIng2In;
 		ctx.fEng2En = fEng2En;
 		ctx.fU2V = fU2V;
-		//需要补齐重载逻辑
+		ctx.fFirstChar = fFirstChar;
+
 		ctx.modification++;
 	}
 
@@ -340,32 +341,42 @@ namespace PinInCpp {
 			if (src.size() == 2) {
 				strs.push_back("ue");
 				strs.push_back("ve");
+
+				if (ctx.fFirstChar) {//如果开了这个，那么就同时加入
+					strs.push_back("u");
+					strs.push_back("v");
+				}
 			}
 			else {
 				strs.push_back("u");
 				strs.push_back("v");
 			}
 		}
-		else if (src.size() >= 2 && src[1] == 'n') {
-			//需要有边界检查，他原本的逻辑是检查如果为ang，则添加an，反过来也一样
-			//那么为什么我不直接检查到an，就两个都添加呢？反正手动插入避免查重了 下面的同理
-			//还有可以提前检查n
-			if (ctx.fAng2An && src[0] == 'a') {
-				strs.push_back("an");
-				strs.push_back("ang");
+		else {//分支，即都没有增加第一个字符的情况
+			if (ctx.fFirstChar) {
+				strs.push_back(src.substr(0, 1));
 			}
-			else if (ctx.fEng2En && src[0] == 'e') {
-				strs.push_back("en");
-				strs.push_back("eng");
-			}
-			else if (ctx.fIng2In && src[0] == 'i') {
-				strs.push_back("in");
-				strs.push_back("ing");
+			if (src.size() >= 2 && src[1] == 'n') {
+				//需要有边界检查，他原本的逻辑是检查如果为ang，则添加an，反过来也一样
+				//那么为什么我不直接检查到an，就两个都添加呢？反正手动插入避免查重了 下面的同理
+				//还有可以提前检查n
+				if (ctx.fAng2An && src[0] == 'a') {
+					strs.push_back("an");
+					strs.push_back("ang");
+				}
+				else if (ctx.fEng2En && src[0] == 'e') {
+					strs.push_back("en");
+					strs.push_back("eng");
+				}
+				else if (ctx.fIng2In && src[0] == 'i') {
+					strs.push_back("in");
+					strs.push_back("ing");
+				}
 			}
 		}
 
-		if (strs.empty()) {
-			strs.push_back(src);//都没有就把你自己插进去
+		if (strs.empty() || (ctx.fFirstChar && src.size() > 1)) {//没有，或者首字母模式时字符串长度大于1插入自己
+			strs.push_back(src);
 		}
 
 		for (auto& str : strs) {
@@ -376,6 +387,9 @@ namespace PinInCpp {
 		//这次需要查重了
 		std::set<std::string_view> StrSet;
 		StrSet.insert(src);
+		if (ctx.fFirstChar && src.size() > 1) {
+			StrSet.insert(src.substr(0, 1));
+		}
 		if (ctx.fCh2C && src[0] == 'c') {//最简单的几个
 			StrSet.insert("ch");
 			StrSet.insert("c");

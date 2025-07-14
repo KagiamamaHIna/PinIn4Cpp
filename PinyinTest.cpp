@@ -38,6 +38,7 @@ int main() {
 	cfg.fIng2In = true;
 	cfg.fEng2En = true;
 	cfg.fU2V = true;
+	cfg.fFirstChar = true;
 	cfg.commit();
 
 	std::fstream file("D:/repos/PinyinTest/small.txt");
@@ -47,15 +48,19 @@ int main() {
 		tree.put(line);
 	}
 	long long end = GetTimestampMS();
-	//std::cout << end - now << '\n';
+	std::cout << end - now << '\n';
 
-	now = GetTimestampMS();
-	for (const auto& v : tree.ExecuteSearchView("lizhuafen")) {
-		std::cout << v << '\n';
+	while (true) {
+		std::getline(std::cin, line);
+		now = GetTimestampMS();
+		auto vec = tree.ExecuteSearchView(line);
+		end = GetTimestampMS();
+		for (const auto& v : vec) {
+			std::cout << v << '\n';
+		}
+		std::cout << end - now << '\n';
 	}
-	end = GetTimestampMS();
 
-	//std::cout << end - now << '\n';
 
 	/*std::cout << (b[0] == '\0') << '\n';*/
 

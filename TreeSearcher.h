@@ -49,7 +49,7 @@ namespace PinInCpp {
 			virtual ~Node() = default;
 			virtual void get(std::unordered_set<size_t>& result, size_t offset) = 0;
 			virtual void get(std::unordered_set<size_t>& result) = 0;
-			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node*指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
+			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
 			virtual Node* put(size_t keyword, size_t id) = 0;
 		protected:
 			Node(TreeSearcher& p) :p{ p } {}
