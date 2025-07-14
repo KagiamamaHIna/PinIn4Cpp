@@ -2,10 +2,12 @@
 	本文件只是简单的拼音测试用例，不是核心代码库之一
 	你如果想要使用搜索功能，你应该用TreeSearcher.h获取拼音匹配支持
 	如果你只需要拼音获取，那么本项目的PinIn也是非常合适的
+
+	项目统一用标准的std::string和std::string_view处理字符串，包括utf8字符串，所以你要保证你输入的应该是utf8字符串
+	所以这是一个天然支持utf8且只支持utf8的库，原始的Java PinIn库有个不可忽视的缺陷，就是不支持utf16不可表达的字
 */
 
 #include <iostream>
-#include "PinIn.h"
 #include <fstream>
 #include <chrono>
 
@@ -21,6 +23,10 @@ int main() {
 	system("chcp 65001");//编码切换
 
 	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "pinyin.txt");
+	//第二个参数为拼音数据的文件路径，请使用https://github.com/mozillazg/pinyin-data中提供的，当然本项目也放有pinyin.txt，你可以直接使用
+	//说起来这个数据源是原本的约三倍大小（
+	//不过格式方面不一样，所以不方便比较
+
 	PinInCpp::PinIn::Config cfg = tree.GetPinIn().config();
 	cfg.fZh2Z = true;
 	cfg.fSh2S = true;
@@ -40,9 +46,7 @@ int main() {
 	}
 	long long end = GetTimestampMS();
 	std::cout << end - now << '\n';
-	//插入耗时，比Java的慢，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，utf8比utf16浪费内存
-	//项目统一用标准的std::string和std::string_view处理字符串，包括utf8字符串
-	//所以这是一个天然支持utf8且只支持utf8的库，原始的Java PinIn库有个不可忽视的缺陷，就是不支持utf16不可表达的字
+	//插入耗时，比Java的慢，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 
 	while (true) {//死循环，你可以随便搜索测试集的内容用于测试
 		std::getline(std::cin, line);

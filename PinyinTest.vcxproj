@@ -144,6 +144,7 @@
     <ClCompile Include="IndexSet.cpp" />
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="PinIn.cpp" />
+    <ClCompile Include="PinyinFormat.cpp" />
     <ClCompile Include="PinyinTest.cpp" />
     <ClCompile Include="StringPool.cpp" />
     <ClCompile Include="TreeSearcher.cpp" />
@@ -153,6 +154,7 @@
     <ClInclude Include="IndexSet.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="PinIn.h" />
+    <ClInclude Include="PinyinFormat.h" />
     <ClInclude Include="StringPool.h" />
     <ClInclude Include="TreeSearcher.h" />
   </ItemGroup>

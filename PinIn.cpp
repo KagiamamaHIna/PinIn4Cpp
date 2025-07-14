@@ -41,7 +41,12 @@ namespace PinInCpp {
 	}
 
 	int HexStrToInt(const std::string& str) {
-		return std::stoi(str, nullptr, 16);
+		try {
+			return std::stoi(str, nullptr, 16);
+		}
+		catch (...) {//跳过错误行策略
+			return -1;
+		}
 	}
 
 	bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b) {
@@ -118,8 +123,8 @@ namespace PinInCpp {
 	PinIn::PinIn(const std::string& path) {
 		std::fstream fs = std::fstream(path, std::ios::in);
 		if (!fs.is_open()) {//未成功打开 
-			std::cerr << "file did not open successfully(StrToPinyin)\n";
-			throw PinyinFileNoGet();
+			//std::cerr << "file did not open successfully(StrToPinyin)\n";
+			throw PinyinFileNotOpen();
 		}
 		//开始读取
 		std::string str;
@@ -140,6 +145,10 @@ namespace PinInCpp {
 					i++;
 				}
 				if (i >= size) {
+					break;
+				}
+				int KeyInt = HexStrToInt(key);
+				if (KeyInt == -1) {//如果捕获到异常
 					break;
 				}
 				i++;//不要:符号
@@ -172,7 +181,7 @@ namespace PinInCpp {
 				if (pinyinId != NullPinyinId) {
 					pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 					pool.putEnd();//结尾分隔
-					key = UnicodeToUtf8(HexStrToInt(key));
+					key = UnicodeToUtf8(KeyInt);
 					data.insert_or_assign(key, pinyinId);//设置
 				}
 				break;//退出这次循环，读取下一行

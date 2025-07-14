@@ -11,7 +11,6 @@
 #include "IndexSet.h"
 
 namespace PinInCpp {
-
 	//Unicode码转utf8字节流
 	std::string UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
@@ -87,7 +86,7 @@ namespace PinInCpp {
 	using Utf8String = UTF8StringTemplate<std::string>;
 	using Utf8StringView = UTF8StringTemplate<std::string_view>;
 
-	class PinyinFileNoGet : public std::exception {
+	class PinyinFileNotOpen : public std::exception {
 	public:
 		virtual const char* what() {
 			return "File not successfully opened";
@@ -95,8 +94,7 @@ namespace PinInCpp {
 	};
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
-	//应当设计一个拼音类，他存储着音素类，通过将拼音字符串重解析，生成一套音素
-
+	//文件解析策略为：跳过错误行
 	class PinIn {
 	public:
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)

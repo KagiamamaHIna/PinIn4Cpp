@@ -42,6 +42,9 @@
     <ClCompile Include="IndexSet.cpp">
       <Filter>源文件\utils</Filter>
     </ClCompile>
+    <ClCompile Include="PinyinFormat.cpp">
+      <Filter>源文件\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -60,6 +63,9 @@
       <Filter>头文件\utils</Filter>
     </ClInclude>
     <ClInclude Include="IndexSet.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="PinyinFormat.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
   </ItemGroup>

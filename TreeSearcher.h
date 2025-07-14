@@ -31,16 +31,16 @@ namespace PinInCpp {
 			});
 		}
 
-		void put(const std::string& keyword);
-		std::vector<std::string> ExecuteSearch(const std::string& s);
-		std::vector<std::string_view> ExecuteSearchView(const std::string& s);
-		void refresh() {
+		void put(const std::string& keyword);//插入待搜索项，内部无查重，大小写敏感
+		std::vector<std::string> ExecuteSearch(const std::string& s);//执行搜索
+		std::vector<std::string_view> ExecuteSearchView(const std::string& s);//执行搜索，但是返回的字符串为只读视图，注意，这些视图可能会在插入新数据后变成悬垂视图！
+		void refresh() {//手动尝试刷新
 			ticket->renew();
 		}
-		const PinIn& GetPinIn()const {
+		PinIn& GetPinIn() {
 			return context;
 		}
-		PinIn& GetPinIn() {
+		const PinIn& GetPinIn()const {
 			return context;
 		}
 	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
@@ -186,7 +186,8 @@ namespace PinInCpp {
 		//密集节点转换临界点 原始版本是128，因为还用一个元素代表了存储的元素列表，这里直接把字符串本身当作元素
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static int NDenseThreshold = 128;
-		constexpr static int NAccThreshold = 32;
+		//表节点转换临界点
+		constexpr static int NMapThreshold = 32;
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
 		PinIn context;//PinIn
@@ -220,7 +221,7 @@ namespace PinInCpp {
 			}
 		}
 		if constexpr (CanUpgrade) {
-			if (children != nullptr && children->size() > NAccThreshold) {
+			if (children != nullptr && children->size() > NMapThreshold) {
 				return new NAcc(p, *this);
 			}
 			return this;
