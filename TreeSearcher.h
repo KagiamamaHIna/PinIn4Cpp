@@ -186,6 +186,7 @@ namespace PinInCpp {
 		//密集节点转换临界点 原始版本是128，因为还用一个元素代表了存储的元素列表，这里直接把字符串本身当作元素
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static int NDenseThreshold = 128;
+		constexpr static int NAccThreshold = 32;
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
 		PinIn context;//PinIn
@@ -219,7 +220,7 @@ namespace PinInCpp {
 			}
 		}
 		if constexpr (CanUpgrade) {
-			if (children != nullptr && children->size() > 32) {
+			if (children != nullptr && children->size() > NAccThreshold) {
 				return new NAcc(p, *this);
 			}
 			return this;
