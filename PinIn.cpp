@@ -297,11 +297,12 @@ namespace PinInCpp {
 			return idx;
 		}
 		IndexSet result;
-		result.foreach([&](uint32_t i) {//&为捕获所有参数的引用，因为在函数内，所以是安全的，他不是注册一个异步操作
+		idx.foreach([&](uint32_t i) {//&为捕获所有参数的引用，因为在函数内，所以是安全的，他不是注册一个异步操作
 			IndexSet is = match(source, start + i, partial);
 			is.offset(i);
 			result.merge(is);
 		});
+
 		return result;
 	}
 
