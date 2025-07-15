@@ -20,12 +20,17 @@ namespace PinInCpp {
 	public:
 		virtual ~TreeSearcher() = default;
 		TreeSearcher(Logic logic, const std::string& PinyinDictionaryPath)
-			:logic{ logic }, context(PinyinDictionaryPath), acc(context) {
+			:logic{ logic }, context(std::make_shared<PinIn>(PinyinDictionaryPath)), acc(*context) {
 			init();
 		}
 
 		TreeSearcher(Logic logic, const std::vector<char>& PinyinDictionaryData)
-			:logic{ logic }, context(PinyinDictionaryData), acc(context) {
+			:logic{ logic }, context(std::make_shared<PinIn>(PinyinDictionaryData)), acc(*context) {
+			init();
+		}
+
+		TreeSearcher(Logic logic, std::shared_ptr<PinIn> PinInShared)//如果你想共享一个PinIn对象，那么应该传递这个智能指针
+			:logic{ logic }, context(PinInShared), acc(*context) {
 			init();
 		}
 
@@ -36,16 +41,19 @@ namespace PinInCpp {
 			ticket->renew();
 		}
 		PinIn& GetPinIn() {
-			return context;
+			return *context;
 		}
 		const PinIn& GetPinIn()const {
+			return *context;
+		}
+		std::shared_ptr<PinIn> GetPinInShared() {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
 		}
 	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
 		void init() {
 			root = std::make_unique<NDense>(*this);
 			acc.setProvider(strs.get());
-			ticket = context.ticket([this]() {
+			ticket = context->ticket([this]() {
 				for (const auto& i : this->naccs) {
 					i->reload();
 				}
@@ -198,7 +206,7 @@ namespace PinInCpp {
 		constexpr static int NMapThreshold = 32;
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
 		Logic logic;
-		PinIn context;//PinIn
+		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
 		Accelerator acc;
 

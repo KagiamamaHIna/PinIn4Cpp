@@ -132,7 +132,7 @@ namespace PinInCpp {
 	}
 
 	void TreeSearcher::NAcc::index(const std::string& c) {
-		PinIn::Character ch = p.context.GetChar(c);
+		PinIn::Character ch = p.context->GetChar(c);
 		for (const auto& py : ch.GetPinyins()) {
 			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 			auto it = index_node.find(ph);
