@@ -122,7 +122,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	void PinIn::LineParser(const std::string_view str) {
+	void PinIn::LineParser(const std::string_view str, std::vector<InsertStrData>& InsertData) {
 		const Utf8StringView utf8str = Utf8StringView(str);//将字节流转换为utf8表示的字符串
 		size_t i = 0;
 		size_t size = utf8str.size();
@@ -176,9 +176,18 @@ namespace PinInCpp {
 				pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 				pool.putEnd();//结尾分隔
 				key = UnicodeToUtf8(KeyInt);
-				data.insert_or_assign(key, pinyinId);//设置
+				size_t keyId = pool.put(key);
+				InsertData.push_back({ key.size(),keyId,pinyinId });
+				//data.insert_or_assign(key, pinyinId);//设置
 			}
 			break;//退出这次循环，读取下一行
+		}
+	}
+
+	void PinIn::InsertDataFn(std::vector<InsertStrData>& InsertData) {
+		char* poolptr = pool.data();
+		for (const auto& v : InsertData) {//因为内存池是只读设计，所以构造完成内存池后，可以将字符串视图当作key，降低对象内存开销
+			data.insert_or_assign(std::string_view(poolptr + v.keyStart, v.keySize), v.valueId);
 		}
 	}
 
@@ -191,25 +200,29 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
+		std::vector<InsertStrData> cache;
 		while (std::getline(fs, str)) {
-			LineParser(str);
+			LineParser(str, cache);
 		}
+		InsertDataFn(cache);
 	}
 
 	PinIn::PinIn(const std::vector<char>& data) {
 		//开始读取
 		std::string_view str;
+		std::vector<InsertStrData> cache;
 		size_t last_cursor = 0;
 		for (size_t i = 0; i < data.size(); i++) {
 			if (data[i] == '\n') {//按行解析
-				LineParser(std::string_view(data.data() + last_cursor, i - last_cursor));
+				LineParser(std::string_view(data.data() + last_cursor, i - last_cursor), cache);
 				last_cursor = i + 1;//跳过换行
 			}
 		}
-		LineParser(std::string_view(data.data() + last_cursor, data.size() - last_cursor));//解析最后一行
+		LineParser(std::string_view(data.data() + last_cursor, data.size() - last_cursor), cache);//解析最后一行
+		InsertDataFn(cache);
 	}
 
-	bool PinIn::HasPinyin(const std::string& str)const {
+	bool PinIn::HasPinyin(const std::string_view& str)const {
 		return static_cast<bool>(data.count(str));
 	}
 
@@ -237,10 +250,10 @@ namespace PinInCpp {
 		}
 	}
 
-	std::vector<std::string> PinIn::GetPinyin(const std::string& str, bool hasTone)const {
+	std::vector<std::string> PinIn::GetPinyin(const std::string_view& str, bool hasTone)const {
 		auto it = data.find(str);
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
-			return std::vector<std::string>{str};
+			return std::vector<std::string>{std::string(str)};
 		}
 		if (hasTone) {//如果需要音调就直接返回
 			return pool.getPinyinVec(it->second);//直接返回这个方法返回的值
@@ -248,7 +261,7 @@ namespace PinInCpp {
 		return DeleteTone<std::string>(this, it->second);
 	}
 
-	std::vector<std::string_view> PinIn::GetPinyinView(const std::string& str, bool hasTone)const {
+	std::vector<std::string_view> PinIn::GetPinyinView(const std::string_view& str, bool hasTone)const {
 		auto it = data.find(str);
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string_view>{str};
@@ -259,8 +272,8 @@ namespace PinInCpp {
 		return DeleteTone<std::string_view>(this, it->second);
 	}
 
-	std::vector<std::vector<std::string>> PinIn::GetPinyinList(const std::string& str, bool hasTone)const {
-		Utf8String utf8v(str);
+	std::vector<std::vector<std::string>> PinIn::GetPinyinList(const std::string_view& str, bool hasTone)const {
+		Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
@@ -269,8 +282,8 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<std::vector<std::string_view>> PinIn::GetPinyinViewList(const std::string& str, bool hasTone)const {
-		Utf8String utf8v(str);
+	std::vector<std::vector<std::string_view>> PinIn::GetPinyinViewList(const std::string_view& str, bool hasTone)const {
+		Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string_view>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
@@ -505,7 +518,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	PinIn::Character::Character(const PinIn& p, const std::string& ch) :ctx{ p }, id{ p.GetPinyinId(ch) }, ch{ ch } {
+	PinIn::Character::Character(const PinIn& p, const std::string_view& ch) :ctx{ p }, id{ p.GetPinyinId(ch) }, ch{ ch } {
 		if (id == NullPinyinId) {
 			return;//无效拼音数据
 		}

@@ -99,27 +99,27 @@ namespace PinInCpp {
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(const std::string& path);
 		PinIn(const std::vector<char>& data);//数据加载模式
-		size_t GetPinyinId(const std::string& hanzi)const {
+		size_t GetPinyinId(const std::string_view& hanzi)const {
 			auto it = data.find(hanzi);
 			return it == data.end() ? NullPinyinId : it->second;
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
 		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口
 
-		std::vector<std::string> GetPinyin(const std::string& str, bool hasTone = false)const;//处理单汉字的拼音
-		std::vector<std::string_view> GetPinyinView(const std::string& str, bool hasTone = false)const;//只读版接口
+		std::vector<std::string> GetPinyin(const std::string_view& str, bool hasTone = false)const;//处理单汉字的拼音
+		std::vector<std::string_view> GetPinyinView(const std::string_view& str, bool hasTone = false)const;//只读版接口
 
-		std::vector<std::vector<std::string>> GetPinyinList(const std::string& str, bool hasTone = false)const;//处理多汉字的拼音
-		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string& str, bool hasTone = false)const;//只读版接口
+		std::vector<std::vector<std::string>> GetPinyinList(const std::string_view& str, bool hasTone = false)const;//处理多汉字的拼音
+		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string_view& str, bool hasTone = false)const;//只读版接口
 
-		Character GetChar(const std::string& str)const {
+		Character GetChar(const std::string_view& str)const {
 			return Character(*this, str);
 		}
 
 		bool empty()const {//返回有效性，真即有效，假即无效
 			return pool.empty();
 		}
-		bool HasPinyin(const std::string& str)const;
+		bool HasPinyin(const std::string_view& str)const;
 
 		class Ticket {
 		public:
@@ -285,13 +285,20 @@ namespace PinInCpp {
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
-			Character(const PinIn& p, const std::string& ch);
+			Character(const PinIn& p, const std::string_view& ch);
 			const PinIn& ctx;
 			const std::string ch;//需要持有一个字符串，因为这个是依赖输入源的，不是拼音数据
 			std::vector<Pinyin> pinyin;
 		};
 	private:
-		void LineParser(const std::string_view str);
+		struct InsertStrData {
+			size_t keySize;//字符串视图不强制终止符，要记录起始到末尾
+			size_t keyStart;
+
+			size_t valueId;//这个有自定义规则，所以只需要记录id
+		};
+		void LineParser(const std::string_view str, std::vector<InsertStrData>& InsertData);
+		void InsertDataFn(std::vector<InsertStrData>& InsertData);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
@@ -304,11 +311,14 @@ namespace PinInCpp {
 			bool empty()const {
 				return strs.empty();
 			}
+			char* data() {
+				return strs.data();
+			}
 		private:
 			std::vector<char> strs;//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
 		};
 		CharPool pool;
-		std::unordered_map<std::string, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+		std::unordered_map<std::string_view, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
 
 		template<typename T>//不需要音调需要处理
 		static std::vector<T> DeleteTone(const PinIn* ctx, size_t id) {
