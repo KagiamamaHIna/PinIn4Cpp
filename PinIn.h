@@ -134,7 +134,7 @@ namespace PinInCpp {
 		}
 
 		void SetCharCache(bool enable) {//默认开启缓存
-			if (enable) {
+			if (enable && CharCache) {
 				CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();
 			}
 			else {

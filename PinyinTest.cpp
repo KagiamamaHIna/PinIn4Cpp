@@ -21,13 +21,23 @@ static long long GetTimestampMS() {//获取当前毫秒的时间戳
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
-	system("pause");
-	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, "pinyin.txt");
-	//第二个参数为拼音数据的文件路径，请使用https://github.com/mozillazg/pinyin-data中提供的，当然本项目也放有pinyin.txt，你可以直接使用
+
+	std::fstream file("small.txt");//数据读取
+	std::string line;
+	std::vector<std::string> FileCache;
+	while (std::getline(file, line)) {
+		FileCache.push_back(line);
+	}
+	file.close();
+
+
+	//PinIn的构造函数参数为拼音数据的文件路径，请使用https://github.com/mozillazg/pinyin-data中提供的，当然本项目也放有pinyin.txt，你可以直接使用
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
-
-	PinInCpp::PinIn::Config cfg = tree.GetPinIn().config();
+	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
+	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
+	//pininptr->SetCharCache(true); //默认开启
+	PinInCpp::PinIn::Config cfg = pininptr->config();
 	cfg.fZh2Z = true;
 	cfg.fSh2S = true;
 	cfg.fCh2C = true;
@@ -38,16 +48,20 @@ int main() {
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
 
-	//tree.GetPinIn().SetCharCache(true); //默认开启
-	std::fstream file("small.txt");
-	std::string line;
-	long long now = GetTimestampMS();
-	while (std::getline(file, line)) {
-		tree.put(line);
+	system("pause");
+	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, pininptr);
+	long long now;
+	long long end;
+
+	long long timeCount = 0;
+	for (const auto& v : FileCache) {
+		long long now = GetTimestampMS();
+		tree.put(v);
+		long long end = GetTimestampMS();
+		timeCount += end - now;
 	}
-	tree.GetPinIn().SetCharCache(true);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，虽然性能下降并不明显
-	long long end = GetTimestampMS();
-	std::cout << end - now << '\n';
+	std::cout << timeCount << '\n';
+	pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，虽然性能下降并不明显
 	//插入耗时，比Java的快了，目前提供的缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 	//或许可以考虑用char32_t存单字符，不过这改动可就大了
 	//而且为了保证内存池的utf8字符串O1的随机访问，我实现了一个UTF8StringPool::chars_offset成员，必不可少但是也耗费更多内存了
