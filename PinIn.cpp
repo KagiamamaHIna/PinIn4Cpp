@@ -207,18 +207,18 @@ namespace PinInCpp {
 		InsertDataFn(cache);
 	}
 
-	PinIn::PinIn(const std::vector<char>& data) {
+	PinIn::PinIn(const std::vector<char>& input_data) {
 		//开始读取
 		std::string_view str;
 		std::vector<InsertStrData> cache;
 		size_t last_cursor = 0;
-		for (size_t i = 0; i < data.size(); i++) {
-			if (data[i] == '\n') {//按行解析
-				LineParser(std::string_view(data.data() + last_cursor, i - last_cursor), cache);
+		for (size_t i = 0; i < input_data.size(); i++) {
+			if (input_data[i] == '\n') {//按行解析
+				LineParser(std::string_view(input_data.data() + last_cursor, i - last_cursor), cache);
 				last_cursor = i + 1;//跳过换行
 			}
 		}
-		LineParser(std::string_view(data.data() + last_cursor, data.size() - last_cursor), cache);//解析最后一行
+		LineParser(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor), cache);//解析最后一行
 		InsertDataFn(cache);
 	}
 
