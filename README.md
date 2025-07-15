@@ -7,8 +7,10 @@
 
 ## 特性
 基本上保留了大部分原有的特性，不过要注意一些区别
-- 支持UTF8字符串处理而不是UTF16 (也只支持UTF8) [相当于解决了PinIn这个issue3的问题，因为原始设计只能使用utf16](https://github.com/Towdium/PinIn/issues/3)
-- 多了首字母模糊音匹配功能 [相当于PinIn这个issue1的解决方案](https://github.com/Towdium/PinIn/issues/1)
+- 支持UTF8字符串处理而不是UTF16 (也只支持UTF8)
+- - [相当于解决了PinIn这个issue3的问题，因为原始设计只能使用utf16](https://github.com/Towdium/PinIn/issues/3)
+- 多了首字母模糊音匹配功能
+- - [相当于PinIn这个issue1的解决方案](https://github.com/Towdium/PinIn/issues/1)
 - 只实现了TreeSearcher
 
 搜索方面应该和原版无异
