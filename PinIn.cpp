@@ -44,7 +44,10 @@ namespace PinInCpp {
 		try {
 			return std::stoi(str, nullptr, 16);
 		}
-		catch (...) {//跳过错误行策略
+		catch (std::invalid_argument&) {//跳过错误行策略
+			return -1;
+		}
+		catch (std::out_of_range&) {//跳过错误行策略
 			return -1;
 		}
 	}
