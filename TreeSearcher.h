@@ -159,7 +159,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(p.strs->getchar(keyword));
+				index(p.strs->getchar_view(keyword));
 				return this;
 			}
 			void reload() {
@@ -173,7 +173,7 @@ namespace PinInCpp {
 				NodeMap.children = std::move(src.children);
 				NodeMap.leaves = std::move(src.leaves);
 			}
-			void index(const std::string& c);
+			void index(const std::string_view& c);
 			std::unordered_map<PinIn::Phoneme, std::unordered_set<std::string>> index_node;
 			NMapOwned NodeMap;
 		};

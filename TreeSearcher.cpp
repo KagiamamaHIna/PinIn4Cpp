@@ -131,16 +131,16 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::index(const std::string& c) {
+	void TreeSearcher::NAcc::index(const std::string_view& c) {
 		PinIn::Character ch = p.context->GetChar(c);
 		for (const auto& py : ch.GetPinyins()) {
 			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
-				index_node.insert_or_assign(ph, std::unordered_set<std::string>{c});//把汉字插进去
+				index_node.insert_or_assign(ph, std::unordered_set<std::string>{std::string(c)});//把汉字插进去
 			}
 			else {//不为空
-				it->second.insert(c);
+				it->second.insert(std::string(c));
 			}
 		}
 	}
