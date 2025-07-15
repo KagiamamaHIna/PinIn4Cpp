@@ -6,7 +6,7 @@
 namespace PinInCpp {
 	class Accelerator {
 	public:
-		Accelerator(const PinIn& p) : ctx{ p } {
+		Accelerator(PinIn& p) : ctx{ p } {
 		}
 		const Utf8String& search() {
 			return searchStr;
@@ -45,7 +45,7 @@ namespace PinInCpp {
 		StringPoolBase* provider = nullptr;     //观察者指针，不拥有
 		std::optional<Utf8String> owned_provider; //拥有型，用于存储临时字符串的解析结果
 
-		const PinIn& ctx;
+		PinIn& ctx;
 
 		std::vector<IndexSet::Storage> cache;
 		Utf8String searchStr;

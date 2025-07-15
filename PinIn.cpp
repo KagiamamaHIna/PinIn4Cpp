@@ -292,6 +292,10 @@ namespace PinInCpp {
 		return result;
 	}
 
+	PinIn::Character PinIn::GetChar(const std::string_view& str) {
+		return Character(*this, str, GetPinyinId(str));
+	}
+
 	PinIn::Config::Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
 		//剩下构造一些浅拷贝也无影响的
 		fZh2Z = ctx.fZh2Z;
@@ -518,7 +522,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	PinIn::Character::Character(const PinIn& p, const std::string_view& ch) :ctx{ p }, id{ p.GetPinyinId(ch) }, ch{ ch } {
+	PinIn::Character::Character(const PinIn& p, const std::string_view& ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
 		if (id == NullPinyinId) {
 			return;//无效拼音数据
 		}

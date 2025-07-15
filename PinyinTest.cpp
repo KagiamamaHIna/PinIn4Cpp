@@ -38,15 +38,17 @@ int main() {
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
 
+	//tree.GetPinIn().SetCharCache(true); //默认开启
 	std::fstream file("small.txt");
 	std::string line;
 	long long now = GetTimestampMS();
 	while (std::getline(file, line)) {
 		tree.put(line);
 	}
+	tree.GetPinIn().SetCharCache(true);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，虽然性能下降并不明显
 	long long end = GetTimestampMS();
 	std::cout << end - now << '\n';
-	//插入耗时，比Java的慢，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
+	//插入耗时，比Java的快了，目前提供的缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 	//或许可以考虑用char32_t存单字符，不过这改动可就大了
 	//而且为了保证内存池的utf8字符串O1的随机访问，我实现了一个UTF8StringPool::chars_offset成员，必不可少但是也耗费更多内存了
 	//内存占用的问题部分还来源size_t类型，因为64位下是八字节大的，基本上是翻倍了

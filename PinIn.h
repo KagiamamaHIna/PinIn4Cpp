@@ -112,8 +112,34 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string_view& str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string_view& str, bool hasTone = false)const;//只读版接口
 
-		Character GetChar(const std::string_view& str)const {
-			return Character(*this, str);
+		Character GetChar(const std::string_view& str);//会始终构建一个Character，比较浪费性能
+		Character* GetCharCachePtr(const std::string_view& str) {//缓存关闭时返回空指针，开启时返回有效数据，注意，无效的字符串在缓存存储后再次返回都是第一个访问时的无效的字符串
+			if (CharCache) {
+				size_t id = GetPinyinId(str);
+				std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+				auto it = cache.find(id);
+				if (it == cache.end()) {//缓存不存在时
+					std::unique_ptr<Character> ptr = std::unique_ptr<Character>(new Character(*this, str, id));
+					Character* result = ptr.get();
+					cache.insert_or_assign(id, std::move(ptr));
+					return result;
+				}
+				else {
+					return it->second.get();//缓存存在时
+				}
+			}
+			else {
+				return nullptr;
+			}
+		}
+
+		void SetCharCache(bool enable) {//默认开启缓存
+			if (enable) {
+				CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();
+			}
+			else {
+				CharCache.reset();
+			}
 		}
 
 		bool empty()const {//返回有效性，真即有效，假即无效
@@ -285,7 +311,7 @@ namespace PinInCpp {
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
-			Character(const PinIn& p, const std::string_view& ch);
+			Character(const PinIn& p, const std::string_view& ch, const size_t id);
 			const PinIn& ctx;
 			const std::string ch;//需要持有一个字符串，因为这个是依赖输入源的，不是拼音数据
 			std::vector<Pinyin> pinyin;
@@ -319,6 +345,7 @@ namespace PinInCpp {
 		};
 		CharPool pool;
 		std::unordered_map<std::string_view, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+		std::optional<std::unordered_map<size_t, std::unique_ptr<Character>>> CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();//默认开启
 
 		template<typename T>//不需要音调需要处理
 		static std::vector<T> DeleteTone(const PinIn* ctx, size_t id) {

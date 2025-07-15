@@ -20,12 +20,22 @@ namespace PinInCpp {
 	}
 
 	IndexSet Accelerator::get(const std::string& ch, size_t offset) {
-		PinIn::Character c = ctx.GetChar(ch);
-		IndexSet ret = (searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE).copy();
-		for (const PinIn::Pinyin& p : c.GetPinyins()) {
-			ret.merge(get(p, offset));
+		PinIn::Character* c = ctx.GetCharCachePtr(ch);
+		if (c == nullptr) {
+			PinIn::Character c = ctx.GetChar(ch);
+			IndexSet ret = (searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE).copy();
+			for (const PinIn::Pinyin& p : c.GetPinyins()) {
+				ret.merge(get(p, offset));
+			}
+			return ret;
 		}
-		return ret;
+		else {
+			IndexSet ret = (searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE).copy();
+			for (const PinIn::Pinyin& p : c->GetPinyins()) {
+				ret.merge(get(p, offset));
+			}
+			return ret;
+		}
 	}
 
 	size_t Accelerator::common(size_t s1, size_t s2, size_t max) {
