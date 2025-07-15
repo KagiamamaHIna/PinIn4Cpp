@@ -19,16 +19,14 @@ namespace PinInCpp {
 	class TreeSearcher {
 	public:
 		virtual ~TreeSearcher() = default;
-		TreeSearcher(Logic logic, const std::string& PinyinDictionary)
-			:logic{ logic }, context(PinyinDictionary), acc(context) {
-			root = std::make_unique<NDense>(*this);
-			acc.setProvider(strs.get());
-			ticket = context.ticket([this]() {
-				for (const auto& i : this->naccs) {
-					i->reload();
-				}
-				this->acc.reset();
-			});
+		TreeSearcher(Logic logic, const std::string& PinyinDictionaryPath)
+			:logic{ logic }, context(PinyinDictionaryPath), acc(context) {
+			init();
+		}
+
+		TreeSearcher(Logic logic, const std::vector<char>& PinyinDictionaryData)
+			:logic{ logic }, context(PinyinDictionaryData), acc(context) {
+			init();
 		}
 
 		void put(const std::string& keyword);//插入待搜索项，内部无查重，大小写敏感
@@ -44,6 +42,16 @@ namespace PinInCpp {
 			return context;
 		}
 	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
+		void init() {
+			root = std::make_unique<NDense>(*this);
+			acc.setProvider(strs.get());
+			ticket = context.ticket([this]() {
+				for (const auto& i : this->naccs) {
+					i->reload();
+				}
+				this->acc.reset();
+			});
+		}
 		class Node {
 		public:
 			virtual ~Node() = default;

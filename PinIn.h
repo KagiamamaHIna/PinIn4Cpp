@@ -98,6 +98,7 @@ namespace PinInCpp {
 	public:
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(const std::string& path);
+		PinIn(const std::vector<char>& data);//数据加载模式
 		size_t GetPinyinId(const std::string& hanzi)const {
 			auto it = data.find(hanzi);
 			return it == data.end() ? NullPinyinId : it->second;
@@ -290,6 +291,7 @@ namespace PinInCpp {
 			std::vector<Pinyin> pinyin;
 		};
 	private:
+		void LineParser(const std::string_view str);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
