@@ -203,6 +203,7 @@ namespace PinInCpp {
 				last_cursor = i + 1;//跳过换行
 			}
 		}
+		LineParser(std::string_view(data.data() + last_cursor, data.size() - last_cursor));//解析最后一行
 	}
 
 	bool PinIn::HasPinyin(const std::string& str)const {
