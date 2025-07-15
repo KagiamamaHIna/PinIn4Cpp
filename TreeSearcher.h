@@ -208,7 +208,7 @@ namespace PinInCpp {
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
 	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(size_t keyword, size_t id) {
-		if (p.strs->end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用empty判断是最安全且合法的
+		if (p.strs->end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
 			leaves.insert(id);
 		}
 		else {
