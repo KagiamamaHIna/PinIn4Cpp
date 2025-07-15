@@ -20,7 +20,7 @@ static long long GetTimestampMS() {//获取当前毫秒的时间戳
 	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();
 }
 
-constexpr int TreeLoopInsertCount = 100;
+constexpr int TreeLoopInsertCount = 1;
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
@@ -50,13 +50,13 @@ int main() {
 	cfg.fU2V = true;
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
-
-	system("pause");
-	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
 	long long now;
 	long long end;
 
 	long long timeCount = 0;
+	system("pause");
+	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+
 
 	for (int i = 0; i < TreeLoopInsertCount; i++) {
 		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
@@ -70,7 +70,7 @@ int main() {
 
 	std::cout << ((double)timeCount / (double)TreeLoopInsertCount) / 1000 << '\n';
 
-	pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，虽然性能下降并不明显
+	//pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，会导致一定程度的性能下降
 	//插入耗时，比Java的快了，目前提供的缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 	//或许可以考虑用char32_t存单字符，不过这改动可就大了
 	//而且为了保证内存池的utf8字符串O1的随机访问，我实现了一个UTF8StringPool::chars_offset成员，必不可少但是也耗费更多内存了

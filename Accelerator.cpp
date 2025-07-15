@@ -29,12 +29,15 @@ namespace PinInCpp {
 			}
 			return ret;
 		}
-		else {
+		else if (!c->IsPinyinValid()) {
 			IndexSet ret = (searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE).copy();
 			for (const PinIn::Pinyin& p : c->GetPinyins()) {
 				ret.merge(get(p, offset));
 			}
 			return ret;
+		}
+		else {//无效那应该和输入值自身判断 主要是缓存不会创建多个无效的字符类型，所以为了避免判断出问题就这样设计
+			return (searchStr[offset] == ch ? IndexSet::ONE : IndexSet::NONE).copy();
 		}
 	}
 
