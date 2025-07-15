@@ -10,14 +10,17 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <array>
 
 #include "TreeSearcher.h"
 
 static long long GetTimestampMS() {//获取当前毫秒的时间戳
 	auto now = std::chrono::steady_clock::now();
 	//将时间点转换为时间戳
-	return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();
 }
+
+constexpr int TreeLoopInsertCount = 100;
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
@@ -49,18 +52,24 @@ int main() {
 	cfg.commit();
 
 	system("pause");
-	PinInCpp::TreeSearcher tree(PinInCpp::Logic::CONTAIN, pininptr);
+	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
 	long long now;
 	long long end;
 
 	long long timeCount = 0;
-	for (const auto& v : FileCache) {
-		long long now = GetTimestampMS();
-		tree.put(v);
-		long long end = GetTimestampMS();
-		timeCount += end - now;
+
+	for (int i = 0; i < TreeLoopInsertCount; i++) {
+		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+		for (const auto& v : FileCache) {
+			long long now = GetTimestampMS();
+			tree->put(v);
+			long long end = GetTimestampMS();
+			timeCount += end - now;
+		}
 	}
-	std::cout << timeCount << '\n';
+
+	std::cout << ((double)timeCount / (double)TreeLoopInsertCount) / 1000 << '\n';
+
 	pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，虽然性能下降并不明显
 	//插入耗时，比Java的快了，目前提供的缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 	//或许可以考虑用char32_t存单字符，不过这改动可就大了
@@ -71,11 +80,11 @@ int main() {
 		std::cout << "input:";
 		std::getline(std::cin, line);
 		now = GetTimestampMS();
-		auto vec = tree.ExecuteSearchView(line);
+		auto vec = tree->ExecuteSearchView(line);
 		end = GetTimestampMS();
 		for (const auto& v : vec) {
 			std::cout << v << '\n';
 		}
-		std::cout << end - now << '\n';//计算获取耗时并打印，单位毫秒
+		std::cout << (double)(end - now) / 1000 << '\n';//计算获取耗时并打印，单位毫秒
 	}
 }
