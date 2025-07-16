@@ -11,7 +11,6 @@
 #include "StringPool.h"
 #include "Accelerator.h"
 #include "Keyboard.h"
-#include "AutoContainer.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -94,7 +93,7 @@ namespace PinInCpp {
 						}
 					}
 					data.push_back(input_v);
-					if (data.size() > CONTAINER_THRESHOLD) {
+					if (data.size() > ContainerThreshold) {
 						std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
 						for (const value& v : data) {
 							result->insert(v);
@@ -270,6 +269,8 @@ namespace PinInCpp {
 		constexpr static int NDenseThreshold = 128;
 		//表节点转换临界点
 		constexpr static int NMapThreshold = 32;
+		//ObjSet转换临界点
+		constexpr static int ContainerThreshold = 128;
 		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();//应当继续贯彻零拷贝设计
 		Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
