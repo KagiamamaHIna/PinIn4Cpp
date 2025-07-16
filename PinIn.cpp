@@ -57,19 +57,19 @@ namespace PinInCpp {
 	}
 
 	size_t PinIn::CharPool::put(const std::string_view& s) {
-		size_t result = strs.size();
-		strs.insert(strs.end(), s.begin(), s.end());//插入字符串
+		size_t result = strs->size();
+		strs->insert(strs->end(), s.begin(), s.end());//插入字符串
 		return result;
 	}
 
 	size_t PinIn::CharPool::putChar(const char s) {
-		size_t result = strs.size();
-		strs.push_back(s);
+		size_t result = strs->size();
+		strs->push_back(s);
 		return result;
 	}
 
 	void PinIn::CharPool::putEnd() {
-		strs.push_back('\0');
+		strs->push_back('\0');
 	}
 
 	std::vector<std::string> PinIn::CharPool::getPinyinVec(size_t i)const {//根据理论上的正确格式来讲，应当是用','字符分隔拼音，然后用'\0'作为拼音数据末尾
@@ -77,7 +77,7 @@ namespace PinInCpp {
 		size_t cursor = 0;//直接在result上构造字符串，用这个代表当前访问的字符串
 		std::vector<std::string> result(1);//提前构造一个字符串
 
-		char tempChar = strs[i];//局部拷贝，避免多次访问
+		char tempChar = FixedStrs[i];//局部拷贝，避免多次访问
 		while (tempChar) {//结尾符就退出
 			if (tempChar == ',') {//不保存这个，压入下一个空字符串，移动cursor
 				result.push_back("");
@@ -87,17 +87,17 @@ namespace PinInCpp {
 				result[cursor].push_back(tempChar);
 			}
 			i++;
-			tempChar = strs[i];//自增完成后再取下一个字符
+			tempChar = FixedStrs[i];//自增完成后再取下一个字符
 		}
 		return result;
 	}
 
 	std::string_view PinIn::CharPool::getPinyinView(size_t i) const {
 		const size_t start = i;
-		while (strs[i] != ',' && strs[i] != '\0') {
+		while (FixedStrs[i] != ',' && FixedStrs[i] != '\0') {
 			i++;
 		}
-		return std::string_view(strs.data() + start, i - start);
+		return std::string_view(FixedStrs.get() + start, i - start);
 	}
 
 	std::vector<std::string_view> PinIn::CharPool::getPinyinViewVec(size_t i, bool hasTone)const {
@@ -107,18 +107,18 @@ namespace PinInCpp {
 		size_t SubCharSize = hasTone ? 0 : 1;
 		std::vector<std::string_view> result;//提前构造一个字符串
 
-		char tempChar = strs[i];//局部拷贝，避免多次访问
+		char tempChar = FixedStrs[i];//局部拷贝，避免多次访问
 		while (tempChar) {//结尾符就退出
 			if (tempChar == ',') {//不保存这个，压入下一个空字符串，移动cursor
-				result.push_back(std::string_view(strs.data() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
+				result.push_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
 				cursor++;
 				StrStart = i + 1;//记录下一个字符串的开头
 			}
 			i++;
-			tempChar = strs[i];//自增完成后再取下一个字符
+			tempChar = FixedStrs[i];//自增完成后再取下一个字符
 		}
 		//保存最后一个
-		result.push_back(std::string_view(strs.data() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
+		result.push_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
 		return result;
 	}
 
@@ -204,6 +204,7 @@ namespace PinInCpp {
 		while (std::getline(fs, str)) {
 			LineParser(str, cache);
 		}
+		pool.Fixed();
 		InsertDataFn(cache);
 	}
 
@@ -219,6 +220,7 @@ namespace PinInCpp {
 			}
 		}
 		LineParser(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor), cache);//解析最后一行
+		pool.Fixed();
 		InsertDataFn(cache);
 	}
 

@@ -335,13 +335,19 @@ namespace PinInCpp {
 			std::string_view getPinyinView(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
 			bool empty()const {
-				return strs.empty();
+				return strs->empty();
+			}
+			void Fixed() {//构造完成后固定，将原有向量析构掉，用更轻量的std::unique_ptr<char[]>取代，向量预分配开销去除
+				FixedStrs = std::unique_ptr<char[]>(new char[strs->size()]);
+				memcpy(FixedStrs.get(), strs->data(), strs->size());
+				strs.reset(nullptr);
 			}
 			char* data() {
-				return strs.data();
+				return FixedStrs.get();
 			}
 		private:
-			std::vector<char> strs;//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
+			std::unique_ptr<std::vector<char>> strs = std::make_unique<std::vector<char>>();//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
+			std::unique_ptr<char[]> FixedStrs = nullptr;
 		};
 		CharPool pool;
 		std::unordered_map<std::string_view, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量

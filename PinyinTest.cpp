@@ -38,7 +38,9 @@ int main() {
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
+	system("pause");
 	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
+	system("pause");
 	//pininptr->SetCharCache(true); //默认开启
 	PinInCpp::PinIn::Config cfg = pininptr->config();
 	cfg.fZh2Z = true;
@@ -54,7 +56,6 @@ int main() {
 	long long end;
 
 	long long timeCount = 0;
-	system("pause");
 	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 
 
