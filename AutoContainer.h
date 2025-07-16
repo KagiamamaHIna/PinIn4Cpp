@@ -33,6 +33,7 @@ namespace PinInCpp {
 	private:
 		class AbstractSet {
 		public:
+			virtual ~AbstractSet() = default;
 			virtual AbstractSet* insert(const value& input_v) = 0;
 			virtual void AddToSTLSet(std::unordered_set<value>& input_v) = 0;//有点反客为主了
 		};
