@@ -55,11 +55,11 @@ int main() {
 
 	long long timeCount = 0;
 	system("pause");
-	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 
 
 	for (int i = 0; i < TreeLoopInsertCount; i++) {
-		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 		for (const auto& v : FileCache) {
 			long long now = GetTimestampMS();
 			tree->put(v);
@@ -71,7 +71,8 @@ int main() {
 	std::cout << ((double)timeCount / (double)TreeLoopInsertCount) / 1000 << '\n';
 
 	//pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，会导致一定程度的性能下降
-	//插入耗时，比Java的快了，目前提供的缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
+
+	//插入耗时，比Java的快了，目前提供了缓存支持，主要原因还是在utf8字符串处理之类的问题上，当然内存占用也是如此(更大)，毕竟utf8比utf16浪费内存，而且有std::string作为key的开销
 	//或许可以考虑用char32_t存单字符，不过这改动可就大了
 	//而且为了保证内存池的utf8字符串O1的随机访问，我实现了一个UTF8StringPool::chars_offset成员，必不可少但是也耗费更多内存了
 	//内存占用的问题部分还来源size_t类型，因为64位下是八字节大的，基本上是翻倍了

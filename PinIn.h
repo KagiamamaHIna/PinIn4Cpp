@@ -237,9 +237,9 @@ namespace PinInCpp {
 
 			有Local情况下的reload函数可以用纯逻辑+查表混合模式，
 			因为c/s/z作为检查开头的音素，他们本质上还是那么简单，
-			ang/ing/eng和去掉g的情况也类似，因为他们本质上还是经过了cutter的处理，
-			会被区分后分割出来，
-			所以！只有v+后缀字符串是真正需要在有Local的情况下查表匹配的，我们可以将这两个的逻辑简单的分离成私有成员方法，就能完美的实现了
+			ang/ing/eng和去掉g的情况要考虑复杂的映射表，所以也是要查表匹配
+
+			所以！v+后缀字符串和ang/ing/eng这些是真正需要在有Local的情况下查表匹配的，我们可以将这两个的逻辑简单的分离成私有成员方法，就能完美的实现了
 			*/
 			virtual ~Phoneme() = default;
 			virtual std::string ToString()const {
