@@ -26,7 +26,7 @@ namespace PinInCpp {
 		std::vector<std::string_view> GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
 		bool GetHasFuuzyLocal()const {//用于确定音素reload是否进行查表和纯逻辑行为
-			return MapLocalFuuzy.has_value();
+			return MapLocalFuzzy.has_value();
 		}
 
 		static std::vector<std::string_view> standard(const std::string_view& s);//本身就是一个标准的，处理全拼音素的全局函数
@@ -92,7 +92,7 @@ namespace PinInCpp {
 			std::vector<char> strs;
 		};
 		StrPool pool;
-		OptionalStrViewVecMap MapLocalFuuzy;
+		OptionalStrViewVecMap MapLocalFuzzy;
 		OptionalStrViewMap MapLocal;
 		OptionalStrViewMap MapKeys;
 		CutterFn cutter = standard;

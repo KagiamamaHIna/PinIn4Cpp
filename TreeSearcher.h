@@ -11,7 +11,6 @@
 #include "StringPool.h"
 #include "Accelerator.h"
 #include "Keyboard.h"
-#include "AutoContainer.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -51,7 +50,7 @@ namespace PinInCpp {
 		std::shared_ptr<PinIn> GetPinInShared() {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
 		}
-	private://节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
+	private:
 		void init() {
 			root = std::make_unique<NDense>(*this);
 			acc.setProvider(strs.get());
@@ -62,7 +61,74 @@ namespace PinInCpp {
 				this->acc.reset();
 			});
 		}
-		class Node {
+		template<typename value>
+		class ObjSet {//这是专门用于优化的类，本身功能并不多！
+		private:
+			class AbstractSet {//集合不承担查找，这个就很简单
+			public:
+				virtual ~AbstractSet() = default;
+				virtual AbstractSet* insert(const value& input_v) = 0;
+				virtual void AddToSTLSet(std::unordered_set<value>& input_v) = 0;//有点反客为主了
+			};
+			class HashSet : public AbstractSet {
+			public:
+				virtual AbstractSet* insert(const value& input_v) {
+					data.insert(input_v);
+					return this;
+				}
+				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
+					for (const value& v : data) {
+						input_v.insert(v);
+					}
+				}
+			private:
+				std::unordered_set<value> data;
+			};
+			class ArraySet : public AbstractSet {
+			public:
+				virtual AbstractSet* insert(const value& input_v) {
+					for (const value& v : data) {
+						if (v == input_v) {
+							return this;//如果查到，有相等的，则为重复
+						}
+					}
+					data.push_back(input_v);
+					if (data.size() > CONTAINER_THRESHOLD) {
+						std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
+						for (const value& v : data) {
+							result->insert(v);
+						}
+						return result.release();
+					}
+					return this;
+				}
+				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
+					for (const value& v : data) {
+						input_v.insert(v);
+					}
+				}
+			private:
+				std::vector<value> data;
+			};
+			std::unique_ptr<AbstractSet> Container;
+		public:
+			ObjSet() :Container{ std::make_unique<ArraySet>() } {}
+			ObjSet(std::initializer_list<value> list) :Container{ std::make_unique<ArraySet>() } {
+				for (const value& v : list) {
+					insert(v);
+				}
+			}
+			void insert(const value& input_v) {
+				AbstractSet* set = Container->insert(input_v);
+				if (set != Container.get()) {
+					Container.reset(set);
+				}
+			}
+			void AddToSTLSet(std::unordered_set<value>& input_v) {
+				Container->AddToSTLSet(input_v);
+			}
+		};
+		class Node {//节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
 		public:
 			virtual ~Node() = default;
 			virtual void get(std::unordered_set<size_t>& result, size_t offset) = 0;

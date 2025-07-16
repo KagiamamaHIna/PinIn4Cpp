@@ -106,8 +106,8 @@ namespace PinInCpp {
 			CreateViewOnMap(MapLocal.value(), MapLocalData);
 		}
 		if (!FuzzyPhoneme.empty()) {
-			MapLocalFuuzy = std::map<std::string_view, std::vector<std::string_view>>();
-			auto& Target = MapLocalFuuzy.value();//jb的太长了我受不了了
+			MapLocalFuzzy = std::map<std::string_view, std::vector<std::string_view>>();
+			auto& Target = MapLocalFuzzy.value();//jb的太长了我受不了了
 			char* poolptr = pool.data();
 			for (const auto& data : FuzzyPhoneme) {
 				std::string_view key(poolptr + data.keyStart, data.keySize);
@@ -138,10 +138,10 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string_view> Keyboard::GetFuzzyPhoneme(const std::string_view& s)const {
-		if (MapLocalFuuzy == std::nullopt) {
+		if (MapLocalFuzzy == std::nullopt) {
 			return { s };
 		}
-		const auto& Keys = MapLocalFuuzy.value();
+		const auto& Keys = MapLocalFuzzy.value();
 		auto it = Keys.find(s);
 		//指向结尾为未找到
 		if (it != Keys.end()) {
