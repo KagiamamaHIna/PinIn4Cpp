@@ -30,26 +30,9 @@ namespace PinInCpp {
 
 	template<typename value>
 	class ObjSet {//集合不承担查找，这个就很简单
-	public:
-		ObjSet() = default;
-		ObjSet(std::initializer_list<value> list) {
-			for (const value& v : list) {
-				insert(v);
-			}
-		}
-		void insert(const value& input_v) {
-			AbstractSet* set = Container->insert(input_v);
-			if (set != Container.get()) {
-				Container.reset(set);
-			}
-		}
-		void AddToSTLSet(std::unordered_set<value>& input_v) {
-			Container->AddToSTLSet(input_v);
-		}
 	private:
 		class AbstractSet {
 		public:
-			virtual ~AbstractSet() = default;
 			virtual AbstractSet* insert(const value& input_v) = 0;
 			virtual void AddToSTLSet(std::unordered_set<value>& input_v) = 0;//有点反客为主了
 		};
@@ -96,6 +79,22 @@ namespace PinInCpp {
 			std::vector<value> data;
 		};
 
-		std::unique_ptr<AbstractSet> Container = std::make_unique<ArraySet>();
+		std::unique_ptr<AbstractSet> Container;
+	public:
+		ObjSet() :Container{ std::make_unique<ArraySet>() } {}
+		ObjSet(std::initializer_list<value> list) :Container{ std::make_unique<ArraySet>() } {
+			for (const value& v : list) {
+				insert(v);
+			}
+		}
+		void insert(const value& input_v) {
+			AbstractSet* set = Container->insert(input_v);
+			if (set != Container.get()) {
+				Container.reset(set);
+			}
+		}
+		void AddToSTLSet(std::unordered_set<value>& input_v) {
+			Container->AddToSTLSet(input_v);
+		}
 	};
 }
