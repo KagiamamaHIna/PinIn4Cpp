@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Accelerator.h" />
+    <ClInclude Include="AutoContainer.h" />
     <ClInclude Include="IndexSet.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="PinIn.h" />

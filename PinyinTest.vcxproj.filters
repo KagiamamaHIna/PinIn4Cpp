@@ -68,5 +68,8 @@
     <ClInclude Include="PinyinFormat.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
+    <ClInclude Include="AutoContainer.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

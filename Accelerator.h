@@ -31,7 +31,7 @@ namespace PinInCpp {
 			owned_provider.emplace(s); //在自己的 optional 中创建一个拥有数据的副本
 		}
 		IndexSet get(const PinIn::Pinyin& p, size_t offset);
-		IndexSet get(const std::string& ch, size_t offset);
+		IndexSet get(const std::string_view& ch, size_t offset);
 		size_t common(size_t s1, size_t s2, size_t max);
 		bool check(size_t offset, size_t start);
 		bool matches(size_t offset, size_t start);

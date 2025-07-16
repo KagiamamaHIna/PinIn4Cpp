@@ -106,9 +106,7 @@ namespace PinInCpp {
 	void TreeSearcher::NAcc::get(std::unordered_set<size_t>& result, size_t offset) {
 		if (p.acc.search().size() == offset) {
 			if (p.logic == Logic::EQUAL) {
-				for (const auto& v : NodeMap.leaves) {
-					result.insert(v);
-				}
+				NodeMap.leaves.AddToSTLSet(result);
 			}
 			else {
 				NodeMap.get(result);//直接调用原始的这个，避免中间层开销

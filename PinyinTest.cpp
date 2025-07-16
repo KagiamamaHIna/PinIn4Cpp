@@ -33,7 +33,6 @@ int main() {
 	}
 	file.close();
 
-
 	//PinIn的构造函数参数为拼音数据的文件路径，请使用https://github.com/mozillazg/pinyin-data中提供的，当然本项目也放有pinyin.txt，你可以直接使用
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较

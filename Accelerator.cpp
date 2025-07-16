@@ -19,7 +19,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	IndexSet Accelerator::get(const std::string& ch, size_t offset) {
+	IndexSet Accelerator::get(const std::string_view& ch, size_t offset) {
 		PinIn::Character* c = ctx.GetCharCachePtr(ch);
 		if (c == nullptr) {
 			PinIn::Character c = ctx.GetChar(ch);

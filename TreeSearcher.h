@@ -5,11 +5,13 @@
 #include <unordered_set>
 #include <memory>
 #include <unordered_map>
+#include <iostream>
 
 #include "PinIn.h"
 #include "StringPool.h"
 #include "Accelerator.h"
 #include "Keyboard.h"
+#include "AutoContainer.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -94,16 +96,14 @@ namespace PinInCpp {
 			virtual void get(std::unordered_set<size_t>& ret, size_t offset) {
 				if (p.acc.search().size() == offset) {
 					if (p.logic == Logic::EQUAL) {
-						for (const auto& v : leaves) {
-							ret.insert(v);
-						}
+						leaves.AddToSTLSet(ret);
 					}
 					else {
 						get(ret);
 					};
 				}
 				else if (children != nullptr) {
-					for (const auto& [c, n] : *children.get()) {
+					for (const auto& [c, n] : *children) {
 						p.acc.get(c, offset).foreach([&](uint32_t i) {
 							n->get(ret, offset + i);
 						});
@@ -111,11 +111,9 @@ namespace PinInCpp {
 				}
 			}
 			virtual void get(std::unordered_set<size_t>& ret) {
-				for (const auto& v : leaves) {
-					ret.insert(v);
-				}
+				leaves.AddToSTLSet(ret);
 				if (children != nullptr) {
-					for (const auto& [c, n] : *children.get()) {
+					for (const auto& [c, n] : *children) {
 						n->get(ret);
 					}
 				}
@@ -139,8 +137,8 @@ namespace PinInCpp {
 			void reset_children(const std::string& ch, Node* n) {
 				children->operator[](ch).reset(n);
 			}
-			std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<Node>>> children = nullptr;
-			std::unordered_set<size_t> leaves;
+			std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<Node>>> children = nullptr;//需要有升级机制
+			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的
@@ -164,7 +162,7 @@ namespace PinInCpp {
 			}
 			void reload() {
 				index_node.clear();
-				for (const auto& [k, v] : *(NodeMap.children.get())) {
+				for (const auto& [k, v] : *NodeMap.children) {
 					index(k);
 				}
 			}
@@ -174,6 +172,7 @@ namespace PinInCpp {
 				NodeMap.leaves = std::move(src.leaves);
 			}
 			void index(const std::string_view& c);
+			//这个就不做升级优化了，通常都很多，做升级优化内存降下来不明显还引入了更多的运行时开销，有明显的性能下降
 			std::unordered_map<PinIn::Phoneme, std::unordered_set<std::string>> index_node;
 			NMapOwned NodeMap;
 		};
@@ -204,7 +203,7 @@ namespace PinInCpp {
 		constexpr static int NDenseThreshold = 128;
 		//表节点转换临界点
 		constexpr static int NMapThreshold = 32;
-		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();;//应当继续贯彻零拷贝设计
+		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();//应当继续贯彻零拷贝设计
 		Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
