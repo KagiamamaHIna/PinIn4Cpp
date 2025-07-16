@@ -11,6 +11,7 @@
 #include "StringPool.h"
 #include "Accelerator.h"
 #include "Keyboard.h"
+#include "AutoContainer.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
