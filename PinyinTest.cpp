@@ -55,11 +55,11 @@ int main() {
 	long long end;
 
 	long long timeCount = 0;
-	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 
 
 	for (int i = 0; i < TreeLoopInsertCount; i++) {
-		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::BEGIN, pininptr);
+		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 		for (const auto& v : FileCache) {
 			long long now = GetTimestampMS();
 			tree->put(v);

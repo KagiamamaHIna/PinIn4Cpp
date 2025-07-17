@@ -104,13 +104,13 @@ namespace PinInCpp {
 			return it == data.end() ? NullPinyinId : it->second;
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
-		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口
+		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
 		std::vector<std::string> GetPinyin(const std::string_view& str, bool hasTone = false)const;//处理单汉字的拼音
-		std::vector<std::string_view> GetPinyinView(const std::string_view& str, bool hasTone = false)const;//只读版接口
+		std::vector<std::string_view> GetPinyinView(const std::string_view& str, bool hasTone = false)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string_view& str, bool hasTone = false)const;//处理多汉字的拼音
-		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string_view& str, bool hasTone = false)const;//只读版接口
+		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string_view& str, bool hasTone = false)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
 		Character GetChar(const std::string_view& str);//会始终构建一个Character，比较浪费性能
 		Character* GetCharCachePtr(const std::string_view& str) {//缓存关闭时返回空指针，开启时返回有效数据，注意，无效的字符串在缓存存储后再次返回都是第一个访问时的无效的字符串
