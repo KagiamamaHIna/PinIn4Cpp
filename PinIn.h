@@ -205,7 +205,7 @@ namespace PinInCpp {
 			bool fU2V = false;
 			bool fFirstChar = false;
 			//将当前Config对象中的所有设置应用到PinIn上下文中。此方法总会触发数据的更改，无论配置是否实际发生变化，调用者应负责避免不必要的或重复的commit()调用
-			//重载完成后，音素这样的数据的视图不再合法，需要重载，可以用Ticket类注册一个异步操作，在每次执行前检查后按需重载(执行Ticket::renew触发回调函数)
+			//重载完成后，音素这样的数据的视图不再合法，需要重载(重载字符类即可)，可以用Ticket类注册一个异步操作，在每次执行前检查后按需重载(执行Ticket::renew触发回调函数)
 			void commit();
 		private:
 			PinIn& ctx;//绑定的拼音上下文
@@ -245,7 +245,6 @@ namespace PinInCpp {
 			virtual std::string ToString()const {
 				return std::string(strs[0]);
 			}
-			void reload();//本质上只需要代表好它的对象即可
 			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
@@ -260,6 +259,7 @@ namespace PinInCpp {
 			}
 		private:
 			friend Pinyin;//由Pinyin类执行构建
+			void reload();//本质上只需要代表好它的对象即可，本质上应该禁用，因为切换时音素本身也有可能会被切换，这时候视图可能是危险的，要确保重载行为在框架内是合理的
 			explicit Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
 				reload();
 			}

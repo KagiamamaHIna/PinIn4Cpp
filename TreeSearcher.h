@@ -228,7 +228,7 @@ namespace PinInCpp {
 				return this;
 			}
 			void reload() {
-				index_node.clear();
+				index_node.clear();//释放所有音素
 				for (const auto& [k, v] : *NodeMap.children) {
 					index(k);
 				}
