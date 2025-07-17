@@ -223,7 +223,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(p.strs->getchar(keyword));
+				index(p.strs->getchar_view(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
 				return this;
 			}
 			void reload() {
