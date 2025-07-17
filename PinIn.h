@@ -307,6 +307,11 @@ namespace PinInCpp {
 			const std::vector<Pinyin>& GetPinyins()const {
 				return pinyin;
 			}
+			void reload() {
+				for (auto& p : pinyin) {
+					p.reload();
+				}
+			}
 			IndexSet match(const Utf8String& str, size_t start, bool partial)const;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:

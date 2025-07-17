@@ -320,6 +320,12 @@ namespace PinInCpp {
 		ctx.fU2V = fU2V;
 		ctx.fFirstChar = fFirstChar;
 
+		if (ctx.CharCache) {
+			for (const auto& v : ctx.CharCache.value()) {
+				v.second->reload();
+			}
+		}
+
 		ctx.modification++;
 	}
 
