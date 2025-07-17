@@ -36,6 +36,7 @@ namespace PinInCpp {
 		}
 
 		void put(const std::string& keyword);//插入待搜索项，内部无查重，大小写敏感
+		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
 		std::vector<std::string> ExecuteSearch(const std::string& s);//执行搜索
 		std::vector<std::string_view> ExecuteSearchView(const std::string& s);//执行搜索，但是返回的字符串为只读视图，注意，这些视图可能会在插入新数据后变成悬垂视图！
 		void refresh() {//手动尝试刷新
