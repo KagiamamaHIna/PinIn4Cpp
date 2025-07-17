@@ -72,7 +72,7 @@ namespace PinInCpp {
 			if (provider->end(start)) {
 				return false;
 			}
-			IndexSet s = get(provider->getchar(start), offset);
+			IndexSet s = get(provider->getchar_view(start), offset);//只读不写，安全的
 
 			if (provider->end(start + 1)) {
 				size_t i = searchStr.size() - offset;
