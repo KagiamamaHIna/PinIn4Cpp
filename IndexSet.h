@@ -45,7 +45,7 @@ namespace PinInCpp {
 			IndexSet get(size_t index) {
 				auto it = data.find(index);
 				if (it == data.end() || it->second == 0) {
-					return IndexSet();//空IndexSet也可以代表空元素，而且因为只有uint32_t成员，根本不耗性能
+					return IndexSet::Init();//空IndexSet也可以代表空元素，而且因为只有uint32_t成员，根本不耗性能
 				}
 				return IndexSet::Init(it->second - 1);
 			}
