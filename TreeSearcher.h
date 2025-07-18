@@ -54,7 +54,7 @@ namespace PinInCpp {
 	private:
 		void init() {
 			root = std::make_unique<NDense>(*this);
-			acc.setProvider(strs.get());
+			acc.setProvider(&strs);
 			ticket = context->ticket([this]() {
 				for (const auto& i : this->naccs) {
 					i->reload();
@@ -219,7 +219,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(p.strs->getchar_view(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+				index(p.strs.getchar_view(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
 				return this;
 			}
 			void reload() {
@@ -267,11 +267,12 @@ namespace PinInCpp {
 		constexpr static int NMapThreshold = 32;
 		//ObjSet转换临界点
 		constexpr static int ContainerThreshold = 128;
-		std::unique_ptr<StringPoolBase> strs = std::make_unique<UTF8StringPool>();//应当继续贯彻零拷贝设计
-		Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
+		UTF8StringPool strs;//应当继续贯彻零拷贝设计
 		Accelerator acc;
+		Logic logic;
+
 
 		std::unique_ptr<Node> root = nullptr;
 		std::vector<NAcc*> naccs;//观察者，不持有数据
@@ -318,14 +319,14 @@ namespace PinInCpp {
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
 	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(size_t keyword, size_t id) {
-		if (p.strs->end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
+		if (p.strs.end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
 			leaves.insert(id);
 		}
 		else {
 			if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 				init();
 			}
-			std::string ch = p.strs->getchar(keyword);
+			std::string ch = p.strs.getchar(keyword);
 			auto it = children->find(ch);//查找
 			Node* sub;
 			if (it == children->end()) {

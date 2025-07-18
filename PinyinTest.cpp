@@ -54,8 +54,7 @@ int main() {
 	long long end;
 
 	long long timeCount = 0;
-	std::unique_ptr<PinInCpp::TreeSearcher> tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
-
+	std::unique_ptr<PinInCpp::TreeSearcher> tree;
 
 	for (int i = 0; i < TreeLoopInsertCount; i++) {
 		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);

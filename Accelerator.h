@@ -1,5 +1,6 @@
 #pragma once
 #include <set>
+#include <iostream>
 
 #include "StringPool.h"
 
@@ -7,6 +8,7 @@ namespace PinInCpp {
 	class Accelerator {
 	public:
 		Accelerator(PinIn& p) : ctx{ p } {
+
 		}
 		const Utf8String& search() {
 			return searchStr;
@@ -21,7 +23,7 @@ namespace PinInCpp {
 			cache.clear();
 		}
 		//接收一个外部的、长生命周期的provider
-		void setProvider(StringPoolBase* provider_ptr) {
+		void setProvider(UTF8StringPool* provider_ptr) {
 			provider = provider_ptr;
 			owned_provider.reset(); //置空另一个
 		}
@@ -42,7 +44,7 @@ namespace PinInCpp {
 		}
 	private:
 		//两个数据源成员，互斥存在
-		StringPoolBase* provider = nullptr;     //观察者指针，不拥有
+		UTF8StringPool* provider = nullptr;     //观察者指针，不拥有
 		std::optional<Utf8String> owned_provider; //拥有型，用于存储临时字符串的解析结果
 
 		PinIn& ctx;
