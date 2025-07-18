@@ -56,7 +56,7 @@ namespace PinInCpp {
 		private:
 			std::unordered_map<size_t, uint32_t>data;
 		};
-		static IndexSet GetNone() {
+		static IndexSet Init() {
 			IndexSet result = IndexSet();
 			result.value = 0;
 			return result;

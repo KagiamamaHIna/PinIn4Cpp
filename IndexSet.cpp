@@ -3,7 +3,7 @@
 namespace PinInCpp {
 	const IndexSet IndexSet::ZERO = IndexSet::GetZero();
 	const IndexSet IndexSet::ONE = IndexSet::GetOne();
-	const IndexSet IndexSet::NONE = IndexSet::GetNone();
+	const IndexSet IndexSet::NONE = IndexSet::Init();
 
 	bool IndexSet::traverse(IntPredicate p)const {
 		uint32_t v = value;
