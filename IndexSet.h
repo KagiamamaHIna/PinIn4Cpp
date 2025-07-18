@@ -7,7 +7,7 @@ namespace PinInCpp {
 	using IntConsumer = std::function<void(uint32_t)>;
 
 	//平凡类型，非常高效
-	struct IndexSet {
+	class IndexSet {
 	public:
 		IndexSet() = default;
 		~IndexSet() = default;
