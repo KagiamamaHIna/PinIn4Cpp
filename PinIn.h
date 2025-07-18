@@ -134,10 +134,10 @@ namespace PinInCpp {
 		}
 
 		void SetCharCache(bool enable) {//默认开启缓存
-			if (enable && CharCache) {
+			if (enable && !CharCache.has_value()) {//如果启用且没有值的时候
 				CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();
 			}
-			else {
+			else {//未启用的时候清空
 				CharCache.reset();
 			}
 		}
@@ -298,8 +298,8 @@ namespace PinInCpp {
 			virtual std::string ToString()const {
 				return ch;
 			}
-			bool IsPinyinValid()const {//检查是否拼音有效 替代Dummy类型
-				return id == NullPinyinId;
+			bool IsPinyinValid()const {//检查是否拼音有效 替代Dummy类型，如果返回真则有效
+				return id != NullPinyinId;
 			}
 			const std::string& get()const {
 				return ch;

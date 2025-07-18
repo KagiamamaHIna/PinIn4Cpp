@@ -29,7 +29,7 @@ namespace PinInCpp {
 			}
 			return ret;
 		}
-		else if (!c->IsPinyinValid()) {
+		else if (c->IsPinyinValid()) {
 			IndexSet ret = (searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE).copy();
 			for (const PinIn::Pinyin& p : c->GetPinyins()) {
 				ret.merge(get(p, offset));
