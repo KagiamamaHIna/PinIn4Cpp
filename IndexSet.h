@@ -32,9 +32,7 @@ namespace PinInCpp {
 			return value == 0;
 		}
 		IndexSet copy()const {
-			IndexSet result = IndexSet();
-			result.value = value;
-			return result;
+			return IndexSet::Init(value);
 		}
 		bool traverse(IntPredicate p)const;
 		void foreach(IntConsumer c)const;
@@ -49,30 +47,17 @@ namespace PinInCpp {
 				if (it == data.end() || it->second == 0) {
 					return IndexSet();//空IndexSet也可以代表空元素，而且因为只有uint32_t成员，根本不耗性能
 				}
-				IndexSet result = IndexSet();
-				result.value = it->second - 1;
-				return result;
+				return IndexSet::Init(it->second - 1);
 			}
 		private:
 			std::unordered_map<size_t, uint32_t>data;
 		};
-		static IndexSet Init() {
+		static IndexSet Init(uint32_t i = 0) {
 			IndexSet result = IndexSet();
-			result.value = 0;
+			result.value = i;
 			return result;
 		}
 	private:
-		static IndexSet GetOne() {
-			IndexSet result = IndexSet();
-			result.value = 2;
-			return result;
-		}
-		static IndexSet GetZero() {
-			IndexSet result = IndexSet();
-			result.value = 1;
-			return result;
-		}
-
 		uint32_t value;
 		friend bool operator==(IndexSet a, IndexSet b);
 	};
