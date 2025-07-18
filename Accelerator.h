@@ -1,6 +1,5 @@
 #pragma once
 #include <set>
-#include <iostream>
 
 #include "StringPool.h"
 
