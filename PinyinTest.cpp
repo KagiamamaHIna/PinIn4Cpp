@@ -20,7 +20,7 @@ static long long GetTimestampMS() {//获取当前毫秒的时间戳
 	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();
 }
 
-constexpr int TreeLoopInsertCount = 100;
+constexpr int TreeLoopInsertCount = 1;
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令

@@ -160,26 +160,17 @@ namespace PinInCpp {
 		public:
 			NMapTemplate(TreeSearcher& p) : Node(p) {}
 			virtual ~NMapTemplate() = default;
-			virtual void get(std::unordered_set<size_t>& ret, size_t offset) {
-				if (p.acc.search().size() == offset) {
-					if (p.logic == Logic::EQUAL) {
-						leaves.AddToSTLSet(ret);
-					}
-					else {
-						get(ret);
-					};
-				}
-				else if (children != nullptr) {
-					for (const auto& [c, n] : *children) {
-						p.acc.get(c, offset).foreach([&](uint32_t i) {
-							n->get(ret, offset + i);
-						});
-					}
-				}
-			}
+			virtual void get(std::unordered_set<size_t>& ret, size_t offset);
 			virtual void get(std::unordered_set<size_t>& ret) {
 				leaves.AddToSTLSet(ret);
-				if (children != nullptr) {
+				if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
+					if (children != nullptr) {
+						for (const auto& v : *children) {
+							v.second->get(ret);
+						}
+					}
+				}
+				else {
 					for (const auto& v : *children) {
 						v.second->get(ret);
 					}
@@ -189,13 +180,17 @@ namespace PinInCpp {
 		private:
 			friend NSlice;
 			friend NAcc;
-			void init() {
-				if (children == nullptr) {
-					children = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Node>>>();
+			void init() {//如果是不可升级的版本，则是一个无用的init函数
+				if constexpr (CanUpgrade) {
+					if (children == nullptr) {
+						children = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Node>>>();
+					}
 				}
 			}
 			Node* put(const std::string& ch, std::unique_ptr<Node> n) {
-				init();
+				if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
+					init();
+				}
 				//它本质上是什么？所有权转移，那么前后指针，实际上是不变的
 				Node* result = n.get();
 				children->insert_or_assign(ch, std::move(n));
@@ -208,7 +203,7 @@ namespace PinInCpp {
 			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
-		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的
+		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
 
 		class NAcc : public Node {//组合而非继承
 		public:
@@ -282,13 +277,54 @@ namespace PinInCpp {
 		std::vector<NAcc*> naccs;//观察者，不持有数据
 	};
 
+	/* 过长的模板实现 */
+	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
+	void TreeSearcher::NMapTemplate<CanUpgrade>::get(std::unordered_set<size_t>& ret, size_t offset) {
+		if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
+			if (p.acc.search().size() == offset) {
+				if (p.logic == Logic::EQUAL) {
+					leaves.AddToSTLSet(ret);
+				}
+				else {
+					get(ret);
+				};
+			}
+			else if (children != nullptr) {
+				for (const auto& [c, n] : *children) {
+					p.acc.get(c, offset).foreach([&](uint32_t i) {
+						n->get(ret, offset + i);
+					});
+				}
+			}
+		}
+		else {
+			if (p.acc.search().size() == offset) {
+				if (p.logic == Logic::EQUAL) {
+					leaves.AddToSTLSet(ret);
+				}
+				else {
+					get(ret);
+				};
+			}
+			else {
+				for (const auto& [c, n] : *children) {
+					p.acc.get(c, offset).foreach([&](uint32_t i) {
+						n->get(ret, offset + i);
+					});
+				}
+			}
+		}
+	}
+
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
 	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(size_t keyword, size_t id) {
 		if (p.strs->end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
 			leaves.insert(id);
 		}
 		else {
-			init();
+			if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
+				init();
+			}
 			std::string ch = p.strs->getchar(keyword);
 			auto it = children->find(ch);//查找
 			Node* sub;
