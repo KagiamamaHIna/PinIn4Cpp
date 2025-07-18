@@ -146,6 +146,14 @@ namespace PinInCpp {
 				}
 			}
 		}
+		//强制生成一个空拼音id的缓存，配合上面那个api即可实现线程安全
+		void PreNullPinyinIdCache() {
+			if (!CharCache) {
+				return;
+			}
+			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+			cache.insert_or_assign(NullPinyinId, std::unique_ptr<Character>(new Character(*this, "", NullPinyinId)));
+		}
 		bool IsCharCacheEnabled() {
 			return CharCache.has_value();
 		}
