@@ -14,7 +14,7 @@
 
 #include "TreeSearcher.h"
 
-static long long GetTimestampMS() {//获取当前毫秒的时间戳
+static long long GetTimestampMS() {//获取当前微秒的时间戳
 	auto now = std::chrono::steady_clock::now();
 	//将时间点转换为时间戳
 	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();

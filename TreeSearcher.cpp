@@ -15,10 +15,8 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string> TreeSearcher::ExecuteSearch(const std::string& s) {
-		ticket->renew();
-		acc.search(s);
 		std::unordered_set<size_t> ret;
-		root->get(ret, 0);
+		CommonSearch(s, ret);
 
 		std::vector<std::string> result;
 		result.reserve(ret.size());
@@ -29,10 +27,8 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string_view> TreeSearcher::ExecuteSearchView(const std::string& s) {
-		ticket->renew();
-		acc.search(s);
 		std::unordered_set<size_t> ret;
-		root->get(ret, 0);
+		CommonSearch(s, ret);
 
 		std::vector<std::string_view> result;
 		result.reserve(ret.size());
@@ -40,6 +36,12 @@ namespace PinInCpp {
 			result.push_back(strs.getstr_view(id));
 		}
 		return result;
+	}
+
+	std::unordered_set<size_t> TreeSearcher::ExecuteSearchGetSet(const std::string& s) {
+		std::unordered_set<size_t> ret;
+		CommonSearch(s, ret);
+		return ret;
 	}
 
 	void TreeSearcher::NDense::get(std::unordered_set<size_t>& ret, size_t offset) {

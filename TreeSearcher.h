@@ -39,6 +39,14 @@ namespace PinInCpp {
 		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
 		std::vector<std::string> ExecuteSearch(const std::string& s);//执行搜索
 		std::vector<std::string_view> ExecuteSearchView(const std::string& s);//执行搜索，但是返回的字符串为只读视图，注意，这些视图可能会在插入新数据后变成悬垂视图！
+		std::unordered_set<size_t> ExecuteSearchGetSet(const std::string& s);//执行搜索，但是返回的是内部的结果集id
+		std::string GetStrById(size_t id) {//配套使用。id请使用ExecuteSearchGetSet返回的合法的来源
+			return strs.getstr(id);
+		}
+		std::string_view GetStrViewById(size_t id) {//注意，这些视图可能会在插入新数据后变成悬垂视图！
+			return strs.getstr_view(id);
+		}
+
 		void refresh() {//手动尝试刷新
 			ticket->renew();
 		}
@@ -61,6 +69,11 @@ namespace PinInCpp {
 				}
 				this->acc.reset();
 			});
+		}
+		void CommonSearch(const std::string& s, std::unordered_set<size_t>& ret) {
+			ticket->renew();
+			acc.search(s);
+			root->get(ret, 0);
 		}
 		template<typename value>
 		class ObjSet {//这是专门用于优化的类，本身功能并不多！
