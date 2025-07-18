@@ -142,7 +142,7 @@ namespace PinInCpp {
 			for (const auto& v : u8str) {
 				size_t id = GetPinyinId(v);
 				if (id != NullPinyinId) {
-					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, str, id)));
+					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, v, id)));
 				}
 			}
 		}
