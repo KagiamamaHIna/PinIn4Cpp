@@ -31,9 +31,7 @@ namespace PinInCpp {
 		bool empty()const {
 			return value == 0;
 		}
-		IndexSet copy()const {
-			return IndexSet::Init(value);
-		}
+
 		bool traverse(IntPredicate p)const;
 		void foreach(IntConsumer c)const;
 

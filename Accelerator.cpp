@@ -23,21 +23,21 @@ namespace PinInCpp {
 		PinIn::Character* c = ctx.GetCharCachePtr(ch);
 		if (c == nullptr) {
 			PinIn::Character c = ctx.GetChar(ch);
-			IndexSet ret = (searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE).copy();
+			IndexSet ret = searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE;
 			for (const PinIn::Pinyin& p : c.GetPinyins()) {
 				ret.merge(get(p, offset));
 			}
 			return ret;
 		}
 		else if (c->IsPinyinValid()) {
-			IndexSet ret = (searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE).copy();
+			IndexSet ret = searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE;
 			for (const PinIn::Pinyin& p : c->GetPinyins()) {
 				ret.merge(get(p, offset));
 			}
 			return ret;
 		}
 		else {//无效那应该和输入值自身判断 主要是缓存不会创建多个无效的字符类型，所以为了避免判断出问题就这样设计
-			return (searchStr[offset] == ch ? IndexSet::ONE : IndexSet::NONE).copy();
+			return searchStr[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
 		}
 	}
 

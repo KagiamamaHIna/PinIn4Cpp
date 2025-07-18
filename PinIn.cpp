@@ -542,7 +542,7 @@ namespace PinInCpp {
 	}
 
 	IndexSet PinIn::Character::match(const Utf8String& u8str, size_t start, bool partial)const {
-		IndexSet ret = (u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE).copy();
+		IndexSet ret = u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE;
 		for (const auto& p : pinyin) {
 			ret.merge(p.match(u8str, start, partial));
 		}
