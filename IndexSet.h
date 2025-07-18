@@ -7,10 +7,10 @@ namespace PinInCpp {
 	using IntConsumer = std::function<void(uint32_t)>;
 
 	//平凡类型，非常高效
-	class IndexSet {
+	struct IndexSet {
 	public:
 		IndexSet() = default;
-		IndexSet(uint32_t value) :value{ value } {}
+		~IndexSet() = default;
 
 		static const IndexSet ZERO;
 		static const IndexSet ONE;
@@ -22,7 +22,7 @@ namespace PinInCpp {
 		bool get(uint32_t index)const {
 			return (value & (0x1 << index)) != 0;
 		}
-		void merge(const IndexSet& s) {
+		void merge(const IndexSet s) {//平凡类型本质上可以被优化为基本类型，而基本类型在传递时，值传递比引用传递快
 			value = value == 0x1 ? s.value : (value | s.value);
 		}
 		void offset(int i) {
@@ -32,15 +32,16 @@ namespace PinInCpp {
 			return value == 0;
 		}
 		IndexSet copy()const {
-			return IndexSet(value);
+			IndexSet result = IndexSet();
+			result.value = value;
+			return result;
 		}
-
 		bool traverse(IntPredicate p)const;
 		void foreach(IntConsumer c)const;
 
 		class Storage {
 		public:
-			void set(const IndexSet& is, uint32_t index) {
+			void set(const IndexSet is, uint32_t index) {//同merge方法注释
 				data.insert_or_assign(index, is.value + 1);
 			}
 			IndexSet get(size_t index) {
@@ -48,13 +49,30 @@ namespace PinInCpp {
 				if (it == data.end() || it->second == 0) {
 					return IndexSet();//空IndexSet也可以代表空元素，而且因为只有uint32_t成员，根本不耗性能
 				}
-				return it->second - 1;
+				IndexSet result = IndexSet();
+				result.value = it->second - 1;
+				return result;
 			}
 		private:
 			std::unordered_map<size_t, uint32_t>data;
 		};
 	private:
-		uint32_t value = 0;
+		static IndexSet GetOne() {
+			IndexSet result = IndexSet();
+			result.value = 2;
+			return result;
+		}
+		static IndexSet GetZero() {
+			IndexSet result = IndexSet();
+			result.value = 1;
+			return result;
+		}
+		static IndexSet GetNone() {
+			IndexSet result = IndexSet();
+			result.value = 0;
+			return result;
+		}
+		uint32_t value;
 		friend bool operator==(IndexSet a, IndexSet b);
 	};
 

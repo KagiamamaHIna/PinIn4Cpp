@@ -1,9 +1,9 @@
 #include "IndexSet.h"
 
 namespace PinInCpp {
-	const IndexSet IndexSet::ZERO(1);
-	const IndexSet IndexSet::ONE(2);
-	const IndexSet IndexSet::NONE(0);
+	const IndexSet IndexSet::ZERO = IndexSet::GetZero();
+	const IndexSet IndexSet::ONE = IndexSet::GetOne();
+	const IndexSet IndexSet::NONE = IndexSet::GetNone();
 
 	bool IndexSet::traverse(IntPredicate p)const {
 		uint32_t v = value;

@@ -180,8 +180,8 @@ namespace PinInCpp {
 			virtual void get(std::unordered_set<size_t>& ret) {
 				leaves.AddToSTLSet(ret);
 				if (children != nullptr) {
-					for (const auto& [c, n] : *children) {
-						n->get(ret);
+					for (const auto& v : *children) {
+						v.second->get(ret);
 					}
 				}
 			}

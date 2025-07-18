@@ -88,14 +88,14 @@ namespace PinInCpp {
 		}
 	}
 
-	size_t TreeSearcher::NDense::match() {
+	size_t TreeSearcher::NDense::match() {//这个函数内，是不会put的，可以实现零拷贝设计
 		for (size_t i = 0; ; i++) {
 			if (p.strs->end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
 				return i;
 			}
-			std::string a = p.strs->getchar(data[0] + i);
+			std::string_view a = p.strs->getchar_view(data[0] + i);
 			for (size_t j = 1; j < data.size() / 2; j++) {
-				std::string b = p.strs->getchar(data[j * 2] + i);
+				std::string_view b = p.strs->getchar_view(data[j * 2] + i);
 				if (a != b) {//空检查置前了，所以这里可以删除空检查
 					return i;
 				}

@@ -20,6 +20,10 @@ static long long GetTimestampMS() {//获取当前毫秒的时间戳
 	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();
 }
 
+class TestType {
+	uint32_t value;
+};
+
 constexpr int TreeLoopInsertCount = 1;
 
 int main() {
