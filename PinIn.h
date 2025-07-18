@@ -132,7 +132,23 @@ namespace PinInCpp {
 				return nullptr;
 			}
 		}
-
+		//字符缓存预热，可以用待选项/搜索字符串预热，避免缓存的多线程数据竞争问题，如果是单线程的则不用管
+		void PreCacheString(const std::string_view str) {
+			if (!CharCache) {
+				return;
+			}
+			Utf8StringView u8str = str;
+			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+			for (const auto& v : u8str) {
+				size_t id = GetPinyinId(v);
+				if (id != NullPinyinId) {
+					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, str, id)));
+				}
+			}
+		}
+		bool IsCharCacheEnabled() {
+			return CharCache.has_value();
+		}
 		void SetCharCache(bool enable) {//默认开启缓存
 			if (enable && !CharCache.has_value()) {//如果启用且没有值的时候
 				CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();
