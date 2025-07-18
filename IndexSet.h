@@ -56,6 +56,11 @@ namespace PinInCpp {
 		private:
 			std::unordered_map<size_t, uint32_t>data;
 		};
+		static IndexSet GetNone() {
+			IndexSet result = IndexSet();
+			result.value = 0;
+			return result;
+		}
 	private:
 		static IndexSet GetOne() {
 			IndexSet result = IndexSet();
@@ -67,11 +72,7 @@ namespace PinInCpp {
 			result.value = 1;
 			return result;
 		}
-		static IndexSet GetNone() {
-			IndexSet result = IndexSet();
-			result.value = 0;
-			return result;
-		}
+
 		uint32_t value;
 		friend bool operator==(IndexSet a, IndexSet b);
 	};

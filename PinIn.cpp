@@ -352,7 +352,7 @@ namespace PinInCpp {
 		if (empty()) {
 			return idx;
 		}
-		IndexSet result;
+		IndexSet result = IndexSet::GetNone();
 		idx.foreach([&](uint32_t i) {//&为捕获所有参数的引用，因为在函数内，所以是安全的，他不是注册一个异步操作
 			IndexSet is = match(source, start + i, partial);
 			is.offset(i);
@@ -363,7 +363,7 @@ namespace PinInCpp {
 	}
 
 	IndexSet PinIn::Phoneme::match(const Utf8String& source, size_t start, bool partial)const {
-		IndexSet result;
+		IndexSet result = IndexSet::GetNone();
 		if (empty()) {
 			return result;
 		}
@@ -503,7 +503,7 @@ namespace PinInCpp {
 	}
 
 	IndexSet PinIn::Pinyin::match(const Utf8String& str, size_t start, bool partial)const {
-		IndexSet ret;
+		IndexSet ret = IndexSet::GetNone();
 		if (duo) {
 			// in shuangpin we require initial and final both present,
 			// the phoneme, which is tone here, is optional
