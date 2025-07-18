@@ -192,7 +192,7 @@ namespace PinInCpp {
 			void init() {
 				if (children == nullptr) {
 					children = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Node>>>();
-				};
+				}
 			}
 			Node* put(const std::string& ch, std::unique_ptr<Node> n) {
 				init();

@@ -199,8 +199,8 @@ namespace PinInCpp {
 			}
 		}
 		else {
-			std::string ch = p.strs->getchar(this->start + start);
-			p.acc.get(ch, offset).foreach([&](uint32_t i) {
+			std::string_view ch = p.strs->getchar_view(this->start + start);
+			p.acc.get(ch, offset).foreach([&](uint32_t i) {//acc.get本身不会进行put，安全的
 				get(ret, offset + i, start + 1);
 			});
 		}
