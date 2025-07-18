@@ -141,7 +141,7 @@ namespace PinInCpp {
 			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
 			for (const auto& v : u8str) {
 				size_t id = GetPinyinId(v);
-				if (id != NullPinyinId) {
+				if (id != NullPinyinId && !cache.count(id)) {
 					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, v, id)));
 				}
 			}
