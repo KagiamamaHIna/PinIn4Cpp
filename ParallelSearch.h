@@ -56,7 +56,9 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-		void put(const std::string& keyword) {//线程安全，通过原子量保证
+		void put(const std::string& keyword) {//线程不安全，你应该在单线程内执行它
+			context->PreCacheString(keyword);//手动预热
+
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
 			TreePool[NextIndex]->put(keyword);
 			NextIndex++;
@@ -75,6 +77,8 @@ namespace PinInCpp {
 		}
 	private:
 		void init(Logic logic) {
+			context->PreNullPinyinIdCache();
+
 			ThreadPool.reserve(TreeNum);
 			TreePool.reserve(TreeNum);
 			for (size_t i = 0; i < TreeNum; i++) {
@@ -99,6 +103,7 @@ namespace PinInCpp {
 			if (str != searchStr || ClearResultSet) {//如果是新搜索项或者需要清空结果集时，唤醒线程执行多线程搜索逻辑
 				ClearResultSet = false;
 				ResultSet.resize(TreeNum);//清空并留下空余数组，以方便多线程的时候插入数据
+				context->PreCacheString(str);//预热
 				searchStr = str;
 				//发出信号唤醒线程
 				barrier.arrive_and_wait();
@@ -113,7 +118,7 @@ namespace PinInCpp {
 		std::string searchStr;
 		const size_t TreeNum;
 		std::atomic<size_t> NextIndex = 0;
-		std::atomic<bool> ClearResultSet = false;
+		bool ClearResultSet = false;
 
 		std::atomic<bool> StopFlag = false;
 		std::barrier<> barrier;
