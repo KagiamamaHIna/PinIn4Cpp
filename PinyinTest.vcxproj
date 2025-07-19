@@ -153,6 +153,7 @@
     <ClInclude Include="Accelerator.h" />
     <ClInclude Include="IndexSet.h" />
     <ClInclude Include="Keyboard.h" />
+    <ClInclude Include="ParallelSearch.h" />
     <ClInclude Include="PinIn.h" />
     <ClInclude Include="PinyinFormat.h" />
     <ClInclude Include="StringPool.h" />

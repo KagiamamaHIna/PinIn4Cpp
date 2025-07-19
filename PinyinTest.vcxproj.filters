@@ -68,5 +68,8 @@
     <ClInclude Include="PinyinFormat.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
+    <ClInclude Include="ParallelSearch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

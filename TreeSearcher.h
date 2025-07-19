@@ -34,6 +34,10 @@ namespace PinInCpp {
 			:logic{ logic }, context(PinInShared), acc(*context) {
 			init();
 		}
+		//因为绑定着this指针，所以不能移动和拷贝
+		TreeSearcher(const TreeSearcher&) = delete;
+		TreeSearcher(TreeSearcher&&) = delete;
+		TreeSearcher& operator=(TreeSearcher&& src) = delete;
 
 		void put(const std::string& keyword);//插入待搜索项，内部无查重，大小写敏感
 		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
@@ -162,7 +166,7 @@ namespace PinInCpp {
 			virtual Node* put(size_t keyword, size_t id);
 		private:
 			friend TreeSearcher;
-			size_t match();//寻找最长公共前缀 长度
+			size_t match()const;//寻找最长公共前缀 长度
 			std::vector<size_t> data;
 		};
 		class NSlice;
