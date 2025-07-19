@@ -102,7 +102,6 @@ namespace PinInCpp {
 						// 2. 执行任务，并放入结果集数组
 						ResultSet[i] = TreePool[i]->ExecuteSearchView(searchStr);
 						// 3. 任务完成，到达屏障等待其他线程
-						//    当所有线程都到达这里，上面的完成时函数会被触发
 						barrier.arrive_and_wait();
 					}
 				});
