@@ -61,6 +61,7 @@ namespace PinInCpp {
 
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
 			TreePool[NextIndex]->put(keyword);
+			NextIndex++;
 			if (NextIndex >= TreeNum) {
 				NextIndex = 0;
 			}
