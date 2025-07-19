@@ -60,20 +60,14 @@ namespace PinInCpp {
 			context->PreCacheString(keyword);//手动预热
 
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
-			TreePool[NextIndex]->put(keyword);
-			NextIndex++;
-			if (NextIndex >= TreeNum) {
-				NextIndex = 0;
-			}
+			size_t currentIndex = NextIndex.fetch_add(1);
+			TreePool[currentIndex % TreeNum]->put(keyword);
 		}
 		//线程安全，但是你一定要手动context->PreCacheString(keyword)!，避免缓存造成多线程数据竞争问题
 		void putThreadSafe(const std::string& keyword) {
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
-			TreePool[NextIndex]->put(keyword);
-			NextIndex++;
-			if (NextIndex >= TreeNum) {
-				NextIndex = 0;
-			}
+			size_t currentIndex = NextIndex.fetch_add(1);
+			TreePool[currentIndex % TreeNum]->put(keyword);
 		}
 		PinIn& GetPinIn() {
 			return *context;
