@@ -79,6 +79,9 @@ namespace PinInCpp {
 	private:
 		void init(Logic logic) {
 			context->PreNullPinyinIdCache();
+			ticket = context->ticket([this]() {
+				ClearResultSet = true;
+			});
 
 			ThreadPool.reserve(TreeNum);
 			TreePool.reserve(TreeNum);
@@ -100,6 +103,7 @@ namespace PinInCpp {
 			}
 		}
 		void CommonSearch(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
+			ticket->renew();
 			if (str != searchStr || ClearResultSet) {//如果是新搜索项或者需要清空结果集时，唤醒线程执行多线程搜索逻辑
 				ClearResultSet = false;
 				ResultSet.resize(TreeNum);//清空并留下空余数组，以方便多线程的时候插入数据
@@ -115,6 +119,7 @@ namespace PinInCpp {
 		std::vector<std::thread> ThreadPool;//线程池
 		std::vector<std::unique_ptr<TreeSearcher>> TreePool;//树池
 		std::vector<std::vector<std::string_view>> ResultSet;//用一个数组管理应该插入的数据
+		std::unique_ptr<PinIn::Ticket> ticket;
 		std::string searchStr;
 		const size_t TreeNum;
 		size_t NextIndex = 0;
