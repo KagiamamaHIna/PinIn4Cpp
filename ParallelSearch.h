@@ -45,7 +45,6 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-
 		std::vector<std::string_view> ExecuteSearchView(const std::string& str) {
 			CommonSearch(str);
 			std::vector<std::string_view> result;
@@ -56,9 +55,19 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-		void put(const std::string& keyword) {//线程不安全，你应该在单线程内执行它
+		//线程不安全，你应该在单线程内执行它，如果需要，应该考虑putThreadSafe
+		void put(const std::string& keyword) {
 			context->PreCacheString(keyword);//手动预热
 
+			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
+			TreePool[NextIndex]->put(keyword);
+			NextIndex++;
+			if (NextIndex >= TreeNum) {
+				NextIndex = 0;
+			}
+		}
+		//线程安全，但是你一定要手动context->PreCacheString(keyword)!，避免缓存造成多线程数据竞争问题
+		void putThreadSafe(const std::string& keyword) {
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
 			TreePool[NextIndex]->put(keyword);
 			NextIndex++;
@@ -118,7 +127,7 @@ namespace PinInCpp {
 		std::string searchStr;
 		const size_t TreeNum;
 		std::atomic<size_t> NextIndex = 0;
-		bool ClearResultSet = false;
+		std::atomic<bool> ClearResultSet = false;
 
 		std::atomic<bool> StopFlag = false;
 		std::barrier<> barrier;
