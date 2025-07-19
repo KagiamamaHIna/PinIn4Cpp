@@ -121,9 +121,10 @@ namespace PinInCpp {
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k.match(p.acc.search(), offset, true).empty()) {
+					std::unordered_map<std::string, std::unique_ptr<Node>>& map = *NodeMap.children;
 					for (const auto& str : v) {
 						p.acc.get(str, offset).foreach([&](uint32_t j) {
-							this->NodeMap.children->operator[](str)->get(result, offset + j);
+							map[str]->get(result, offset + j);
 						});
 					}
 				}
