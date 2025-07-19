@@ -35,7 +35,7 @@ namespace PinInCpp {
 		ParallelSearch(ParallelSearch&&) = delete;
 		ParallelSearch& operator=(ParallelSearch&& src) = delete;
 
-		std::vector<std::string> ExecuteSearch(const std::string& str) {
+		std::vector<std::string> ExecuteSearch(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
 			CommonSearch(str);
 			std::vector<std::string> result;
 			for (const auto& vec : ResultSet) {
@@ -45,7 +45,7 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-		std::vector<std::string_view> ExecuteSearchView(const std::string& str) {
+		std::vector<std::string_view> ExecuteSearchView(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数。返回的只读视图会在插入后可能变成悬垂视图
 			CommonSearch(str);
 			std::vector<std::string_view> result;
 			for (const auto& vec : ResultSet) {
@@ -55,20 +55,17 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-		//线程不安全，你应该在单线程内执行它，如果需要，应该考虑putThreadSafe
+		//线程不安全，你应该在单线程内执行它
 		void put(const std::string& keyword) {
 			context->PreCacheString(keyword);//手动预热
 
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
-			size_t currentIndex = NextIndex.fetch_add(1);
-			TreePool[currentIndex % TreeNum]->put(keyword);
+			TreePool[NextIndex]->put(keyword);
+			if (NextIndex >= TreeNum) {
+				NextIndex = 0;
+			}
 		}
-		//线程安全，但是你一定要手动context->PreCacheString(keyword)!，避免缓存造成多线程数据竞争问题
-		void putThreadSafe(const std::string& keyword) {
-			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
-			size_t currentIndex = NextIndex.fetch_add(1);
-			TreePool[currentIndex % TreeNum]->put(keyword);
-		}
+
 		PinIn& GetPinIn() {
 			return *context;
 		}
@@ -119,8 +116,8 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string_view>> ResultSet;//用一个数组管理应该插入的数据
 		std::string searchStr;
 		const size_t TreeNum;
-		std::atomic<size_t> NextIndex = 0;
-		std::atomic<bool> ClearResultSet = false;
+		size_t NextIndex = 0;
+		bool ClearResultSet = false;
 
 		std::atomic<bool> StopFlag = false;
 		std::barrier<> barrier;
