@@ -216,7 +216,7 @@ namespace PinInCpp {
 			void reset_children(const uint32_t ch, Node* n) {
 				children->operator[](ch).reset(n);
 			}
-			std::unique_ptr<std::unordered_map<uint32_t, std::unique_ptr<Node>>> children = nullptr;//需要有升级机制
+			std::unique_ptr<std::unordered_map<uint32_t, std::unique_ptr<Node>>> children = nullptr;
 			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
