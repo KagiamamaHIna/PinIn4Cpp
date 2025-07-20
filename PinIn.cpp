@@ -13,29 +13,35 @@ const inline static std::unordered_map<std::string_view, std::vector<std::string
 namespace PinInCpp {
 	//函数定义
 	//Unicode码转utf8字节流
-	std::string UnicodeToUtf8(char32_t unicodeChar) {
-		std::string utf8;
+	uint32_t UnicodeToUtf8(char32_t unicodeChar) {
+		uint32_t utf8 = 0;
 		if (unicodeChar <= 0x7F) {
 			//1字节数据
-			utf8 += static_cast<char>(unicodeChar);
+			utf8 = static_cast<char>(unicodeChar);
 		}
 		else if (unicodeChar <= 0x7FF) {
 			//2字节数据
-			utf8 += static_cast<char>(0xC0 | ((unicodeChar >> 6) & 0x1F));
-			utf8 += static_cast<char>(0x80 | (unicodeChar & 0x3F));
+			utf8 |= static_cast<uint8_t>(0xC0 | ((unicodeChar >> 6) & 0x1F));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
 		}
 		else if (unicodeChar <= 0xFFFF) {
 			//3字节数据
-			utf8 += static_cast<char>(0xE0 | ((unicodeChar >> 12) & 0x0F));
-			utf8 += static_cast<char>(0x80 | ((unicodeChar >> 6) & 0x3F));
-			utf8 += static_cast<char>(0x80 | (unicodeChar & 0x3F));
+			utf8 |= static_cast<uint8_t>(0xE0 | ((unicodeChar >> 12) & 0x0F));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 6) & 0x3F));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
 		}
 		else if (unicodeChar <= 0x10FFFF) {
 			//4字节数据
-			utf8 += static_cast<char>(0xF0 | ((unicodeChar >> 18) & 0x07));
-			utf8 += static_cast<char>(0x80 | ((unicodeChar >> 12) & 0x3F));
-			utf8 += static_cast<char>(0x80 | ((unicodeChar >> 6) & 0x3F));
-			utf8 += static_cast<char>(0x80 | (unicodeChar & 0x3F));
+			utf8 |= static_cast<uint8_t>(0xF0 | ((unicodeChar >> 18) & 0x07));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 12) & 0x3F));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 6) & 0x3F));
+			utf8 <<= 8;
+			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
 		}
 		return utf8;
 	}
@@ -52,7 +58,7 @@ namespace PinInCpp {
 		}
 	}
 
-	uint32_t FourCCToU32(const std::string_view str) {
+	uint32_t FourCCToU32(const std::string_view& str) {
 		uint32_t result = 0;
 
 		size_t size = str.size();
@@ -158,7 +164,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	void PinIn::LineParser(const std::string_view str, std::vector<InsertStrData>& InsertData) {
+	void PinIn::LineParser(const std::string_view str) {
 		const Utf8StringView utf8str = Utf8StringView(str);//将字节流转换为utf8表示的字符串
 		size_t i = 0;
 		size_t size = utf8str.size();
@@ -211,19 +217,9 @@ namespace PinInCpp {
 			if (pinyinId != NullPinyinId) {
 				pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 				pool.putEnd();//结尾分隔
-				key = UnicodeToUtf8(KeyInt);
-				size_t keyId = pool.put(key);
-				InsertData.push_back({ key.size(),keyId,pinyinId });
-				//data.insert_or_assign(key, pinyinId);//设置
+				data.insert_or_assign(UnicodeToUtf8(KeyInt), pinyinId);//设置
 			}
 			break;//退出这次循环，读取下一行
-		}
-	}
-
-	void PinIn::InsertDataFn(std::vector<InsertStrData>& InsertData) {
-		char* poolptr = pool.data();
-		for (const auto& v : InsertData) {//因为内存池是只读设计，所以构造完成内存池后，可以将字符串视图当作key，降低对象内存开销
-			data.insert_or_assign(std::string_view(poolptr + v.keyStart, v.keySize), v.valueId);
 		}
 	}
 
@@ -236,32 +232,28 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
-		std::vector<InsertStrData> cache;
 		while (std::getline(fs, str)) {
-			LineParser(str, cache);
+			LineParser(str);
 		}
 		pool.Fixed();
-		InsertDataFn(cache);
 	}
 
 	PinIn::PinIn(const std::vector<char>& input_data) {
 		//开始读取
 		std::string_view str;
-		std::vector<InsertStrData> cache;
 		size_t last_cursor = 0;
 		for (size_t i = 0; i < input_data.size(); i++) {
 			if (input_data[i] == '\n') {//按行解析
-				LineParser(std::string_view(input_data.data() + last_cursor, i - last_cursor), cache);
+				LineParser(std::string_view(input_data.data() + last_cursor, i - last_cursor));
 				last_cursor = i + 1;//跳过换行
 			}
 		}
-		LineParser(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor), cache);//解析最后一行
+		LineParser(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor));//解析最后一行
 		pool.Fixed();
-		InsertDataFn(cache);
 	}
 
 	bool PinIn::HasPinyin(const std::string_view& str)const {
-		return static_cast<bool>(data.count(str));
+		return static_cast<bool>(data.count(FourCCToU32(str)));
 	}
 
 	std::vector<std::string> PinIn::GetPinyinById(const size_t id, bool hasTone)const {
@@ -289,7 +281,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string> PinIn::GetPinyin(const std::string_view& str, bool hasTone)const {
-		auto it = data.find(str);
+		auto it = data.find(FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string>{std::string(str)};
 		}
@@ -300,7 +292,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string_view> PinIn::GetPinyinView(const std::string_view& str, bool hasTone)const {
-		auto it = data.find(str);
+		auto it = data.find(FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string_view>{str};
 		}

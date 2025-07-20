@@ -21,6 +21,7 @@ static long long GetTimestampMS() {//获取当前微秒的时间戳
 }
 
 constexpr int TreeLoopInsertCount = 1;
+constexpr int SearcherLoopCount = 1;
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
@@ -36,8 +37,15 @@ int main() {
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
+	long long now;
+	long long end;
+
 	system("pause");
+	now = GetTimestampMS();
 	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
+	end = GetTimestampMS();
+	std::cout << (double)(end - now) / 1000 << '\n';//计算获取耗时并打印，单位毫秒
+
 	system("pause");
 	//pininptr->SetCharCache(true); //默认开启
 	PinInCpp::PinIn::Config cfg = pininptr->config();
@@ -50,8 +58,6 @@ int main() {
 	cfg.fU2V = true;
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
-	long long now;
-	long long end;
 
 	long long timeCount = 0;
 	std::unique_ptr<PinInCpp::TreeSearcher> tree;
@@ -78,12 +84,19 @@ int main() {
 	while (true) {//死循环，你可以随便搜索测试集的内容用于测试
 		std::cout << "input:";
 		std::getline(std::cin, line);
-		now = GetTimestampMS();
-		auto vec = tree->ExecuteSearchView(line);
-		end = GetTimestampMS();
+
+		long long timeCount = 0;
+		std::vector<std::string_view> vec;
+		for (int i = 0; i < SearcherLoopCount; i++) {
+			now = GetTimestampMS();
+			vec = tree->ExecuteSearchView(line);
+			end = GetTimestampMS();
+			timeCount += end - now;
+		}
+
 		for (const auto& v : vec) {
 			std::cout << v << '\n';
 		}
-		std::cout << (double)(end - now) / 1000 << '\n';//计算获取耗时并打印，单位毫秒
+		std::cout << (double)(timeCount) / (double)SearcherLoopCount / 1000 << '\n';//计算获取耗时并打印，单位毫秒
 	}
 }

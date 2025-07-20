@@ -11,11 +11,11 @@
 
 namespace PinInCpp {
 	//Unicode码转utf8字节流
-	std::string UnicodeToUtf8(char32_t);
+	uint32_t UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
 	//将字符串转换为uint32数字表示（只转换前四个）
-	uint32_t FourCCToU32(const std::string_view str);
+	uint32_t FourCCToU32(const std::string_view& str);
 	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
 	void U32FourCCToCharBuf(char buf[5], uint32_t c);
 
@@ -104,7 +104,7 @@ namespace PinInCpp {
 		PinIn(const std::string& path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
 		size_t GetPinyinId(const std::string_view& hanzi)const {
-			auto it = data.find(hanzi);
+			auto it = data.find(FourCCToU32(hanzi));
 			return it == data.end() ? NullPinyinId : it->second;
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
@@ -137,7 +137,7 @@ namespace PinInCpp {
 			}
 		}
 		//字符缓存预热，可以用待选项/搜索字符串预热，避免缓存的多线程数据竞争问题，如果是单线程的则不用管
-		void PreCacheString(const std::string_view str) {
+		void PreCacheString(const std::string_view& str) {
 			if (!CharCache) {
 				return;
 			}
@@ -350,14 +350,7 @@ namespace PinInCpp {
 			std::vector<Pinyin> pinyin;
 		};
 	private:
-		struct InsertStrData {
-			size_t keySize;//字符串视图不强制终止符，要记录起始到末尾
-			size_t keyStart;
-
-			size_t valueId;//这个有自定义规则，所以只需要记录id
-		};
-		void LineParser(const std::string_view str, std::vector<InsertStrData>& InsertData);
-		void InsertDataFn(std::vector<InsertStrData>& InsertData);
+		void LineParser(const std::string_view str);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
@@ -383,7 +376,7 @@ namespace PinInCpp {
 			std::unique_ptr<char[]> FixedStrs = nullptr;
 		};
 		CharPool pool;
-		std::unordered_map<std::string_view, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+		std::unordered_map<uint32_t, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
 		std::optional<std::unordered_map<size_t, std::unique_ptr<Character>>> CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();//默认开启
 
 		template<typename T>//不需要音调需要处理
