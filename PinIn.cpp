@@ -1,15 +1,5 @@
 #include "PinIn.h"
 
-const inline static std::unordered_map<std::string_view, std::vector<std::string_view>> FUZZY_PAIRS = {
-	{"zh", {"z"}}, {"z", {"zh"}},
-	{"ch", {"c"}}, {"c", {"ch"}},
-	{"sh", {"s"}}, {"s", {"sh"}},
-	{"ang", {"an"}}, {"an", {"ang"}},
-	{"eng", {"en"}}, {"en", {"eng"}},
-	{"ing", {"in"}}, {"in", {"ing"}},
-	{"v", {"u"}}, {"ve", {"ue"}}, {"van", {"uan"}}, {"vn", {"un"}}
-};
-
 namespace PinInCpp {
 	//函数定义
 	//Unicode码转utf8字符
