@@ -12,7 +12,7 @@ const inline static std::unordered_map<std::string_view, std::vector<std::string
 
 namespace PinInCpp {
 	//函数定义
-	//Unicode码转utf8字节流
+	//Unicode码转utf8字符
 	uint32_t UnicodeToUtf8(char32_t unicodeChar) {
 		uint32_t utf8 = 0;
 		if (unicodeChar <= 0x7F) {
@@ -92,10 +92,6 @@ namespace PinInCpp {
 			c >>= 8;
 		}
 		buf[0] |= c;
-	}
-
-	bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b) {
-		return a.GetSrc() == b.GetSrc();
 	}
 
 	size_t PinIn::CharPool::put(const std::string_view& s) {

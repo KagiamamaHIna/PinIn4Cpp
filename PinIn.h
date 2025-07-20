@@ -10,7 +10,7 @@
 #include "IndexSet.h"
 
 namespace PinInCpp {
-	//Unicode码转utf8字节流
+	//Unicode码转utf8字符
 	uint32_t UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
@@ -376,7 +376,7 @@ namespace PinInCpp {
 			std::unique_ptr<char[]> FixedStrs = nullptr;
 		};
 		CharPool pool;
-		std::unordered_map<uint32_t, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量
+		std::unordered_map<uint32_t, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量，用uint32_t代表utf8编码的字符，开销更小，无堆分配
 		std::optional<std::unordered_map<size_t, std::unique_ptr<Character>>> CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();//默认开启
 
 		template<typename T>//不需要音调需要处理
@@ -419,7 +419,9 @@ namespace PinInCpp {
 		{"ḿ", {'m', 2}}, {"m̀", {'m', 4}}
 		});
 	};
-	bool operator==(const PinIn::Phoneme& lhs, const PinIn::Phoneme& rhs);
+	inline bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b) {
+		return a.GetSrc() == b.GetSrc();
+	}
 }
 namespace std {
 	template <>//特化一个这样的类
