@@ -1,10 +1,9 @@
 #pragma once
 #include <functional>
 #include <unordered_map>
-
+#include <iostream>
 namespace PinInCpp {
-	using IntPredicate = std::function<bool(uint32_t)>;
-	using IntConsumer = std::function<void(uint32_t)>;
+	constexpr static uint32_t IndexSetIterEnd = static_cast<uint32_t>(-1);
 
 	//平凡类型，非常高效
 	class IndexSet {
@@ -37,31 +36,36 @@ namespace PinInCpp {
 			return value == 0;
 		}
 
-		bool traverse(IntPredicate p)const {
-			uint32_t v = value;
-			for (uint32_t i = 0; i < 32; i++) {
-				if ((v & 0x1) == 0x1 && p(i)) {
-					return true;
+		class IndexSetIterObj {//同样是平凡类型，这样设计可以避免std::function的开销
+		public:
+			uint32_t Next() {
+				for (; count < 32; count++) {
+					if ((value & 0x1) == 0x1) {
+						value >>= 1;
+						uint32_t result = count;
+						count++;
+						return result;
+					}
+					else if (value == 0) {
+						return IndexSetIterEnd;
+					}
+					value >>= 1;
 				}
-				else if (v == 0) {
-					return false;
-				}
-				v >>= 1;
+				return IndexSetIterEnd;
 			}
-			return false;
-		}
+			static IndexSetIterObj Init(uint32_t i) {
+				IndexSetIterObj result = IndexSetIterObj();
+				result.value = i;
+				result.count = 0;
+				return result;
+			}
+		private:
+			uint32_t value;
+			uint8_t count;
+		};
 
-		void foreach(IntConsumer c)const {
-			uint32_t v = value;
-			for (uint32_t i = 0; i < 32; i++) {
-				if ((v & 0x1) == 0x1) {
-					c(i);
-				}
-				else if (v == 0) {
-					return;
-				}
-				v >>= 1;
-			}
+		IndexSetIterObj GetIterObj()const {
+			return IndexSetIterObj::Init(value);
 		}
 
 		class Storage {

@@ -125,9 +125,10 @@ namespace PinInCpp {
 					char buf[5];
 					for (const auto& c : v) {
 						U32FourCCToCharBuf(buf, c);
-						p.acc.get(buf, offset).foreach([&](uint32_t j) {
+						IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+						for (uint32_t j = it.Next(); j != IndexSetIterEnd; j = it.Next()) {
 							map[c]->get(result, offset + j);
-						});
+						}
 					}
 				}
 			}
@@ -207,9 +208,10 @@ namespace PinInCpp {
 		}
 		else {
 			std::string_view ch = p.strs.getchar_view(this->start + start);
-			p.acc.get(ch, offset).foreach([&](uint32_t i) {//acc.get本身不会进行put，安全的
+			IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
+			for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 				get(ret, offset + i, start + 1);
-			});
+			}
 		}
 	}
 }

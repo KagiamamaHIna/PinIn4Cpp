@@ -21,16 +21,11 @@ namespace PinInCpp {
 		void reset() {
 			cache.clear();
 		}
-		//接收一个外部的、长生命周期的provider
+		//接收一个外部的、长生命周期的provider，不拥有
 		void setProvider(UTF8StringPool* provider_ptr) {
 			provider = provider_ptr;
-			owned_provider.reset(); //置空另一个
 		}
-		//字符串版本
-		void setProvider(const std::string& s) {
-			provider = nullptr; //置空另一个
-			owned_provider.emplace(s); //在自己的 optional 中创建一个拥有数据的副本
-		}
+
 		IndexSet get(const PinIn::Pinyin& p, size_t offset);
 		IndexSet get(const std::string_view& ch, size_t offset);
 		size_t common(size_t s1, size_t s2, size_t max);
@@ -42,12 +37,9 @@ namespace PinInCpp {
 			return searchStr;
 		}
 	private:
-		//两个数据源成员，互斥存在
 		UTF8StringPool* provider = nullptr;     //观察者指针，不拥有
-		std::optional<Utf8String> owned_provider; //拥有型，用于存储临时字符串的解析结果
 
 		PinIn& ctx;
-
 		std::vector<IndexSet::Storage> cache;
 		Utf8String searchStr;
 		bool partial = false;

@@ -311,9 +311,10 @@ namespace PinInCpp {
 				char buf[5];
 				for (const auto& [c, n] : *children) {
 					U32FourCCToCharBuf(buf, c);
-					p.acc.get(buf, offset).foreach([&](uint32_t i) {
+					IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 						n->get(ret, offset + i);
-					});
+					}
 				}
 			}
 		}
@@ -330,9 +331,10 @@ namespace PinInCpp {
 				char buf[5];
 				for (const auto& [c, n] : *children) {
 					U32FourCCToCharBuf(buf, c);
-					p.acc.get(buf, offset).foreach([&](uint32_t i) {
+					IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 						n->get(ret, offset + i);
-					});
+					}
 				}
 			}
 		}
