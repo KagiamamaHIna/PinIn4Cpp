@@ -115,16 +115,18 @@ namespace PinInCpp {
 			}
 		}
 		else {
-			auto it = NodeMap.children->find(p.acc.search()[offset]);
+			auto it = NodeMap.children->find(FourCCToU32(p.acc.search()[offset]));
 			if (it != NodeMap.children->end()) {
 				it->second->get(result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k.match(p.acc.search(), offset, true).empty()) {
-					std::unordered_map<std::string, std::unique_ptr<Node>>& map = *NodeMap.children;
-					for (const auto& str : v) {
-						p.acc.get(str, offset).foreach([&](uint32_t j) {
-							map[str]->get(result, offset + j);
+					std::unordered_map<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
+					char buf[5];
+					for (const auto& c : v) {
+						U32FourCCToCharBuf(buf, c);
+						p.acc.get(buf, offset).foreach([&](uint32_t j) {
+							map[c]->get(result, offset + j);
 						});
 					}
 				}
@@ -132,18 +134,20 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::index(const std::string_view& c) {
-		PinIn::Character* ch = p.context->GetCharCachePtr(c);
+	void TreeSearcher::NAcc::index(const uint32_t c) {
+		char buf[5];
+		U32FourCCToCharBuf(buf, c);
+		PinIn::Character* ch = p.context->GetCharCachePtr(buf);
 		if (ch == nullptr) {
-			PinIn::Character ch = p.context->GetChar(c);
+			PinIn::Character ch = p.context->GetChar(buf);
 			for (const auto& py : ch.GetPinyins()) {
 				const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 				auto it = index_node.find(ph);
 				if (it == index_node.end()) {//对应的是字符集合为空
-					index_node.insert_or_assign(ph, std::unordered_set<std::string>{std::string(c)});//把汉字插进去
+					index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
 				}
 				else {//不为空
-					it->second.insert(std::string(c));
+					it->second.insert(c);
 				}
 			}
 		}
@@ -152,10 +156,10 @@ namespace PinInCpp {
 				const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 				auto it = index_node.find(ph);
 				if (it == index_node.end()) {//对应的是字符集合为空
-					index_node.insert_or_assign(ph, std::unordered_set<std::string>{std::string(c)});//把汉字插进去
+					index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
 				}
 				else {//不为空
-					it->second.insert(std::string(c));
+					it->second.insert(c);
 				}
 			}
 		}
@@ -181,12 +185,12 @@ namespace PinInCpp {
 	void TreeSearcher::NSlice::cut(size_t offset) {
 		std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
-			insert->put(p.strs.getchar(offset), std::move(exit_node));
+			insert->put(FourCCToU32(p.strs.getchar_view(offset)), std::move(exit_node));
 		}
 		else {
 			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
 			half->exit_node = std::move(exit_node);
-			insert->put(p.strs.getchar(offset), std::move(half));
+			insert->put(FourCCToU32(p.strs.getchar_view(offset)), std::move(half));
 		}
 		exit_node = std::move(insert);
 		end = offset;

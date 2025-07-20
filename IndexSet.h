@@ -11,6 +11,11 @@ namespace PinInCpp {
 	public:
 		IndexSet() = default;
 		~IndexSet() = default;
+		static IndexSet Init(uint32_t i = 0) {
+			IndexSet result = IndexSet();
+			result.value = i;
+			return result;
+		}
 
 		static const IndexSet ZERO;
 		static const IndexSet ONE;
@@ -32,8 +37,32 @@ namespace PinInCpp {
 			return value == 0;
 		}
 
-		bool traverse(IntPredicate p)const;
-		void foreach(IntConsumer c)const;
+		bool traverse(IntPredicate p)const {
+			uint32_t v = value;
+			for (uint32_t i = 0; i < 32; i++) {
+				if ((v & 0x1) == 0x1 && p(i)) {
+					return true;
+				}
+				else if (v == 0) {
+					return false;
+				}
+				v >>= 1;
+			}
+			return false;
+		}
+
+		void foreach(IntConsumer c)const {
+			uint32_t v = value;
+			for (uint32_t i = 0; i < 32; i++) {
+				if ((v & 0x1) == 0x1) {
+					c(i);
+				}
+				else if (v == 0) {
+					return;
+				}
+				v >>= 1;
+			}
+		}
 
 		class Storage {
 		public:
@@ -50,15 +79,12 @@ namespace PinInCpp {
 		private:
 			std::unordered_map<size_t, uint32_t>data;
 		};
-		static IndexSet Init(uint32_t i = 0) {
-			IndexSet result = IndexSet();
-			result.value = i;
-			return result;
-		}
 	private:
 		uint32_t value;
 		friend bool operator==(IndexSet a, IndexSet b);
 	};
 
-	bool operator==(IndexSet a, IndexSet b);
+	inline bool operator==(IndexSet a, IndexSet b) {
+		return a.value == b.value;
+	}
 }

@@ -52,6 +52,42 @@ namespace PinInCpp {
 		}
 	}
 
+	uint32_t FourCCToU32(const std::string_view str) {
+		uint32_t result = 0;
+
+		size_t size = str.size();
+		size = size > 4 ? 4 : size;//限制宽度
+		for (size_t i = 0; i < size; i++) {
+			result <<= 8;
+			result |= (uint8_t)str[i];
+		}
+		return result;
+	}
+
+	void U32FourCCToCharBuf(char buf[5], uint32_t c) {
+		size_t size;
+		if (c <= 0xFF) {
+			size = 1;
+		}
+		else if (c <= 0xFFFF) {
+			size = 2;
+		}
+		else if (c <= 0xFFFFFF) {
+			size = 3;
+		}
+		else {
+			size = 4;
+		}
+		for (size_t i = 0; i < 5; i++) {
+			buf[i] = 0;//缓冲区清空
+		}
+		for (size_t i = size - 1; i != 0; i--) {
+			buf[i] |= c;
+			c >>= 8;
+		}
+		buf[0] |= c;
+	}
+
 	bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b) {
 		return a.GetSrc() == b.GetSrc();
 	}

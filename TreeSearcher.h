@@ -200,11 +200,11 @@ namespace PinInCpp {
 			void init() {//如果是不可升级的版本，则是一个无用的init函数
 				if constexpr (CanUpgrade) {
 					if (children == nullptr) {
-						children = std::make_unique<std::unordered_map<std::string, std::unique_ptr<Node>>>();
+						children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
 					}
 				}
 			}
-			Node* put(const std::string& ch, std::unique_ptr<Node> n) {
+			Node* put(const uint32_t ch, std::unique_ptr<Node> n) {
 				if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 					init();
 				}
@@ -213,10 +213,10 @@ namespace PinInCpp {
 				children->insert_or_assign(ch, std::move(n));
 				return result;
 			}
-			void reset_children(const std::string& ch, Node* n) {
+			void reset_children(const uint32_t ch, Node* n) {
 				children->operator[](ch).reset(n);
 			}
-			std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<Node>>> children = nullptr;//需要有升级机制
+			std::unique_ptr<std::unordered_map<uint32_t, std::unique_ptr<Node>>> children = nullptr;//需要有升级机制
 			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
@@ -236,7 +236,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(p.strs.getchar_view(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+				index(FourCCToU32(p.strs.getchar_view(keyword)));//put完后构建索引，并且不再有put操作，应该是安全的
 				return this;
 			}
 			void reload() {
@@ -250,9 +250,9 @@ namespace PinInCpp {
 				NodeMap.children = std::move(src.children);
 				NodeMap.leaves = std::move(src.leaves);
 			}
-			void index(const std::string_view& c);
+			void index(const uint32_t c);
 			//这个就不做升级优化了，通常都很多，做升级优化内存降下来不明显还引入了更多的运行时开销，有明显的性能下降
-			std::unordered_map<PinIn::Phoneme, std::unordered_set<std::string>> index_node;
+			std::unordered_map<PinIn::Phoneme, std::unordered_set<uint32_t>> index_node;
 			NMapOwned NodeMap;
 		};
 
@@ -308,8 +308,10 @@ namespace PinInCpp {
 				};
 			}
 			else if (children != nullptr) {
+				char buf[5];
 				for (const auto& [c, n] : *children) {
-					p.acc.get(c, offset).foreach([&](uint32_t i) {
+					U32FourCCToCharBuf(buf, c);
+					p.acc.get(buf, offset).foreach([&](uint32_t i) {
 						n->get(ret, offset + i);
 					});
 				}
@@ -325,8 +327,10 @@ namespace PinInCpp {
 				};
 			}
 			else {
+				char buf[5];
 				for (const auto& [c, n] : *children) {
-					p.acc.get(c, offset).foreach([&](uint32_t i) {
+					U32FourCCToCharBuf(buf, c);
+					p.acc.get(buf, offset).foreach([&](uint32_t i) {
 						n->get(ret, offset + i);
 					});
 				}
@@ -343,7 +347,7 @@ namespace PinInCpp {
 			if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 				init();
 			}
-			std::string ch = p.strs.getchar(keyword);
+			uint32_t ch = FourCCToU32(p.strs.getchar_view(keyword));
 			auto it = children->find(ch);//查找
 			Node* sub;
 			if (it == children->end()) {

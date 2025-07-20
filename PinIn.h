@@ -14,6 +14,10 @@ namespace PinInCpp {
 	std::string UnicodeToUtf8(char32_t);
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
+	//将字符串转换为uint32数字表示（只转换前四个）
+	uint32_t FourCCToU32(const std::string_view str);
+	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
+	void U32FourCCToCharBuf(char buf[5], uint32_t c);
 
 	template<typename StrType>
 	class UTF8StringTemplate {
