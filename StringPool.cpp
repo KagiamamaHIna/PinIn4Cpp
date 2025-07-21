@@ -20,7 +20,7 @@ namespace PinInCpp {
 		return strs_offset[strs_offset.size() - 2];
 	}*/
 
-	size_t UTF8StringPool::put(const std::string_view s) {
+	size_t UTF8StringPool::put(const std::string_view& s) {
 		strs.insert(strs.end(), s.begin(), s.end());//数据插入
 
 		Utf8StringView utf8s(s);

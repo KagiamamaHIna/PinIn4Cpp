@@ -101,7 +101,7 @@ namespace PinInCpp {
 	class PinIn {
 	public:
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
-		PinIn(const std::string& path);
+		PinIn(const std::string_view& path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
 		size_t GetPinyinId(const std::string_view& hanzi)const {
 			auto it = data.find(FourCCToU32(hanzi));

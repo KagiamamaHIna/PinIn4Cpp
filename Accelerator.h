@@ -12,9 +12,9 @@ namespace PinInCpp {
 		const Utf8String& search() {
 			return searchStr;
 		}
-		void search(const std::string& s) {
+		void search(const std::string_view& s) {
 			if (s != searchStr.ToStream()) {
-				searchStr = s;
+				searchStr = std::string(s);
 				reset();
 			}
 		}

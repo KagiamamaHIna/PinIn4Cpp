@@ -210,8 +210,8 @@ namespace PinInCpp {
 	}
 
 	//PinIn类
-	PinIn::PinIn(const std::string& path) {
-		std::fstream fs = std::fstream(path, std::ios::in);
+	PinIn::PinIn(const std::string_view& path) {
+		std::fstream fs = std::fstream(std::string(path), std::ios::in);
 		if (!fs.is_open()) {//未成功打开 
 			//std::cerr << "file did not open successfully(StrToPinyin)\n";
 			throw PinyinFileNotOpen();

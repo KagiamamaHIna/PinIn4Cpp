@@ -21,7 +21,7 @@ namespace PinInCpp {
 		bool end(size_t i)const {
 			return strs[chars_offset[i]] == '\0';
 		}
-		size_t put(const std::string_view s);//返回的是其插入完成后字符串首端索引
+		size_t put(const std::string_view& s);//返回的是其插入完成后字符串首端索引
 		std::string getchar(size_t i)const;//获取指定字符
 		std::string getstr(size_t strStart)const;//输入首端索引构造完整字符串
 		std::string_view getchar_view(size_t i)const;//获取指定字符的只读视图 持有时不要变动字符串池！

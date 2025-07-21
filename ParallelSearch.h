@@ -35,7 +35,7 @@ namespace PinInCpp {
 		ParallelSearch(ParallelSearch&&) = delete;
 		ParallelSearch& operator=(ParallelSearch&& src) = delete;
 
-		std::vector<std::string> ExecuteSearch(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
+		std::vector<std::string> ExecuteSearch(const std::string_view& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
 			CommonSearch(str);
 			std::vector<std::string> result;
 			for (const auto& vec : ResultSet) {
@@ -45,7 +45,7 @@ namespace PinInCpp {
 			}
 			return result;
 		}
-		std::vector<std::string_view> ExecuteSearchView(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数。返回的只读视图会在插入后可能变成悬垂视图
+		std::vector<std::string_view> ExecuteSearchView(const std::string_view& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数。返回的只读视图会在插入后可能变成悬垂视图
 			CommonSearch(str);
 			std::vector<std::string_view> result;
 			for (const auto& vec : ResultSet) {
@@ -56,7 +56,7 @@ namespace PinInCpp {
 			return result;
 		}
 		//线程不安全，你应该在单线程内执行它
-		void put(const std::string& keyword) {
+		void put(const std::string_view& keyword) {
 			context->PreCacheString(keyword);//手动预热
 
 			ClearResultSet = true;//一个flag，通知搜索的时候清空结果集，因为put可能会导致视图失效
@@ -102,7 +102,7 @@ namespace PinInCpp {
 				});
 			}
 		}
-		void CommonSearch(const std::string& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
+		void CommonSearch(const std::string_view& str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
 			ticket->renew();
 			if (str != searchStr || ClearResultSet) {//如果是新搜索项或者需要清空结果集时，唤醒线程执行多线程搜索逻辑
 				ClearResultSet = false;
