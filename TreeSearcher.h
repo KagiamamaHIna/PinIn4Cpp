@@ -236,7 +236,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(size_t keyword, size_t id) {
 				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(FourCCToU32(p.strs.getchar_view(keyword)));//put完后构建索引，并且不再有put操作，应该是安全的
+				index(p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
 				return this;
 			}
 			void reload() {
@@ -308,10 +308,8 @@ namespace PinInCpp {
 				};
 			}
 			else if (children != nullptr) {
-				char buf[5];
 				for (const auto& [c, n] : *children) {
-					U32FourCCToCharBuf(buf, c);
-					IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 						n->get(ret, offset + i);
 					}
@@ -328,10 +326,8 @@ namespace PinInCpp {
 				};
 			}
 			else {
-				char buf[5];
 				for (const auto& [c, n] : *children) {
-					U32FourCCToCharBuf(buf, c);
-					IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 						n->get(ret, offset + i);
 					}
@@ -349,7 +345,7 @@ namespace PinInCpp {
 			if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 				init();
 			}
-			uint32_t ch = FourCCToU32(p.strs.getchar_view(keyword));
+			uint32_t ch = p.strs.getcharFourCC(keyword);
 			auto it = children->find(ch);//查找
 			Node* sub;
 			if (it == children->end()) {

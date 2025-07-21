@@ -26,7 +26,10 @@ namespace PinInCpp {
 		std::string getstr(size_t strStart)const;//输入首端索引构造完整字符串
 		std::string_view getchar_view(size_t i)const;//获取指定字符的只读视图 持有时不要变动字符串池！
 		std::string_view getstr_view(size_t strStart)const;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
-		size_t getLastStrSize()const;//获取上一个插入的UTF8字符串的长度
+		uint32_t getcharFourCC(size_t i)const;//针对单字符的FourCC打包编码的实现
+		size_t getLastStrSize()const {//获取上一个插入的UTF8字符串的长度
+			return last_size;
+		}
 	private:
 		std::vector<char> strs;//字节数组，用于将多个字符串(字节流)放入容器中，避免内存碎片
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量

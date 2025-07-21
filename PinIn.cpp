@@ -308,8 +308,46 @@ namespace PinInCpp {
 		return result;
 	}
 
-	PinIn::Character PinIn::GetChar(const std::string_view& str) {
-		return Character(*this, str, GetPinyinId(str));
+	PinIn::Character* PinIn::GetCharCachePtr(const std::string_view& str) {
+		if (CharCache) {
+			size_t id = GetPinyinId(str);
+			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+			auto it = cache.find(id);
+			if (it == cache.end()) {//缓存不存在时
+				std::unique_ptr<Character> ptr = std::unique_ptr<Character>(new Character(*this, str, id));
+				Character* result = ptr.get();
+				cache.insert_or_assign(id, std::move(ptr));
+				return result;
+			}
+			else {
+				return it->second.get();//缓存存在时
+			}
+		}
+		else {
+			return nullptr;
+		}
+	}
+
+	PinIn::Character* PinIn::GetCharCachePtr(const uint32_t fourCC) {
+		if (CharCache) {
+			size_t id = GetPinyinId(fourCC);
+			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+			auto it = cache.find(id);
+			if (it == cache.end()) {//缓存不存在时
+				char buf[5];
+				U32FourCCToCharBuf(buf, fourCC);
+				std::unique_ptr<Character> ptr = std::unique_ptr<Character>(new Character(*this, buf, id));
+				Character* result = ptr.get();
+				cache.insert_or_assign(id, std::move(ptr));
+				return result;
+			}
+			else {
+				return it->second.get();//缓存存在时
+			}
+		}
+		else {
+			return nullptr;
+		}
 	}
 
 	PinIn::Config::Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {

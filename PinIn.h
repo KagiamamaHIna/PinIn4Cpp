@@ -103,9 +103,12 @@ namespace PinInCpp {
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(const std::string_view& path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
-		size_t GetPinyinId(const std::string_view& hanzi)const {
-			auto it = data.find(FourCCToU32(hanzi));
+		size_t GetPinyinId(const uint32_t hanziFourCC)const {
+			auto it = data.find(hanziFourCC);
 			return it == data.end() ? NullPinyinId : it->second;
+		}
+		size_t GetPinyinId(const std::string_view& hanzi)const {
+			return GetPinyinId(FourCCToU32(hanzi));
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
 		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口，视图的数据生命周期跟随PinIn对象
@@ -116,26 +119,17 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string>> GetPinyinList(const std::string_view& str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(const std::string_view& str, bool hasTone = false)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
-		Character GetChar(const std::string_view& str);//会始终构建一个Character，比较浪费性能
-		Character* GetCharCachePtr(const std::string_view& str) {//缓存关闭时返回空指针，开启时返回有效数据，注意，无效的字符串在缓存存储后再次返回都是第一个访问时的无效的字符串
-			if (CharCache) {
-				size_t id = GetPinyinId(str);
-				std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
-				auto it = cache.find(id);
-				if (it == cache.end()) {//缓存不存在时
-					std::unique_ptr<Character> ptr = std::unique_ptr<Character>(new Character(*this, str, id));
-					Character* result = ptr.get();
-					cache.insert_or_assign(id, std::move(ptr));
-					return result;
-				}
-				else {
-					return it->second.get();//缓存存在时
-				}
-			}
-			else {
-				return nullptr;
-			}
+		Character GetChar(const std::string_view& str)const {//会始终构建一个Character，比较浪费性能
+			return Character(*this, str, GetPinyinId(str));
 		}
+		Character GetChar(const uint32_t fourCC)const {//同上
+			char buf[5];
+			U32FourCCToCharBuf(buf, fourCC);
+			return Character(*this, buf, GetPinyinId(fourCC));
+		}
+		Character* GetCharCachePtr(const std::string_view& str);//缓存关闭时返回空指针，开启时返回有效数据，注意，无效的字符串在缓存存储后再次返回都是第一个访问时的无效的字符串
+		Character* GetCharCachePtr(const uint32_t fourCC);//同上
+
 		//字符缓存预热，可以用待选项/搜索字符串预热，避免缓存的多线程数据竞争问题，如果是单线程的则不用管
 		void PreCacheString(const std::string_view& str) {
 			if (!CharCache) {

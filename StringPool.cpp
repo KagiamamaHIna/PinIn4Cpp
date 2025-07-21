@@ -76,11 +76,18 @@ namespace PinInCpp {
 		return std::string_view(strs.data() + strStart, i - strStart);
 	}
 
-	//size_t UTF8StringPool::getLastStrSize()const {
-	//	size_t size = strs_offset.size();
-	//	return strs_offset[size - 1] - strs_offset[size - 2] - 1;//-1是为了不算上结尾符
-	//}
-	size_t UTF8StringPool::getLastStrSize()const {
-		return last_size;
+	uint32_t UTF8StringPool::getcharFourCC(size_t i)const {
+		i++;//+1让原本效果为1起始的变为0起始
+		size_t size = chars_offset[i];
+		size_t last = chars_offset[i - 1];
+		uint32_t result = 0;
+
+		size -= last;
+		for (size_t i = 0; i < size; i++) {
+			result <<= 8;
+			result |= (uint8_t)strs[last + i];
+		}
+		return result;
 	}
+
 }

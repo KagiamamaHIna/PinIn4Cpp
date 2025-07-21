@@ -1,6 +1,4 @@
 #pragma once
-#include <set>
-
 #include "StringPool.h"
 
 namespace PinInCpp {
@@ -12,9 +10,16 @@ namespace PinInCpp {
 		const Utf8String& search() {
 			return searchStr;
 		}
+		const uint32_t searchU32FourCC(size_t i) {
+			return u32strVec[i];
+		}
 		void search(const std::string_view& s) {
 			if (s != searchStr.ToStream()) {
 				searchStr = std::string(s);
+				u32strVec.clear();
+				for (const auto& v : searchStr) {
+					u32strVec.emplace_back(FourCCToU32(v));
+				}
 				reset();
 			}
 		}
@@ -27,7 +32,7 @@ namespace PinInCpp {
 		}
 
 		IndexSet get(const PinIn::Pinyin& p, size_t offset);
-		IndexSet get(const std::string_view& ch, size_t offset);
+		IndexSet get(const uint32_t ch, size_t offset);
 		size_t common(size_t s1, size_t s2, size_t max);
 		bool check(size_t offset, size_t start);
 		bool matches(size_t offset, size_t start);
@@ -42,6 +47,7 @@ namespace PinInCpp {
 		PinIn& ctx;
 		std::vector<IndexSet::Storage> cache;
 		Utf8String searchStr;
+		std::vector<uint32_t> u32strVec;
 		bool partial = false;
 	};
 }

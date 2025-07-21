@@ -19,25 +19,22 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	IndexSet Accelerator::get(const std::string_view& ch, size_t offset) {
+	IndexSet Accelerator::get(const uint32_t ch, size_t offset) {
 		PinIn::Character* c = ctx.GetCharCachePtr(ch);
 		if (c == nullptr) {
 			PinIn::Character c = ctx.GetChar(ch);
-			IndexSet ret = searchStr[offset] == c.get() ? IndexSet::ONE : IndexSet::NONE;
+			IndexSet ret = u32strVec[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
 			for (const PinIn::Pinyin& p : c.GetPinyins()) {
 				ret.merge(get(p, offset));
 			}
 			return ret;
 		}
-		else if (c->IsPinyinValid()) {
-			IndexSet ret = searchStr[offset] == c->get() ? IndexSet::ONE : IndexSet::NONE;
+		else {
+			IndexSet ret = u32strVec[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
 			for (const PinIn::Pinyin& p : c->GetPinyins()) {
 				ret.merge(get(p, offset));
 			}
 			return ret;
-		}
-		else {//无效那应该和输入值自身判断 主要是缓存不会创建多个无效的字符类型，所以为了避免判断出问题就这样设计
-			return searchStr[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
 		}
 	}
 
@@ -60,7 +57,7 @@ namespace PinInCpp {
 		if (provider->end(start)) {
 			return false;
 		}
-		IndexSet s = get(provider->getchar_view(start), offset);//只读不写，安全的
+		IndexSet s = get(FourCCToU32(provider->getchar_view(start)), offset);//只读不写，安全的
 
 		if (provider->end(start + 1)) {
 			size_t i = searchStr.size() - offset;

@@ -115,17 +115,15 @@ namespace PinInCpp {
 			}
 		}
 		else {
-			auto it = NodeMap.children->find(FourCCToU32(p.acc.search()[offset]));
+			auto it = NodeMap.children->find(p.acc.searchU32FourCC(offset));
 			if (it != NodeMap.children->end()) {
 				it->second->get(result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k.match(p.acc.search(), offset, true).empty()) {
 					std::unordered_map<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
-					char buf[5];
 					for (const auto& c : v) {
-						U32FourCCToCharBuf(buf, c);
-						IndexSet::IndexSetIterObj it = p.acc.get(buf, offset).GetIterObj();
+						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 						for (uint32_t j = it.Next(); j != IndexSetIterEnd; j = it.Next()) {
 							map[c]->get(result, offset + j);
 						}
@@ -136,11 +134,9 @@ namespace PinInCpp {
 	}
 
 	void TreeSearcher::NAcc::index(const uint32_t c) {
-		char buf[5];
-		U32FourCCToCharBuf(buf, c);
-		PinIn::Character* ch = p.context->GetCharCachePtr(buf);
+		PinIn::Character* ch = p.context->GetCharCachePtr(c);
 		if (ch == nullptr) {
-			PinIn::Character ch = p.context->GetChar(buf);
+			PinIn::Character ch = p.context->GetChar(c);
 			for (const auto& py : ch.GetPinyins()) {
 				const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 				auto it = index_node.find(ph);
@@ -186,12 +182,12 @@ namespace PinInCpp {
 	void TreeSearcher::NSlice::cut(size_t offset) {
 		std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
-			insert->put(FourCCToU32(p.strs.getchar_view(offset)), std::move(exit_node));
+			insert->put(p.strs.getcharFourCC(offset), std::move(exit_node));
 		}
 		else {
 			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
 			half->exit_node = std::move(exit_node);
-			insert->put(FourCCToU32(p.strs.getchar_view(offset)), std::move(half));
+			insert->put(p.strs.getcharFourCC(offset), std::move(half));
 		}
 		exit_node = std::move(insert);
 		end = offset;
@@ -207,7 +203,7 @@ namespace PinInCpp {
 			}
 		}
 		else {
-			std::string_view ch = p.strs.getchar_view(this->start + start);
+			uint32_t ch = p.strs.getcharFourCC(this->start + start);
 			IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
 			for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
 				get(ret, offset + i, start + 1);
