@@ -95,9 +95,9 @@ namespace PinInCpp {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
 				return i;
 			}
-			std::string_view a = p.strs.getchar_view(data[0] + i);
+			uint32_t a = p.strs.getcharFourCC(data[0] + i);
 			for (size_t j = 2; j < data.size(); j += 2) {//跳过第一个元素
-				std::string_view b = p.strs.getchar_view(data[j] + i);
+				uint32_t b = p.strs.getcharFourCC(data[j] + i);
 				if (a != b) {//空检查置前了，所以这里可以删除空检查
 					return i;
 				}

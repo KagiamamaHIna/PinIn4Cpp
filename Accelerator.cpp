@@ -43,8 +43,8 @@ namespace PinInCpp {
 			if (provider->end(s1 + i)) {//查询到结尾时强制退出，也是空检查置前
 				return i;
 			}
-			std::string_view a = provider->getchar_view(s1 + i);//只读不写，安全的
-			std::string_view b = provider->getchar_view(s2 + i);
+			uint32_t a = provider->getcharFourCC(s1 + i);//只读不写，安全的
+			uint32_t b = provider->getcharFourCC(s2 + i);
 			if (a != b) return i;
 		}
 		return max;
@@ -57,7 +57,7 @@ namespace PinInCpp {
 		if (provider->end(start)) {
 			return false;
 		}
-		IndexSet s = get(FourCCToU32(provider->getchar_view(start)), offset);//只读不写，安全的
+		IndexSet s = get(provider->getcharFourCC(start), offset);//只读不写，安全的
 
 		if (provider->end(start + 1)) {
 			size_t i = searchStr.size() - offset;
