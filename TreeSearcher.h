@@ -47,7 +47,7 @@ namespace PinInCpp {
 		std::string GetStrById(size_t id) {//配套使用。id请使用ExecuteSearchGetSet返回的合法的来源
 			return strs.getstr(id);
 		}
-		std::string_view GetStrViewById(size_t id) {//注意，这些视图可能会在插入新数据后变成悬垂视图！
+		std::string_view GetStrViewById(size_t id)const {//注意，这些视图可能会在插入新数据后变成悬垂视图！
 			return strs.getstr_view(id);
 		}
 
