@@ -52,6 +52,7 @@ int main() {
 	system("pause");
 	//pininptr->SetCharCache(true); //默认开启
 	PinInCpp::PinIn::Config cfg = pininptr->config();
+	cfg.keyboard = PinInCpp::Keyboard::DAQIAN;
 	cfg.fZh2Z = true;
 	cfg.fSh2S = true;
 	cfg.fCh2C = true;

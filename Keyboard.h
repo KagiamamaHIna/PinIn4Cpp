@@ -21,7 +21,11 @@ namespace PinInCpp {
 	public:
 		Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence);
 		virtual ~Keyboard() = default;
-
+		//移动构造函数应该是安全的，因为向量也会被移动
+		Keyboard(const Keyboard& src);
+		Keyboard operator=(const Keyboard& src) {
+			return Keyboard(src);
+		}
 		std::string_view keys(const std::string_view& s)const;
 		std::vector<std::string_view> GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
@@ -66,10 +70,14 @@ namespace PinInCpp {
 		//DRY!
 		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data, std::vector<InsertStrMultiData>* LocalFuzzyData = nullptr);
 		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data);
+		class StrPool;
+		void ViewDeepCopy(const StrPool& srcPool, const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target);
 
 		//不是StringPoolBase的派生类，是用于Keyboard持有字符串生命周期的内存池
 		class StrPool {
 		public: //作为字符串视图的数据源，他不需要终止符
+			StrPool() = default;
+			StrPool(const StrPool&) = default;
 			size_t put(const std::string_view& str) {
 				size_t result = strs.size();
 				strs.insert(strs.end(), str.begin(), str.end());
@@ -86,6 +94,9 @@ namespace PinInCpp {
 				}
 			}
 			char* data() {
+				return strs.data();
+			}
+			const char* data()const {
 				return strs.data();
 			}
 		private:
