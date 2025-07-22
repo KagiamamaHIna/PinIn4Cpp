@@ -50,6 +50,10 @@ namespace PinInCpp {
 		std::string_view GetStrViewById(size_t id)const {//注意，这些视图可能会在插入新数据后变成悬垂视图！
 			return strs.getstr_view(id);
 		}
+		//单位是字节
+		void StrPoolReserve(size_t _Newcapacity) {
+			strs.reserve(_Newcapacity);
+		}
 
 		void refresh() {//手动尝试刷新
 			ticket->renew();

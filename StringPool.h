@@ -30,6 +30,10 @@ namespace PinInCpp {
 		size_t getLastStrSize()const {//获取上一个插入的UTF8字符串的长度
 			return last_size;
 		}
+		//单位是字节
+		void reserve(size_t _Newcapacity) {
+			strs.reserve(_Newcapacity);
+		}
 	private:
 		std::vector<char> strs;//字节数组，用于将多个字符串(字节流)放入容器中，避免内存碎片
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量

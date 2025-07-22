@@ -66,6 +66,10 @@ namespace PinInCpp {
 				NextIndex = 0;
 			}
 		}
+		//单位是字节
+		void StrPoolReserve(size_t index, size_t _Newcapacity) {
+			TreePool.at(index)->StrPoolReserve(_Newcapacity);
+		}
 
 		PinIn& GetPinIn() {
 			return *context;
