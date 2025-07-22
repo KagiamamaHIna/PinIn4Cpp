@@ -23,7 +23,9 @@
 
 因此本库的性能不能和Java版的比较，他们本质上处理的数据发生了变化，只是搜索算法是一致的，而且堆内存分配真的很慢（
 
-本库的PinyinTest.cpp是一个非常简单的测试样例和使用案例，数据一样是Enigmatica导出的[样本](small.txt)，简单点来说性能大概如下，搜索耗时和输入字符串存在很大关系，不列举：
+本库的PinyinTest.cpp是一个非常简单的测试样例和使用案例，数据一样是Enigmatica导出的[样本](small.txt)
+
+CPU为i9-14900HX 简单点来说性能大概如下，搜索耗时和输入字符串存在很大关系，不列举：
 
 __部分匹配__
 | 环境 | 构建耗时(100次构建树平均耗时) | 内存使用 |
@@ -40,7 +42,34 @@ __前缀匹配__
 其实内存使用也测的非常不严谨，我拿任务管理器测的，没计算PinIn的内存开销（
 
 ## 示例
-查看[PinyinTest.cpp](PinyinTest.cpp)。
+下面的代码简单的展示了本项目的基础使用方式:
+```cpp
+#include <iostream>
+#include "TreeSearcher.h"
+
+int main() {
+	system("chcp 65001");//这是仅windows平台的测试，这个用于切换cmd的代码页，让其可以显示utf8字符串
+
+	PinInCpp::TreeSearcher TreeA(PinInCpp::Logic::CONTAIN, "pinyin.txt");//路径是拼音字典的路径
+	std::shared_ptr<PinInCpp::PinIn> pinin = TreeA.GetPinInShared();//返回其共享所有权的智能指针
+
+	PinInCpp::TreeSearcher TreeB(PinInCpp::Logic::BEGIN, pinin);//通过传递智能指针，现在A和B树的拼音上下文是共享的
+
+	TreeA.put("测试文本");
+	for (const auto& v : TreeA.ExecuteSearchView("wenben")) {
+		//View后缀为只读视图版本，性能更高，但是使用时不要改变树的状态，如ExecuteSearchView和put都有可能改变，这时候视图有失效风险
+		std::cout << v << std::endl;
+	}
+	PinInCpp::PinIn::Config cfg = pinin->config();//更改PinIn类的配置
+	cfg.fFirstChar = true;//新增的首字母模糊
+	cfg.commit();
+
+	for (const auto& v : TreeA.ExecuteSearchView("wb")) {
+		std::cout << v << std::endl;
+	}
+}
+```
+更多细节请查看[PinyinTest.cpp](PinyinTest.cpp)。
 
 你可以很简单的包括到你的C++项目中，因为他使用标准C++编写且无依赖，只需要注意拿C++20编译即可。
 
