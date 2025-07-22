@@ -137,7 +137,7 @@ namespace PinInCpp {
 			CreateViewOnMap(MapKeys.value(), MapKeysData);
 		}
 	}
-	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, pool{ src.pool } {
+	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, pool{ src.pool }, cutter{ src.cutter } {
 		//视图移动
 		if (src.MapLocalFuzzy.has_value()) {
 			MapLocalFuzzy = std::map<std::string_view, std::vector<std::string_view>>();
@@ -231,10 +231,9 @@ namespace PinInCpp {
 
 	std::vector<std::string_view> Keyboard::zero(const std::string_view& s) {
 		std::vector<std::string_view> ss = standard(s);
-		if (ss.size() == 2) {
+		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
 			std::string_view finale = ss[0];//取字符串第一个元素
 			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
-
 			if (finale.size() == 2) {
 				ss.insert(ss.begin() + 1, finale.substr(1, 1));//第二个字符，长度1
 			}

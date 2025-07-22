@@ -23,9 +23,7 @@ namespace PinInCpp {
 		virtual ~Keyboard() = default;
 		//移动构造函数应该是安全的，因为向量也会被移动
 		Keyboard(const Keyboard& src);
-		Keyboard operator=(const Keyboard& src) {
-			return Keyboard(src);
-		}
+
 		std::string_view keys(const std::string_view& s)const;
 		std::vector<std::string_view> GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
@@ -106,6 +104,6 @@ namespace PinInCpp {
 		OptionalStrViewVecMap MapLocalFuzzy;
 		OptionalStrViewMap MapLocal;
 		OptionalStrViewMap MapKeys;
-		CutterFn cutter = standard;
+		CutterFn cutter;
 	};
 }
