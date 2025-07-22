@@ -65,11 +65,11 @@ namespace PinInCpp {
 		}
 	private:
 		void init() {
-			root = std::make_unique<NDense>(*this);
+			root = std::make_unique<NDense>();
 			acc.setProvider(&strs);
 			ticket = context->ticket([this]() {
 				for (const auto& i : this->naccs) {
-					i->reload();
+					i->reload(*this);
 				}
 				this->acc.reset();
 			});
@@ -77,7 +77,7 @@ namespace PinInCpp {
 		void CommonSearch(const std::string_view& s, std::unordered_set<size_t>& ret) {
 			ticket->renew();
 			acc.search(s);
-			root->get(ret, 0);
+			root->get(*this, ret, 0);
 		}
 		template<typename value>
 		class ObjSet {//这是专门用于优化的类，本身功能并不多！
@@ -147,26 +147,22 @@ namespace PinInCpp {
 			}
 		};
 		class Node {//节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
-		public:
+		public://节点类中用参数传递TreeSearcher的引用比类成员要高效，因为类成员要走this指针解析，第一个参数传引用在x64环境下一般是寄存器传递，绕过了this指针中间商，所以构建速度变更快了
 			virtual ~Node() = default;
-			virtual void get(std::unordered_set<size_t>& result, size_t offset) = 0;
-			virtual void get(std::unordered_set<size_t>& result) = 0;
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result, size_t offset) = 0;
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result) = 0;
 			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
-			virtual Node* put(size_t keyword, size_t id) = 0;
-		protected:
-			Node(TreeSearcher& p) :p{ p } {}
-			TreeSearcher& p;
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) = 0;
 		};
 		class NDense : public Node {//密集节点本质上就是数组
 		public:
 			virtual ~NDense() = default;
-			NDense(TreeSearcher& p) : Node(p) {}
-			virtual void get(std::unordered_set<size_t>& ret, size_t offset);
-			virtual void get(std::unordered_set<size_t>& ret);
-			virtual Node* put(size_t keyword, size_t id);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 		private:
 			friend TreeSearcher;
-			size_t match()const;//寻找最长公共前缀 长度
+			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
 			std::vector<size_t> data;
 		};
 		class NSlice;
@@ -175,25 +171,24 @@ namespace PinInCpp {
 		template<bool CanUpgrade>//类策略模式，运行时比较开销放到编译时
 		class NMapTemplate : public Node {
 		public:
-			NMapTemplate(TreeSearcher& p) : Node(p) {}
 			virtual ~NMapTemplate() = default;
-			virtual void get(std::unordered_set<size_t>& ret, size_t offset);
-			virtual void get(std::unordered_set<size_t>& ret) {
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
 				leaves.AddToSTLSet(ret);
 				if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
 					if (children != nullptr) {
 						for (const auto& v : *children) {
-							v.second->get(ret);
+							v.second->get(p, ret);
 						}
 					}
 				}
 				else {
 					for (const auto& v : *children) {
-						v.second->get(ret);
+						v.second->get(p, ret);
 					}
 				}
 			}
-			virtual Node* put(size_t keyword, size_t id);
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 		private:
 			friend NSlice;
 			friend NAcc;
@@ -225,24 +220,24 @@ namespace PinInCpp {
 		class NAcc : public Node {//组合而非继承
 		public:
 			virtual ~NAcc() = default;
-			NAcc(TreeSearcher& p, NMap& src) :Node(p), NodeMap{ p } {
+			NAcc(TreeSearcher& p, NMap& src) {
 				GetOwned(src);//获取所有权，本质上相当于原始代码里的那个引用拷贝
-				reload();
+				reload(p);
 				p.naccs.push_back(this);
 			}
-			virtual void get(std::unordered_set<size_t>& result, size_t offset);
-			virtual void get(std::unordered_set<size_t>& result) {
-				NodeMap.get(result);//直接调用原始的版本，因为原版Java代码写的是继承，所以没有显式实现
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result, size_t offset);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result) {
+				NodeMap.get(p, result);//直接调用原始的版本，因为原版Java代码写的是继承，所以没有显式实现
 			}
-			virtual Node* put(size_t keyword, size_t id) {
-				NodeMap.put(keyword, id);//绝对不会升级，不需要检查
-				index(p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) {
+				NodeMap.put(p, keyword, id);//绝对不会升级，不需要检查
+				index(p, p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
 				return this;
 			}
-			void reload() {
+			void reload(TreeSearcher& p) {
 				index_node.clear();//释放所有音素
 				for (const auto& [k, v] : *NodeMap.children) {
-					index(k);
+					index(p, k);
 				}
 			}
 		private:
@@ -250,7 +245,7 @@ namespace PinInCpp {
 				NodeMap.children = std::move(src.children);
 				NodeMap.leaves = std::move(src.leaves);
 			}
-			void index(const uint32_t c);
+			void index(TreeSearcher& p, const uint32_t c);
 			//这个就不做升级优化了，通常都很多，做升级优化内存降下来不明显还引入了更多的运行时开销，有明显的性能下降
 			std::unordered_map<PinIn::Phoneme, std::unordered_set<uint32_t>> index_node;
 			NMapOwned NodeMap;
@@ -259,19 +254,19 @@ namespace PinInCpp {
 		class NSlice : public Node {
 		public:
 			virtual ~NSlice() = default;
-			NSlice(size_t start, size_t end, TreeSearcher& p) :start{ start }, end{ end }, Node(p) {
-				exit_node = std::make_unique<NMap>(p);
+			NSlice(size_t start, size_t end) :start{ start }, end{ end } {
+				exit_node = std::make_unique<NMap>();
 			}
-			virtual void get(std::unordered_set<size_t>& ret, size_t offset) {
-				get(ret, offset, 0);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
+				get(p, ret, offset, 0);
 			}
-			virtual void get(std::unordered_set<size_t>& ret) {
-				exit_node->get(ret);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
+				exit_node->get(p, ret);
 			}
-			virtual Node* put(size_t keyword, size_t id);
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 		private:
-			void cut(size_t offset);
-			void get(std::unordered_set<size_t>& ret, size_t offset, size_t start);
+			void cut(TreeSearcher& p, size_t offset);
+			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
 			std::unique_ptr<Node> exit_node = nullptr;
 			size_t start;
 			size_t end;
@@ -290,28 +285,27 @@ namespace PinInCpp {
 		Accelerator acc;
 		Logic logic;
 
-
 		std::unique_ptr<Node> root = nullptr;
 		std::vector<NAcc*> naccs;//观察者，不持有数据
 	};
 
 	/* 过长的模板实现 */
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
-	void TreeSearcher::NMapTemplate<CanUpgrade>::get(std::unordered_set<size_t>& ret, size_t offset) {
+	void TreeSearcher::NMapTemplate<CanUpgrade>::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 		if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
 			if (p.acc.search().size() == offset) {
 				if (p.logic == Logic::EQUAL) {
 					leaves.AddToSTLSet(ret);
 				}
 				else {
-					get(ret);
+					get(p, ret);
 				};
 			}
 			else if (children != nullptr) {
 				for (const auto& [c, n] : *children) {
 					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
-						n->get(ret, offset + i);
+						n->get(p, ret, offset + i);
 					}
 				}
 			}
@@ -322,14 +316,14 @@ namespace PinInCpp {
 					leaves.AddToSTLSet(ret);
 				}
 				else {
-					get(ret);
+					get(p, ret);
 				};
 			}
 			else {
 				for (const auto& [c, n] : *children) {
 					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
-						n->get(ret, offset + i);
+						n->get(p, ret, offset + i);
 					}
 				}
 			}
@@ -337,7 +331,7 @@ namespace PinInCpp {
 	}
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
-	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(size_t keyword, size_t id) {
+	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::put(TreeSearcher& p, size_t keyword, size_t id) {
 		if (p.strs.end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
 			leaves.insert(id);
 		}
@@ -349,13 +343,13 @@ namespace PinInCpp {
 			auto it = children->find(ch);//查找
 			Node* sub;
 			if (it == children->end()) {
-				sub = put(ch, std::make_unique<NDense>(p));
+				sub = put(ch, std::make_unique<NDense>());
 			}
 			else {
 				sub = it->second.get();
 			}
 			Node* src = sub;
-			sub = sub->put(keyword + 1, id);
+			sub = sub->put(p, keyword + 1, id);
 			if (src != sub) {
 				reset_children(ch, sub);
 			}

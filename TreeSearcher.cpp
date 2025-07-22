@@ -7,7 +7,7 @@ namespace PinInCpp {
 		size_t pos = strs.put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs.getLastStrSize() : 1;
 		for (size_t i = 0; i < end; i++) {
-			Node* result = root->put(pos + i, pos);
+			Node* result = root->put(*this, pos + i, pos);
 			if (root.get() != result) {
 				root.reset(result);
 			}
@@ -44,10 +44,10 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	void TreeSearcher::NDense::get(std::unordered_set<size_t>& ret, size_t offset) {
+	void TreeSearcher::NDense::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 		bool full = p.logic == Logic::EQUAL;
 		if (!full && p.acc.search().size() == offset) {
-			get(ret);
+			get(p, ret);
 		}
 		else {
 			for (size_t i = 0; i < data.size(); i += 2) {
@@ -59,25 +59,25 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NDense::get(std::unordered_set<size_t>& ret) {
+	void TreeSearcher::NDense::get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
 		for (size_t i = 1; i < data.size(); i += 2) {
 			ret.insert(data[i]);
 		}
 	}
 
-	TreeSearcher::Node* TreeSearcher::NDense::put(size_t keyword, size_t id) {
+	TreeSearcher::Node* TreeSearcher::NDense::put(TreeSearcher& p, size_t keyword, size_t id) {
 		if (data.size() >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
-			std::unique_ptr<Node> result = std::make_unique<NSlice>(pattern, pattern + match(), p);
+			std::unique_ptr<Node> result = std::make_unique<NSlice>(pattern, pattern + match(p));
 			Node* other = result.get();
 			for (size_t j = 0; j < data.size(); j += 2) {
-				other = result->put(data[j], data[j + 1]);
+				other = result->put(p, data[j], data[j + 1]);
 				if (other != result.get()) {//节点升级
 					result.reset(other);
 					other = result.get();
 				}
 			}
-			other = result->put(keyword, id);
+			other = result->put(p, keyword, id);
 			if (other != result.get()) {//节点升级
 				result.reset(other);
 			}
@@ -90,7 +90,7 @@ namespace PinInCpp {
 		}
 	}
 
-	size_t TreeSearcher::NDense::match()const {//这个函数内，是不会put的，可以实现零拷贝设计
+	size_t TreeSearcher::NDense::match(const TreeSearcher& p)const {//这个函数内，是不会put的，可以实现零拷贝设计
 		for (size_t i = 0; ; i++) {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
 				return i;
@@ -105,19 +105,19 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::get(std::unordered_set<size_t>& result, size_t offset) {
+	void TreeSearcher::NAcc::get(TreeSearcher& p, std::unordered_set<size_t>& result, size_t offset) {
 		if (p.acc.search().size() == offset) {
 			if (p.logic == Logic::EQUAL) {
 				NodeMap.leaves.AddToSTLSet(result);
 			}
 			else {
-				NodeMap.get(result);//直接调用原始的这个，避免中间层开销
+				NodeMap.get(p, result);//直接调用原始的这个，避免中间层开销
 			}
 		}
 		else {
 			auto it = NodeMap.children->find(p.acc.searchU32FourCC(offset));
 			if (it != NodeMap.children->end()) {
-				it->second->get(result, offset + 1);
+				it->second->get(p, result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k.match(p.acc.search(), offset, true).empty()) {
@@ -125,7 +125,7 @@ namespace PinInCpp {
 					for (const auto& c : v) {
 						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 						for (uint32_t j = it.Next(); j != IndexSetIterEnd; j = it.Next()) {
-							map[c]->get(result, offset + j);
+							map[c]->get(p, result, offset + j);
 						}
 					}
 				}
@@ -133,7 +133,7 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::index(const uint32_t c) {
+	void TreeSearcher::NAcc::index(TreeSearcher& p, const uint32_t c) {
 		PinIn::Character* ch = p.context->GetCharCachePtr(c);
 		if (ch == nullptr) {
 			PinIn::Character ch = p.context->GetChar(c);
@@ -162,16 +162,16 @@ namespace PinInCpp {
 		}
 	}
 
-	TreeSearcher::Node* TreeSearcher::NSlice::put(size_t keyword, size_t id) {
+	TreeSearcher::Node* TreeSearcher::NSlice::put(TreeSearcher& p, size_t keyword, size_t id) {
 		size_t length = end - start;
 		size_t match = p.acc.common(start, keyword, length);
 		Node* n;
 		if (match >= length) {
-			n = exit_node->put(keyword + length, id);
+			n = exit_node->put(p, keyword + length, id);
 		}
 		else {
-			cut(start + match);
-			n = exit_node->put(keyword + match, id);
+			cut(p, start + match);
+			n = exit_node->put(p, keyword + match, id);
 		}
 		if (exit_node.get() != n) {
 			exit_node.reset(n);
@@ -179,13 +179,13 @@ namespace PinInCpp {
 		return start == end ? exit_node.release() : this;
 	}
 
-	void TreeSearcher::NSlice::cut(size_t offset) {
-		std::unique_ptr<NMap> insert = std::make_unique<NMap>(p);//保证异常安全
+	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
+		std::unique_ptr<NMap> insert = std::make_unique<NMap>();//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
 			insert->put(p.strs.getcharFourCC(offset), std::move(exit_node));
 		}
 		else {
-			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end, p);
+			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end);
 			half->exit_node = std::move(exit_node);
 			insert->put(p.strs.getcharFourCC(offset), std::move(half));
 		}
@@ -193,20 +193,20 @@ namespace PinInCpp {
 		end = offset;
 	}
 
-	void TreeSearcher::NSlice::get(std::unordered_set<size_t>& ret, size_t offset, size_t start) {
+	void TreeSearcher::NSlice::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start) {
 		if (this->start + start == end) {
-			exit_node->get(ret, offset);
+			exit_node->get(p, ret, offset);
 		}
 		else if (offset == p.acc.search().size()) {
 			if (p.logic != Logic::EQUAL) {
-				exit_node->get(ret);
+				exit_node->get(p, ret);
 			}
 		}
 		else {
 			uint32_t ch = p.strs.getcharFourCC(this->start + start);
 			IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
 			for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
-				get(ret, offset + i, start + 1);
+				get(p, ret, offset + i, start + 1);
 			}
 		}
 	}

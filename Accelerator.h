@@ -24,7 +24,9 @@ namespace PinInCpp {
 			}
 		}
 		void reset() {
-			cache.clear();
+			for (auto& v : cache) {
+				v.clear();//仅清空map容器，避免map对象再构造
+			}
 		}
 		//接收一个外部的、长生命周期的provider，不拥有
 		void setProvider(UTF8StringPool* provider_ptr) {
