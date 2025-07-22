@@ -20,7 +20,7 @@ namespace PinInCpp {
 
 		std::vector<std::string> result;
 		result.reserve(ret.size());
-		for (const auto id : ret) {//基本类型复制更高效
+		for (const size_t id : ret) {//基本类型复制更高效
 			result.push_back(strs.getstr(id));
 		}
 		return result;
@@ -32,7 +32,7 @@ namespace PinInCpp {
 
 		std::vector<std::string_view> result;
 		result.reserve(ret.size());
-		for (const auto id : ret) {//基本类型复制更高效
+		for (const size_t id : ret) {//基本类型复制更高效
 			result.push_back(strs.getstr_view(id));
 		}
 		return result;

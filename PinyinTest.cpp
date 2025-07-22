@@ -14,10 +14,15 @@
 
 #include "TreeSearcher.h"
 
-static long long GetTimestampMS() {//获取当前微秒的时间戳
-	auto now = std::chrono::steady_clock::now();
-	//将时间点转换为时间戳
-	return std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch().count();
+using high_time_point = std::chrono::high_resolution_clock::time_point;
+
+static high_time_point GetTimePoint() {
+	return std::chrono::high_resolution_clock::now();
+}
+
+static double GetTimeMS(high_time_point start, high_time_point end) {//微秒
+	std::chrono::duration<double> result = end - start;
+	return result.count() * 1000;
 }
 
 constexpr int TreeLoopInsertCount = 1;
@@ -37,14 +42,12 @@ int main() {
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
-	long long now;
-	long long end;
 
 	system("pause");
-	now = GetTimestampMS();
+	high_time_point now = GetTimePoint();
 	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
-	end = GetTimestampMS();
-	std::cout << (double)(end - now) / 1000 << '\n';//计算获取耗时并打印，单位毫秒
+	high_time_point end = GetTimePoint();
+	std::cout << GetTimeMS(now, end) << "ms\n";//计算获取耗时并打印，单位毫秒
 
 	system("pause");
 	//pininptr->SetCharCache(true); //默认开启
@@ -59,20 +62,20 @@ int main() {
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
 
-	long long timeCount = 0;
+	double timeCount = 0;
 	std::unique_ptr<PinInCpp::TreeSearcher> tree;
 
 	for (int i = 0; i < TreeLoopInsertCount; i++) {
 		tree = std::make_unique<PinInCpp::TreeSearcher>(PinInCpp::Logic::CONTAIN, pininptr);
 		for (const auto& v : FileCache) {
-			long long now = GetTimestampMS();
+			high_time_point now = GetTimePoint();
 			tree->put(v);
-			long long end = GetTimestampMS();
-			timeCount += end - now;
+			high_time_point end = GetTimePoint();
+			timeCount += GetTimeMS(now, end);
 		}
 	}
 
-	std::cout << ((double)timeCount / (double)TreeLoopInsertCount) / 1000 << '\n';
+	std::cout << timeCount / (double)TreeLoopInsertCount << "ms\n";
 
 	//pininptr->SetCharCache(false);//手动关闭可以释放缓存，不过搜索时也可能会利用缓存，会导致一定程度的性能下降
 
@@ -85,18 +88,18 @@ int main() {
 		std::cout << "input:";
 		std::getline(std::cin, line);
 
-		long long timeCount = 0;
+		double timeCount = 0;
 		std::vector<std::string_view> vec;
 		for (int i = 0; i < SearcherLoopCount; i++) {
-			now = GetTimestampMS();
+			high_time_point now = GetTimePoint();
 			vec = tree->ExecuteSearchView(line);
-			end = GetTimestampMS();
-			timeCount += end - now;
+			high_time_point end = GetTimePoint();
+			timeCount += GetTimeMS(now, end);
 		}
 
 		for (const auto& v : vec) {
 			std::cout << v << '\n';
 		}
-		std::cout << (double)(timeCount) / (double)SearcherLoopCount / 1000 << '\n';//计算获取耗时并打印，单位毫秒
+		std::cout << timeCount / (double)SearcherLoopCount << "ms\n";//计算获取耗时并打印，单位毫秒
 	}
 }
