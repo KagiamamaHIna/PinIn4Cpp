@@ -8,7 +8,7 @@
 namespace PinInCpp {
 	class ParallelSearch {//并行搜索树逻辑，如果数据量比较小（如4w行），则无明显效果，按需使用
 	public:
-		ParallelSearch(Logic logic, const std::string& PinyinDictionaryPath, size_t TreeNum)
+		ParallelSearch(Logic logic, const std::string_view& PinyinDictionaryPath, size_t TreeNum)
 			:context(std::make_shared<PinIn>(PinyinDictionaryPath)), TreeNum{ TreeNum }, barrier(TreeNum + 1) {
 			init(logic);
 		}

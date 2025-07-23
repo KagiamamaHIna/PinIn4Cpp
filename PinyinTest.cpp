@@ -42,7 +42,6 @@ int main() {
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
-
 	system("pause");
 	high_time_point now = GetTimePoint();
 	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
