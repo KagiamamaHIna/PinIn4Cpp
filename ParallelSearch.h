@@ -66,10 +66,18 @@ namespace PinInCpp {
 				NextIndex = 0;
 			}
 		}
+		size_t GetTreeNum()const {
+			return TreeNum;
+		}
+		//请手动分片数据，针对单个树的关键字插入
+		void putAtTree(size_t index, const std::string_view& keyword) {
+			TreePool.at(index)->put(keyword);
+		}
 		//单位是字节
 		void StrPoolReserve(size_t index, size_t _Newcapacity) {
 			TreePool.at(index)->StrPoolReserve(_Newcapacity);
 		}
+
 
 		PinIn& GetPinIn() {
 			return *context;

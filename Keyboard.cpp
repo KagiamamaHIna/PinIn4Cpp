@@ -138,7 +138,7 @@ namespace PinInCpp {
 		}
 	}
 	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, pool{ src.pool }, cutter{ src.cutter } {
-		//视图移动
+		//重建视图
 		if (src.MapLocalFuzzy.has_value()) {
 			MapLocalFuzzy = std::map<std::string_view, std::vector<std::string_view>>();
 			char* poolptr = pool.data();

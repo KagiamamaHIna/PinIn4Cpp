@@ -103,10 +103,12 @@ namespace PinInCpp {
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(const std::string_view& path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
+		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(const uint32_t hanziFourCC)const {
 			auto it = data.find(hanziFourCC);
 			return it == data.end() ? NullPinyinId : it->second;
 		}
+		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(const std::string_view& hanzi)const {
 			return GetPinyinId(FourCCToU32(hanzi));
 		}
