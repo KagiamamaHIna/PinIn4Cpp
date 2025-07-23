@@ -235,10 +235,10 @@ namespace PinInCpp {
 			std::string_view finale = ss[0];//取字符串第一个元素
 			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
 			if (finale.size() == 2) {
-				ss.insert(ss.begin() + 1, finale.substr(1, 1));//第二个字符，长度1
+				ss.emplace_back(finale.substr(1, 1));//第二个字符，长度1
 			}
 			else {
-				ss.insert(ss.begin() + 1, finale);
+				ss.emplace_back(finale);//因为职责改变，去除了声调在这里，所以只有一个音素的情况下，直接最后追加即可
 			}
 		}
 		return ss;
