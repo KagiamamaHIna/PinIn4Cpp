@@ -75,6 +75,17 @@ namespace PinInCpp {
 			TreePool.at(index)->StrPoolReserve(_Newcapacity);
 		}
 
+		void ClearFreeList() {
+			for (const auto& v : TreePool) {
+				v->ClearFreeList();
+			}
+		}
+
+		void ShrinkToFit() {
+			for (const auto& v : TreePool) {
+				v->ShrinkToFit();
+			}
+		}
 
 		PinIn& GetPinIn() {
 			return *context;

@@ -9,7 +9,7 @@ namespace PinInCpp {
 		for (size_t i = 0; i < end; i++) {
 			Node* result = root->put(*this, pos + i, pos);
 			if (root.get() != result) {
-				root.reset(result);
+				NodeOwnershipReset(root, result);
 			}
 		}
 	}
@@ -21,7 +21,7 @@ namespace PinInCpp {
 		std::vector<std::string> result;
 		result.reserve(ret.size());
 		for (const size_t id : ret) {//基本类型复制更高效
-			result.push_back(strs.getstr(id));
+			result.emplace_back(strs.getstr(id));
 		}
 		return result;
 	}
@@ -33,7 +33,7 @@ namespace PinInCpp {
 		std::vector<std::string_view> result;
 		result.reserve(ret.size());
 		for (const size_t id : ret) {//基本类型复制更高效
-			result.push_back(strs.getstr_view(id));
+			result.emplace_back(strs.getstr_view(id));
 		}
 		return result;
 	}
@@ -68,24 +68,24 @@ namespace PinInCpp {
 	TreeSearcher::Node* TreeSearcher::NDense::put(TreeSearcher& p, size_t keyword, size_t id) {
 		if (data.size() >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
-			std::unique_ptr<Node> result = std::make_unique<NSlice>(pattern, pattern + match(p));
+			std::unique_ptr<Node> result = p.NSlicePool.NewObj(p, pattern, pattern + match(p));
 			Node* other = result.get();
 			for (size_t j = 0; j < data.size(); j += 2) {
 				other = result->put(p, data[j], data[j + 1]);
 				if (other != result.get()) {//节点升级
-					result.reset(other);
-					other = result.get();
+					p.NodeOwnershipReset(result, other);
+					//因为other本质上已经是新指针了，所以不用再次赋值。result通过这个转移所有权的函数现在他和other是同一个指针
 				}
 			}
 			other = result->put(p, keyword, id);
 			if (other != result.get()) {//节点升级
-				result.reset(other);
+				p.NodeOwnershipReset(result, other);
 			}
 			return result.release();
 		}
 		else {
-			data.push_back(keyword);
-			data.push_back(id);
+			data.emplace_back(keyword);
+			data.emplace_back(id);
 			return this;
 		}
 	}
@@ -95,10 +95,9 @@ namespace PinInCpp {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
 				return i;
 			}
-			uint32_t a = p.strs.getcharFourCC(data[0] + i);
+			size_t aIndex = data[0] + i;
 			for (size_t j = 2; j < data.size(); j += 2) {//跳过第一个元素
-				uint32_t b = p.strs.getcharFourCC(data[j] + i);
-				if (a != b) {//空检查置前了，所以这里可以删除空检查
+				if (!p.strs.EqualChar(aIndex, data[j] + i)) {
 					return i;
 				}
 			}
@@ -174,18 +173,18 @@ namespace PinInCpp {
 			n = exit_node->put(p, keyword + match, id);
 		}
 		if (exit_node.get() != n) {
-			exit_node.reset(n);
+			p.NodeOwnershipReset(exit_node, n);
 		}
 		return start == end ? exit_node.release() : this;
 	}
 
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
-		std::unique_ptr<NMap> insert = std::make_unique<NMap>();//保证异常安全
+		std::unique_ptr<NMap> insert = p.NMapPool.NewObj();//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
 			insert->put(p.strs.getcharFourCC(offset), std::move(exit_node));
 		}
 		else {
-			std::unique_ptr<NSlice> half = std::make_unique<NSlice>(offset + 1, end);
+			std::unique_ptr<NSlice> half = p.NSlicePool.NewObj(p, offset + 1, end);
 			half->exit_node = std::move(exit_node);
 			insert->put(p.strs.getcharFourCC(offset), std::move(half));
 		}

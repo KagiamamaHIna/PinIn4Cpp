@@ -63,7 +63,7 @@ namespace PinInCpp {
 						pool.putChar('g');//插入一个g进去
 					}
 					if (data.keySize != std::string::npos) {//既然不是无效宽度了，那么就代表检查成功了，即符合某一模糊音匹配规则
-						LocalFuzzyData->push_back(data);
+						LocalFuzzyData->emplace_back(data);
 					}
 				}
 			}
@@ -128,7 +128,7 @@ namespace PinInCpp {
 				std::string_view key(poolptr + data.keyStart, data.keySize);
 				for (const auto& item : data.values) {//将数据集插入
 					std::string_view str(poolptr + item.valueStart, item.valueSize);
-					Target[key].push_back(str);//会触发默认构造，所以不用显式赋值
+					Target[key].emplace_back(str);//会触发默认构造，所以不用显式赋值
 				}
 			}
 		}
@@ -154,7 +154,7 @@ namespace PinInCpp {
 					size_t valueStart = reinterpret_cast<size_t>(v.data());
 					valueStart -= srcPoolPtr;//视图指针基址减去其来源即他的偏移量
 
-					Target[keyView].push_back(std::string_view(poolptr + valueStart, v.size()));
+					Target[keyView].emplace_back(std::string_view(poolptr + valueStart, v.size()));
 				}
 			}
 		}
@@ -211,7 +211,7 @@ namespace PinInCpp {
 			}
 		}
 		std::vector<std::string_view> result = cutter(body);
-		result.push_back(tone);//取最后一个字符构造字符串(声调)
+		result.emplace_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
 	}
 
@@ -220,11 +220,11 @@ namespace PinInCpp {
 		size_t cursor = 0;
 		if (hasInitial(s)) {
 			cursor = s.size() >= 2 && s[1] == 'h' ? 2 : 1;//原始代码会把2字符的给判断错误，这里写大于等于才是正确的
-			result.push_back(s.substr(0, cursor));
+			result.emplace_back(s.substr(0, cursor));
 		}
 		//final
 		if (s.size() != cursor) {
-			result.push_back(s.substr(cursor, s.size() - cursor));
+			result.emplace_back(s.substr(cursor, s.size() - cursor));
 		}
 		return result;
 	}

@@ -5,12 +5,12 @@
 #include <unordered_set>
 #include <memory>
 #include <unordered_map>
-#include <iostream>
 
 #include "PinIn.h"
 #include "StringPool.h"
 #include "Accelerator.h"
 #include "Keyboard.h"
+#include "ObjectPool.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -66,6 +66,14 @@ namespace PinInCpp {
 		}
 		std::shared_ptr<PinIn> GetPinInShared() {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
+		}
+		void ClearFreeList() {//手动清理对象池
+			NDensePool.ClearFreeList();
+			NSlicePool.ClearFreeList();
+			NMapPool.ClearFreeList();
+		}
+		void ShrinkToFit() {//调用的是std::vector<char>::shrink_to_fit
+			strs.ShrinkToFit();
 		}
 	private:
 		void init() {
@@ -157,13 +165,24 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result) = 0;
 			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) = 0;
+			//将自身载入对象池
+			virtual void FreeToPool(TreeSearcher& p) = 0;
 		};
+		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
+		void NodeOwnershipReset(std::unique_ptr<Node>& smartPtrObj, Node* newPtr) {
+			smartPtrObj->FreeToPool(*this);//记录
+			smartPtrObj.release();//不要了，已经被标记在对象池中待清除/复用了，所以这时候要release他释放其所有权
+			smartPtrObj.reset(newPtr);
+		}
 		class NDense : public Node {//密集节点本质上就是数组
 		public:
 			virtual ~NDense() = default;
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual void FreeToPool(TreeSearcher& p) {
+				p.NDensePool.FreeToPool(this);
+			}
 		private:
 			friend TreeSearcher;
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
@@ -189,6 +208,11 @@ namespace PinInCpp {
 				}
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual void FreeToPool(TreeSearcher& p) {
+				if constexpr (CanUpgrade) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
+					p.NMapPool.FreeToPool(this);
+				}
+			}
 		private:
 			friend NSlice;
 			friend NAcc;
@@ -208,8 +232,8 @@ namespace PinInCpp {
 				children->insert_or_assign(ch, std::move(n));
 				return result;
 			}
-			void reset_children(const uint32_t ch, Node* n) {
-				children->operator[](ch).reset(n);
+			void reset_children(TreeSearcher& p, const uint32_t ch, Node* n) {
+				p.NodeOwnershipReset(children->operator[](ch), n);
 			}
 			std::unique_ptr<std::unordered_map<uint32_t, std::unique_ptr<Node>>> children = nullptr;
 			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
@@ -217,7 +241,7 @@ namespace PinInCpp {
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
 
-		class NAcc : public Node {//组合而非继承
+		class NAcc : public Node {//组合而非继承，不会升级的节点
 		public:
 			virtual ~NAcc() = default;
 			NAcc(TreeSearcher& p, NMap& src) {
@@ -240,6 +264,8 @@ namespace PinInCpp {
 					index(p, k);
 				}
 			}
+			//你不需要，只需要一个空函数即可
+			virtual void FreeToPool(TreeSearcher& p) {}
 		private:
 			void GetOwned(NMap& src) {
 				NodeMap.children = std::move(src.children);
@@ -254,8 +280,8 @@ namespace PinInCpp {
 		class NSlice : public Node {
 		public:
 			virtual ~NSlice() = default;
-			NSlice(size_t start, size_t end) :start{ start }, end{ end } {
-				exit_node = std::make_unique<NMap>();
+			NSlice(TreeSearcher& p, size_t start, size_t end) :start{ start }, end{ end } {
+				exit_node = p.NMapPool.NewObj();
 			}
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 				get(p, ret, offset, 0);
@@ -264,6 +290,9 @@ namespace PinInCpp {
 				exit_node->get(p, ret);
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual void FreeToPool(TreeSearcher& p) {
+				p.NSlicePool.FreeToPool(this);
+			}
 		private:
 			void cut(TreeSearcher& p, size_t offset);
 			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
@@ -287,6 +316,10 @@ namespace PinInCpp {
 
 		std::unique_ptr<Node> root = nullptr;
 		std::vector<NAcc*> naccs;//观察者，不持有数据
+
+		ObjectPool<NDense> NDensePool;
+		ObjectPool<NSlice> NSlicePool;
+		ObjectPool<NMap> NMapPool;
 	};
 
 	/* 过长的模板实现 */
@@ -328,7 +361,7 @@ namespace PinInCpp {
 			auto it = children->find(ch);//查找
 			Node* sub;
 			if (it == children->end()) {
-				sub = put(ch, std::make_unique<NDense>());
+				sub = put(ch, p.NDensePool.NewObj());
 			}
 			else {
 				sub = it->second.get();
@@ -336,7 +369,7 @@ namespace PinInCpp {
 			Node* src = sub;
 			sub = sub->put(p, keyword + 1, id);
 			if (src != sub) {
-				reset_children(ch, sub);
+				reset_children(p, ch, sub);
 			}
 		}
 		if constexpr (CanUpgrade) {

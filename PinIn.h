@@ -28,7 +28,7 @@ namespace PinInCpp {
 			size_t end = input.size();
 			while (cursor < end) {
 				size_t charSize = getUTF8CharSize(input[cursor]);
-				str.push_back(input.substr(cursor, charSize));
+				str.emplace_back(input.substr(cursor, charSize));
 				cursor += charSize;
 			}
 		}
@@ -381,7 +381,7 @@ namespace PinInCpp {
 			std::set<std::string_view> HasResult;//创建结果集，排除重复选项
 			for (const auto& str : ctx->pool.getPinyinViewVec(id, false)) {//直接遍历容器，把有需要的取出来即可，只读的字符串，不涉及拷贝，所需的才会拷贝
 				if (!HasResult.count(str)) {
-					result.push_back(T(str));//深拷贝
+					result.emplace_back(T(str));//深拷贝
 					HasResult.insert(str);
 				}
 			}

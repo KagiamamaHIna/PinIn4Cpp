@@ -143,6 +143,7 @@
     <ClCompile Include="Accelerator.cpp" />
     <ClCompile Include="IndexSet.cpp" />
     <ClCompile Include="Keyboard.cpp" />
+    <ClCompile Include="ObjectPool.h" />
     <ClCompile Include="PinIn.cpp" />
     <ClCompile Include="PinyinFormat.cpp" />
     <ClCompile Include="PinyinTest.cpp" />

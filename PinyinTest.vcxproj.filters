@@ -45,6 +45,9 @@
     <ClCompile Include="PinyinFormat.cpp">
       <Filter>源文件\utils</Filter>
     </ClCompile>
+    <ClCompile Include="ObjectPool.h">
+      <Filter>头文件\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">

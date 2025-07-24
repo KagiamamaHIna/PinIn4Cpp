@@ -34,6 +34,10 @@ namespace PinInCpp {
 		void reserve(size_t _Newcapacity) {
 			strs.reserve(_Newcapacity);
 		}
+		bool EqualChar(size_t indexA, size_t indexB)const;
+		void ShrinkToFit() {
+			strs.shrink_to_fit();
+		}
 	private:
 		std::vector<char> strs;//字节数组，用于将多个字符串(字节流)放入容器中，避免内存碎片
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量

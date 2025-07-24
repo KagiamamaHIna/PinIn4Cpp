@@ -37,10 +37,8 @@ namespace PinInCpp {
 	}
 
 	std::string UTF8StringPool::getchar(size_t i)const {
-		i++;//+1让原本效果为1起始的变为0起始
-
-		size_t size = chars_offset[i];
-		size_t last = chars_offset[i - 1];
+		size_t size = chars_offset[i + 1];
+		size_t last = chars_offset[i];
 
 		std::string result;
 		result.insert(result.end(), strs.begin() + last, strs.begin() + size);
@@ -60,9 +58,8 @@ namespace PinInCpp {
 	}
 
 	std::string_view UTF8StringPool::getchar_view(size_t i)const {
-		i++;//+1让原本效果为1起始的变为0起始
-		size_t size = chars_offset[i];
-		size_t last = chars_offset[i - 1];
+		size_t size = chars_offset[i + 1];
+		size_t last = chars_offset[i];
 
 		return std::string_view(strs.data() + last, size - last);
 	}
@@ -77,9 +74,8 @@ namespace PinInCpp {
 	}
 
 	uint32_t UTF8StringPool::getcharFourCC(size_t i)const {
-		i++;//+1让原本效果为1起始的变为0起始
-		size_t size = chars_offset[i];
-		size_t last = chars_offset[i - 1];
+		size_t size = chars_offset[i + 1];
+		size_t last = chars_offset[i];
 		uint32_t result = 0;
 
 		size -= last;
@@ -89,5 +85,19 @@ namespace PinInCpp {
 		}
 		return result;
 	}
-
+	bool UTF8StringPool::EqualChar(size_t indexA, size_t indexB)const {
+		size_t AOffset = chars_offset[indexA];
+		size_t BOffset = chars_offset[indexB];
+		size_t Asize = chars_offset[indexA + 1] - AOffset;
+		size_t Bsize = chars_offset[indexB + 1] - BOffset;
+		if (Asize != Bsize) {//两个字节大小都不一样，那肯定不相等
+			return false;
+		}
+		for (size_t i = 0; i < Asize; i++) {
+			if (strs[AOffset + i] != strs[BOffset + i]) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

@@ -83,12 +83,12 @@ namespace PinInCpp {
 			}
 			size_t putChar(const char c) {
 				size_t result = strs.size();
-				strs.push_back(c);
+				strs.emplace_back(c);
 				return result;
 			}
 			void putCharPtr(const char* str, size_t size) {
 				for (size_t i = 0; i < size; i++) {
-					strs.push_back(str[i]);
+					strs.emplace_back(str[i]);
 				}
 			}
 			char* data() {

@@ -43,9 +43,9 @@ namespace PinInCpp {
 			if (provider->end(s1 + i)) {//查询到结尾时强制退出，也是空检查置前
 				return i;
 			}
-			uint32_t a = provider->getcharFourCC(s1 + i);//只读不写，安全的
-			uint32_t b = provider->getcharFourCC(s2 + i);
-			if (a != b) return i;
+			if (!provider->EqualChar(s1 + i, s2 + i)) {
+				return i;
+			}
 		}
 		return max;
 	}

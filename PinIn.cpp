@@ -138,7 +138,7 @@ namespace PinInCpp {
 		char tempChar = FixedStrs[i];//局部拷贝，避免多次访问
 		while (tempChar) {//结尾符就退出
 			if (tempChar == ',') {//不保存这个，压入下一个空字符串，移动cursor
-				result.push_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
+				result.emplace_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
 				cursor++;
 				StrStart = i + 1;//记录下一个字符串的开头
 			}
@@ -146,7 +146,7 @@ namespace PinInCpp {
 			tempChar = FixedStrs[i];//自增完成后再取下一个字符
 		}
 		//保存最后一个
-		result.push_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
+		result.emplace_back(std::string_view(FixedStrs.get() + StrStart, i - StrStart - SubCharSize));//存储指针的只读数据
 		return result;
 	}
 
@@ -293,7 +293,7 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
-			result.push_back(GetPinyin(utf8v[i], hasTone));
+			result.emplace_back(GetPinyin(utf8v[i], hasTone));
 		}
 		return result;
 	}
@@ -303,7 +303,7 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string_view>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
-			result.push_back(GetPinyinView(utf8v[i], hasTone));
+			result.emplace_back(GetPinyinView(utf8v[i], hasTone));
 		}
 		return result;
 	}
@@ -434,57 +434,57 @@ namespace PinInCpp {
 
 	void PinIn::Phoneme::reloadNoMap() {
 		if (ctx.fCh2C && src[0] == 'c') {
-			strs.push_back("ch");
-			strs.push_back("c");
+			strs.emplace_back("ch");
+			strs.emplace_back("c");
 		}
 		else if (ctx.fSh2S && src[0] == 's') {
-			strs.push_back("sh");
-			strs.push_back("s");
+			strs.emplace_back("sh");
+			strs.emplace_back("s");
 		}
 		else if (ctx.fZh2Z && src[0] == 'z') {
-			strs.push_back("zh");
-			strs.push_back("z");
+			strs.emplace_back("zh");
+			strs.emplace_back("z");
 		}
 		else if (ctx.fU2V && src[0] == 'v') {//我们可以做一次字符串长度检查完成是v还是ve的操作
 			if (src.size() == 2) {
-				strs.push_back("ue");
-				strs.push_back("ve");
+				strs.emplace_back("ue");
+				strs.emplace_back("ve");
 
 				if (ctx.fFirstChar) {//如果开了这个，那么就同时加入
-					strs.push_back("u");
-					strs.push_back("v");
+					strs.emplace_back("u");
+					strs.emplace_back("v");
 				}
 			}
 			else {
-				strs.push_back("u");
-				strs.push_back("v");
+				strs.emplace_back("u");
+				strs.emplace_back("v");
 			}
 		}
 		else {//分支，即都没有增加第一个字符的情况
 			if (ctx.fFirstChar) {
-				strs.push_back(src.substr(0, 1));
+				strs.emplace_back(src.substr(0, 1));
 			}
 			if (src.size() >= 2 && src[1] == 'n') {
 				//需要有边界检查，他原本的逻辑是检查如果为ang，则添加an，反过来也一样
 				//那么为什么我不直接检查到an，就两个都添加呢？反正手动插入避免查重了 下面的同理
 				//还有可以提前检查n
 				if (ctx.fAng2An && src[0] == 'a') {
-					strs.push_back("an");
-					strs.push_back("ang");
+					strs.emplace_back("an");
+					strs.emplace_back("ang");
 				}
 				else if (ctx.fEng2En && src[0] == 'e') {
-					strs.push_back("en");
-					strs.push_back("eng");
+					strs.emplace_back("en");
+					strs.emplace_back("eng");
 				}
 				else if (ctx.fIng2In && src[0] == 'i') {
-					strs.push_back("in");
-					strs.push_back("ing");
+					strs.emplace_back("in");
+					strs.emplace_back("ing");
 				}
 			}
 		}
 
 		if (strs.empty() || (ctx.fFirstChar && src.size() > 1)) {//没有，或者首字母模式时字符串长度大于1插入自己
-			strs.push_back(src);
+			strs.emplace_back(src);
 		}
 
 		for (auto& str : strs) {
@@ -524,7 +524,7 @@ namespace PinInCpp {
 		}
 
 		for (const auto& str : StrSet) {
-			strs.push_back(ctx.keyboard.keys(str));//将视图压入向量
+			strs.emplace_back(ctx.keyboard.keys(str));//将视图压入向量
 		}
 	}
 
@@ -534,7 +534,7 @@ namespace PinInCpp {
 			return;
 		}
 		if (src.size() == 1 && src[0] >= '0' && src[0] <= '4') {
-			strs.push_back(src); //声调就是它自己，直接处理完毕返回！
+			strs.emplace_back(src); //声调就是它自己，直接处理完毕返回！
 			return;
 		}
 		if (ctx.keyboard.GetHasFuuzyLocal()) {
@@ -551,7 +551,7 @@ namespace PinInCpp {
 		sequence = ctx.keyboard.sequence;
 		phonemes.clear();//清空
 		for (const auto& str : ctx.keyboard.split(str)) {
-			phonemes.push_back(Phoneme(ctx, str));//构建音素后缓存进去
+			phonemes.emplace_back(Phoneme(ctx, str));//构建音素后缓存进去
 		}
 	}
 
@@ -589,7 +589,7 @@ namespace PinInCpp {
 		}
 		size_t currentId = id;
 		for (const auto& str : p.GetPinyinViewById(id, true)) {//split需要处理带声调的版本
-			pinyin.push_back(Pinyin(ctx, currentId));
+			pinyin.emplace_back(Pinyin(ctx, currentId));
 			currentId += str.size() + 2;//因为有个分隔符和声调，所以要+2要跳过直到下一个字符串起始
 		}
 	}
