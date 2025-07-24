@@ -32,7 +32,7 @@ namespace PinInCpp {
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
 				return std::make_unique<T>(_Args...);
 			}
-			else {//不空闲，就从对象池中取一个已析构的对象，用placement new重新构造后转移所有权
+			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
 				std::unique_ptr<T> result(FreeList[FreeList.size() - 1]);
 				//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
 				result->~T();//因为ClearFreeList中的delete也会调用析构函数，所以这里进行延迟调用

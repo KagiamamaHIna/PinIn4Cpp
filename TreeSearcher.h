@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <memory>
 #include <unordered_map>
+#include <array>
 
 #include "PinIn.h"
 #include "StringPool.h"
