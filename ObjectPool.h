@@ -1,12 +1,15 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <type_traits>
 
 namespace PinInCpp {
 	//本质上是接管用不到的对象指针，在需要的时候重新构造/构造一个新的对象，如果你自己回收了也没问题，因为分配出去后权限归你
 	template<typename T>
 	class ObjectPool {
 	public:
+		static_assert(!std::is_array_v<T>, "Cannot process array");
+
 		ObjectPool() = default;
 		ObjectPool(const ObjectPool&) = delete;
 		~ObjectPool() {
@@ -31,6 +34,7 @@ namespace PinInCpp {
 			}
 			else {//不空闲，就从对象池中取一个已析构的对象，用placement new重新构造后转移所有权
 				std::unique_ptr<T> result(FreeList[FreeList.size() - 1]);
+				//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
 				result->~T();//因为ClearFreeList中的delete也会调用析构函数，所以这里进行延迟调用
 				FreeList.pop_back();
 				new (result.get()) T(_Args...);
