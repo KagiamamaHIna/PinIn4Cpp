@@ -180,16 +180,12 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
 				leaves.AddToSTLSet(ret);
 				if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
-					if (children != nullptr) {
-						for (const auto& v : *children) {
-							v.second->get(p, ret);
-						}
+					if (children == nullptr) {
+						return;
 					}
 				}
-				else {
-					for (const auto& v : *children) {
-						v.second->get(p, ret);
-					}
+				for (const auto& v : *children) {
+					v.second->get(p, ret);
 				}
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
@@ -294,41 +290,26 @@ namespace PinInCpp {
 	};
 
 	/* 过长的模板实现 */
-	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
+	template<bool CanUpgrade>
 	void TreeSearcher::NMapTemplate<CanUpgrade>::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
-		if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
-			if (p.acc.search().size() == offset) {
-				if (p.logic == Logic::EQUAL) {
-					leaves.AddToSTLSet(ret);
-				}
-				else {
-					get(p, ret);
-				};
+		if (p.acc.search().size() == offset) {
+			if (p.logic == Logic::EQUAL) {
+				leaves.AddToSTLSet(ret);
 			}
-			else if (children != nullptr) {
-				for (const auto& [c, n] : *children) {
-					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
-					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
-						n->get(p, ret, offset + i);
-					}
-				}
+			else {
+				get(p, ret);
 			}
 		}
 		else {
-			if (p.acc.search().size() == offset) {
-				if (p.logic == Logic::EQUAL) {
-					leaves.AddToSTLSet(ret);
+			if constexpr (CanUpgrade) {
+				if (children == nullptr) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
+					return;
 				}
-				else {
-					get(p, ret);
-				};
 			}
-			else {
-				for (const auto& [c, n] : *children) {
-					IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
-					for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
-						n->get(p, ret, offset + i);
-					}
+			for (const auto& [c, n] : *children) {
+				IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
+				for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
+					n->get(p, ret, offset + i);
 				}
 			}
 		}
