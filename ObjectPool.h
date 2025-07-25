@@ -47,7 +47,6 @@ namespace PinInCpp {
 	private:
 		std::vector<T*> FreeList;
 	};
-
 	//内存池+对象池机制，快速方便的池化对象和内存分配
 	//回收对象采用延迟析构模式，只有在对象池本身被析构了/从空闲列表上分配新对象了操作析构应该被析构的对象
 	template<typename T, size_t OnePoolSize>
@@ -60,21 +59,7 @@ namespace PinInCpp {
 			pool.push(std::array<Block, OnePoolSize>());//压入一块内存
 		}
 		~ObjectPool() {
-			T* lastRenewPtr = nullptr;
-			if (lastRenewUnfinished != NotUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
-				lastRenewPtr = FreeList[lastRenewUnfinished];
-			}
-			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
-				std::array<Block, OnePoolSize>& arr = pool.top();
-				for (size_t i = 0; i < nextpos; i++) {
-					T* tmp = reinterpret_cast<T*>(arr.data() + i);
-					if (tmp != lastRenewPtr) {//避免重复析构
-						tmp->~T();
-					}
-				}
-				nextpos = OnePoolSize;//如果下一次还有，则从下一次的顶部开始指定
-				pool.pop();
-			}//析构函数手动执行完成后，剩下的内存块就可以安心交给STL容器释放了
+			TrueClearMemoryPool();
 		}
 		ObjectPool(const ObjectPool&) = delete;
 		ObjectPool(ObjectPool&&) = delete;
@@ -82,7 +67,12 @@ namespace PinInCpp {
 
 		template<typename... _Types>
 		std::unique_ptr<T, std::function<void(T*)>> NewObj(_Types&&..._Args) {
-			auto delFn = [this](T* ptr) {this->FreeToPool(ptr); };
+			std::shared_ptr<bool> IsDestructionPtr = IsDestruction;//先把所有权共享给函数局部
+			auto delFn = [this, IsDestructionPtr](T* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
+				if (!(*IsDestructionPtr)) {//如果没有被析构
+					this->FreeToPool(ptr);
+				}
+				};
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
 				if (nextpos >= OnePoolSize) {//如果没有空间了，就分配新的一块并重置nextpos
 					pool.push(std::array<Block, OnePoolSize>());//压入一块新内存
@@ -130,13 +120,16 @@ namespace PinInCpp {
 		void FreeListShrinkToFit() {
 			FreeList.shrink_to_fit();
 		}
-		//警告！！！你应当只在准备要析构ObjectPool的时候才考虑设置这个，关闭空闲列表会导致分配新内存时发生分配器逻辑上的内存泄漏
-		//如果你确定ObjectPool真的要被析构了，同时想让所有智能指针去析构时不要把自身管理的指针交给空闲列表时(提升性能)，手动关闭这个可以避免空闲列表的增长
-		//因为延迟析构策略导致的，只有在ObjectPool被析构时，分配的对象才会被全部，完全的析构
-		//所以会被析构的对象实际上和空闲列表完全无关！
-		//因此，最后强调一遍，你应当只在准备要析构ObjectPool的时候才考虑设置这个(设置为false关闭)，原因如上。可以提升理论性能
-		void SetFreeListEnable(bool enabled) {
-			FreeListEnable = enabled;
+		//警告！！！这个api是用于精细管理内存的
+		//如果你想抛弃你之前分配的所有对象，让他们的生命周期立刻结束，调用这个能完成你想要的这个操作
+		//随后你可以继续用NewObj新建对象，对象池会申请一块新的内存用于分配
+		//如果你持有调用这个前由对象池分配的智能指针，调用此函数前记得先释放，当然，完成后也可以，我用共享所有权的智能指针确保了安全性
+		void ClearMemoryPool() {
+			TrueClearMemoryPool();
+			FreeList.clear();//清空空闲列表
+
+			IsDestruction = std::make_shared<bool>(false);//新的，旧的那个不要了就行
+			lastRenewUnfinished = NotUnfinished;//重置可能的异常状态
 		}
 	private:
 		constexpr static size_t NotUnfinished = static_cast<size_t>(-1);
@@ -144,15 +137,33 @@ namespace PinInCpp {
 			std::byte b[sizeof(T)];
 		};
 		void FreeToPool(T* ptr) {
-			if (FreeListEnable) {
-				FreeList.push_back(ptr);
-			}
+			FreeList.push_back(ptr);
 		}
-
+		void TrueClearMemoryPool() {
+			if (pool.empty()) {
+				return;
+			}
+			*IsDestruction = true;//禁止智能指针调用FreeToPool
+			T* lastRenewPtr = nullptr;
+			if (lastRenewUnfinished != NotUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
+				lastRenewPtr = FreeList[lastRenewUnfinished];
+			}
+			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
+				std::array<Block, OnePoolSize>& arr = pool.top();
+				for (size_t i = 0; i < nextpos; i++) {
+					T* tmp = reinterpret_cast<T*>(arr.data() + i);
+					if (tmp != lastRenewPtr) {//避免重复析构
+						tmp->~T();
+					}
+				}
+				nextpos = OnePoolSize;//如果下一次还有，则从下一次的顶部开始指定，结束后也是置顶的，确保潜在的下一次分配生效
+				pool.pop();
+			}//析构函数手动执行完成后，剩下的内存块就可以安心交给STL
+		}
 		std::vector<T*> FreeList;
 		std::stack<std::array<Block, OnePoolSize>> pool;
+		std::shared_ptr<bool> IsDestruction = std::make_shared<bool>(false);
 		size_t nextpos = 0;
 		size_t lastRenewUnfinished = NotUnfinished;
-		bool FreeListEnable = true;
 	};
 }
