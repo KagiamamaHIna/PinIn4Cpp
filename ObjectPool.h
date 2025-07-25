@@ -110,7 +110,7 @@ namespace PinInCpp {
 					//代表的是复用曾经构造异常的内存，这时候针对性移除元素
 					//这里我们用一个巧妙的实现，来快速交换lastRenewUnfinished标记元素和尾部元素，实现删除的O1操作
 					std::swap(FreeList[lastRenewUnfinished], FreeList[FreeList.size() - 1]);
-					lastRenewUnfinished = NotUnfinished;//标记析构成功，即 没有未完成 状态
+					lastRenewUnfinished = NotUnfinished;//标记复用成功，即 没有未完成 状态
 				}
 				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
 				return std::unique_ptr<T, std::function<void(T*)>>(result, delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
