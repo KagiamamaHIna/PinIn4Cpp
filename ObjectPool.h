@@ -61,8 +61,8 @@ namespace PinInCpp {
 		}
 		~ObjectPool() {
 			T* lastRenewPtr = nullptr;
-			if (lastRenewUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
-				lastRenewPtr = FreeList[FreeList.size() - 1];
+			if (lastRenewUnfinished != NotUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
+				lastRenewPtr = FreeList[lastRenewUnfinished];
 			}
 			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
 				std::array<Block, OnePoolSize>& arr = pool.top();
@@ -95,21 +95,35 @@ namespace PinInCpp {
 				return std::unique_ptr<T, std::function<void(T*)>>(result, delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 			}
 			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
-				T* result = FreeList[FreeList.size() - 1];
-				if (!lastRenewUnfinished) {
+				T* result;
+				if (lastRenewUnfinished == NotUnfinished) {
 					//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
 					//延迟到这里析构，主要是方便ObjectPool的析构函数实现
+					result = FreeList[FreeList.size() - 1];
 					result->~T();
 				}
+				else {
+					result = FreeList[lastRenewUnfinished];
+				}
+
 				try {
 					new (result) T(std::forward<_Types>(_Args)...);
 				}
 				catch (...) {
-					lastRenewUnfinished = true;//标记上一次Renew执行失败，下一次将不再尝试原本的析构T
+					if (lastRenewUnfinished == NotUnfinished) {//检查是否需要标记，如果需要则就用下面的逻辑，不需要就按原样，等待下一次构造
+						lastRenewUnfinished = FreeList.size() - 1;//标记renew失败的索引，让下一次重新构造的时候优先选择这个内存
+					}
 					throw;
 				}
-				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
-				lastRenewUnfinished = false;//标记析构成功
+
+				if (lastRenewUnfinished == NotUnfinished) {
+					FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
+				}
+				else {
+					//代表的是复用曾经构造异常的内存，这时候针对性移除元素
+					FreeList.erase(FreeList.begin() + lastRenewUnfinished);
+					lastRenewUnfinished = NotUnfinished;//标记析构成功，即 没有未完成 状态
+				}
 				return std::unique_ptr<T, std::function<void(T*)>>(result, delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 			}
 		}
@@ -125,6 +139,7 @@ namespace PinInCpp {
 			FreeListEnable = enabled;
 		}
 	private:
+		constexpr static size_t NotUnfinished = static_cast<size_t>(-1);
 		struct Block {
 			std::byte b[sizeof(T)];
 		};
@@ -137,7 +152,7 @@ namespace PinInCpp {
 		std::vector<T*> FreeList;
 		std::stack<std::array<Block, OnePoolSize>> pool;
 		size_t nextpos = 0;
-		bool lastRenewUnfinished = false;
+		size_t lastRenewUnfinished = NotUnfinished;
 		bool FreeListEnable = true;
 	};
 }
