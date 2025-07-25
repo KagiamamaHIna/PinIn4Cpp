@@ -168,7 +168,7 @@ namespace PinInCpp {
 		}
 	}
 
-	std::string_view Keyboard::keys(const std::string_view& s)const {
+	std::string_view Keyboard::keys(const std::string_view& s)const noexcept {
 		if (MapKeys == std::nullopt) {
 			return s;
 		}

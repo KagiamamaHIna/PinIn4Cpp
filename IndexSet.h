@@ -10,7 +10,7 @@ namespace PinInCpp {
 	public:
 		IndexSet() = default;
 		~IndexSet() = default;
-		static IndexSet Init(uint32_t i = 0) {
+		static IndexSet Init(uint32_t i = 0) noexcept {
 			IndexSet result = IndexSet();
 			result.value = i;
 			return result;
@@ -20,25 +20,25 @@ namespace PinInCpp {
 		static const IndexSet ONE;
 		static const IndexSet NONE;
 
-		void set(uint32_t index) {
+		void set(uint32_t index)noexcept {
 			value |= (0x1 << index);
 		}
-		bool get(uint32_t index)const {
+		bool get(uint32_t index)const noexcept {
 			return (value & (0x1 << index)) != 0;
 		}
-		void merge(const IndexSet s) {//平凡类型本质上可以被优化为基本类型，而基本类型在传递时，值传递比引用传递快
+		void merge(const IndexSet s)noexcept {//平凡类型本质上可以被优化为基本类型，而基本类型在传递时，值传递比引用传递快
 			value = value == 0x1 ? s.value : (value | s.value);
 		}
-		void offset(int i) {
+		void offset(int i)noexcept {
 			value <<= i;
 		}
-		bool empty()const {
+		bool empty()const noexcept {
 			return value == 0;
 		}
 
 		class IndexSetIterObj {//同样是平凡类型，这样设计可以避免std::function的开销
 		public:
-			uint32_t Next() {
+			uint32_t Next()noexcept {
 				for (; count < 32; count++) {
 					if ((value & 0x1) == 0x1) {
 						value >>= 1;
@@ -53,7 +53,7 @@ namespace PinInCpp {
 				}
 				return IndexSetIterEnd;
 			}
-			static IndexSetIterObj Init(uint32_t i) {
+			static IndexSetIterObj Init(uint32_t i)noexcept {
 				IndexSetIterObj result = IndexSetIterObj();
 				result.value = i;
 				result.count = 0;
@@ -64,7 +64,7 @@ namespace PinInCpp {
 			uint8_t count;
 		};
 
-		IndexSetIterObj GetIterObj()const {
+		IndexSetIterObj GetIterObj()const noexcept {
 			return IndexSetIterObj::Init(value);
 		}
 
@@ -88,10 +88,10 @@ namespace PinInCpp {
 		};
 	private:
 		uint32_t value;
-		friend bool operator==(IndexSet a, IndexSet b);
+		friend bool operator==(IndexSet a, IndexSet b) noexcept;
 	};
 
-	inline bool operator==(IndexSet a, IndexSet b) {
+	inline bool operator==(IndexSet a, IndexSet b) noexcept {
 		return a.value == b.value;
 	}
 }

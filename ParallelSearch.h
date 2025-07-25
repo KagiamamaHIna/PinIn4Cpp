@@ -66,7 +66,7 @@ namespace PinInCpp {
 				NextIndex = 0;
 			}
 		}
-		size_t GetTreeNum()const {
+		size_t GetTreeNum()const noexcept {
 			return TreeNum;
 		}
 
@@ -87,13 +87,13 @@ namespace PinInCpp {
 			}
 		}
 
-		PinIn& GetPinIn() {
+		PinIn& GetPinIn() noexcept {
 			return *context;
 		}
-		const PinIn& GetPinIn()const {
+		const PinIn& GetPinIn()const noexcept {
 			return *context;
 		}
-		std::shared_ptr<PinIn> GetPinInShared() {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
+		std::shared_ptr<PinIn> GetPinInShared()noexcept {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
 		}
 	private:

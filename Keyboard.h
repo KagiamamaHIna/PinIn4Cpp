@@ -24,10 +24,10 @@ namespace PinInCpp {
 		//移动构造函数应该是安全的，因为向量也会被移动
 		Keyboard(const Keyboard& src);
 
-		std::string_view keys(const std::string_view& s)const;
+		std::string_view keys(const std::string_view& s)const noexcept;
 		std::vector<std::string_view> GetFuzzyPhoneme(const std::string_view& s)const;
 		std::vector<std::string_view> split(const std::string_view& s)const;
-		bool GetHasFuuzyLocal()const {//用于确定音素reload是否进行查表和纯逻辑行为
+		bool GetHasFuuzyLocal()const noexcept {//用于确定音素reload是否进行查表和纯逻辑行为
 			return MapLocalFuzzy.has_value();
 		}
 

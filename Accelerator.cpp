@@ -1,7 +1,7 @@
 #include "Accelerator.h"
 
 namespace PinInCpp {
-	inline static bool utf8_string_end(const Utf8String& str, size_t index) {
+	inline static bool utf8_string_end(const Utf8String& str, size_t index)noexcept {
 		return index >= str.size();
 	}
 

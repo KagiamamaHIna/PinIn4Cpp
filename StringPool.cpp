@@ -57,14 +57,14 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::string_view UTF8StringPool::getchar_view(size_t i)const {
+	std::string_view UTF8StringPool::getchar_view(size_t i)const noexcept {
 		size_t size = chars_offset[i + 1];
 		size_t last = chars_offset[i];
 
 		return std::string_view(strs.data() + last, size - last);
 	}
 
-	std::string_view UTF8StringPool::getstr_view(size_t strStart)const {
+	std::string_view UTF8StringPool::getstr_view(size_t strStart)const noexcept {
 		strStart = chars_offset[strStart];
 		size_t i = strStart;
 		while (strs[i]) {
@@ -73,7 +73,7 @@ namespace PinInCpp {
 		return std::string_view(strs.data() + strStart, i - strStart);
 	}
 
-	uint32_t UTF8StringPool::getcharFourCC(size_t i)const {
+	uint32_t UTF8StringPool::getcharFourCC(size_t i)const noexcept {
 		size_t size = chars_offset[i + 1];
 		size_t last = chars_offset[i];
 		uint32_t result = 0;
@@ -85,7 +85,7 @@ namespace PinInCpp {
 		}
 		return result;
 	}
-	bool UTF8StringPool::EqualChar(size_t indexA, size_t indexB)const {
+	bool UTF8StringPool::EqualChar(size_t indexA, size_t indexB)const noexcept {
 		size_t AOffset = chars_offset[indexA];
 		size_t BOffset = chars_offset[indexB];
 		size_t Asize = chars_offset[indexA + 1] - AOffset;

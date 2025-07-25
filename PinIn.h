@@ -11,13 +11,13 @@
 
 namespace PinInCpp {
 	//Unicode码转utf8字符
-	uint32_t UnicodeToUtf8(char32_t);
+	uint32_t UnicodeToUtf8(char32_t)noexcept;
 	//十六进制数字字符串转int
 	int HexStrToInt(const std::string&);
 	//将字符串转换为uint32数字表示（只转换前四个）
-	uint32_t FourCCToU32(const std::string_view& str);
+	uint32_t FourCCToU32(const std::string_view& str) noexcept;
 	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
-	void U32FourCCToCharBuf(char buf[5], uint32_t c);
+	void U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
 
 	template<typename StrType>
 	class UTF8StringTemplate {
@@ -51,23 +51,23 @@ namespace PinInCpp {
 		const StrType& at(size_t i)const {
 			return str.at(i);
 		}
-		size_t size()const {
+		size_t size()const noexcept {
 			return str.size();
 		}
-		auto begin() {
+		auto begin() noexcept {
 			return str.begin();
 		}
-		auto end() {
+		auto end() noexcept {
 			return str.end();
 		}
-		const auto begin()const {
+		const auto begin()const noexcept {
 			return str.begin();
 		}
-		const auto end()const {
+		const auto end()const noexcept {
 			return str.end();
 		}
 	private:
-		static size_t getUTF8CharSize(char c) {
+		static size_t getUTF8CharSize(char c) noexcept {
 			if ((c & 0x80) == 0) { // 0xxxxxxx
 				return 1;
 			}
@@ -154,7 +154,7 @@ namespace PinInCpp {
 			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
 			cache.insert_or_assign(NullPinyinId, std::unique_ptr<Character>(new Character(*this, "", NullPinyinId)));
 		}
-		bool IsCharCacheEnabled() {
+		bool IsCharCacheEnabled()const noexcept {
 			return CharCache.has_value();
 		}
 		void SetCharCache(bool enable) {//默认开启缓存
@@ -166,10 +166,10 @@ namespace PinInCpp {
 			}
 		}
 
-		bool empty()const {//返回有效性，真即有效，假即无效
+		bool empty()const noexcept {//返回有效性，真即有效，假即无效
 			return pool.empty();
 		}
-		bool HasPinyin(const std::string_view& str)const;
+		bool HasPinyin(const std::string_view& str)const noexcept;
 
 		class Ticket {
 		public:
@@ -269,16 +269,16 @@ namespace PinInCpp {
 			virtual std::string ToString()const {
 				return std::string(strs[0]);
 			}
-			bool empty()const {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
+			bool empty()const noexcept {//没有数据当然就是空了，如果要代表一个空音素，本质上不需要存储任何东西
 				return strs.empty();
 			}
-			bool matchSequence(const char c)const;
-			IndexSet match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const;
-			IndexSet match(const Utf8String& source, size_t start, bool partial)const;
-			const std::vector<std::string_view>& GetAtoms()const {//获取这个音素的最小成分(原子)，即它表达了什么音素
+			bool matchSequence(const char c)const noexcept;
+			IndexSet match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const noexcept;
+			IndexSet match(const Utf8String& source, size_t start, bool partial)const noexcept;
+			const std::vector<std::string_view>& GetAtoms()const noexcept {//获取这个音素的最小成分(原子)，即它表达了什么音素
 				return strs;
 			}
-			const std::string_view& GetSrc()const {
+			const std::string_view& GetSrc()const noexcept {
 				return src;
 			}
 		private:
@@ -304,7 +304,7 @@ namespace PinInCpp {
 				return std::string(ctx.pool.getPinyinView(id));
 			}
 			void reload();
-			IndexSet match(const Utf8String& str, size_t start, bool partial)const;
+			IndexSet match(const Utf8String& str, size_t start, bool partial)const noexcept;
 			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
 		private:
 			friend Character;//由Character类执行构建
@@ -322,13 +322,13 @@ namespace PinInCpp {
 			virtual std::string ToString()const {
 				return ch;
 			}
-			bool IsPinyinValid()const {//检查是否拼音有效 替代Dummy类型，如果返回真则有效
+			bool IsPinyinValid()const noexcept {//检查是否拼音有效 替代Dummy类型，如果返回真则有效
 				return id != NullPinyinId;
 			}
-			const std::string& get()const {
+			const std::string& get()const noexcept {
 				return ch;
 			}
-			const std::vector<Pinyin>& GetPinyins()const {
+			const std::vector<Pinyin>& GetPinyins()const noexcept {
 				return pinyin;
 			}
 			void reload() {
@@ -336,7 +336,7 @@ namespace PinInCpp {
 					p.reload();
 				}
 			}
-			IndexSet match(const Utf8String& str, size_t start, bool partial)const;
+			IndexSet match(const Utf8String& str, size_t start, bool partial)const noexcept;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
@@ -356,7 +356,7 @@ namespace PinInCpp {
 			std::vector<std::string> getPinyinVec(size_t i)const;
 			std::string_view getPinyinView(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
-			bool empty()const {
+			bool empty()const noexcept {
 				return strs->empty();
 			}
 			void Fixed() {//构造完成后固定，将原有向量析构掉，用更轻量的std::unique_ptr<char[]>取代，向量预分配开销去除
@@ -364,7 +364,7 @@ namespace PinInCpp {
 				memcpy(FixedStrs.get(), strs->data(), strs->size());
 				strs.reset(nullptr);
 			}
-			char* data() {
+			char* data() noexcept {
 				return FixedStrs.get();
 			}
 		private:
@@ -415,7 +415,7 @@ namespace PinInCpp {
 		{"ḿ", {'m', 2}}, {"m̀", {'m', 4}}
 		});
 	};
-	inline bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b) {
+	inline bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b)noexcept {
 		return a.GetSrc() == b.GetSrc();
 	}
 }

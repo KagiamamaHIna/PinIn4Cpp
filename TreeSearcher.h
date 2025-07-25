@@ -35,6 +35,7 @@ namespace PinInCpp {
 			:logic{ logic }, context(PinInShared), acc(*context) {
 			init();
 		}
+
 		//因为绑定着this指针，所以不能移动和拷贝
 		TreeSearcher(const TreeSearcher&) = delete;
 		TreeSearcher(TreeSearcher&&) = delete;
@@ -59,13 +60,13 @@ namespace PinInCpp {
 		void refresh() {//手动尝试刷新
 			ticket->renew();
 		}
-		PinIn& GetPinIn() {
+		PinIn& GetPinIn() noexcept {
 			return *context;
 		}
-		const PinIn& GetPinIn()const {
+		const PinIn& GetPinIn()const noexcept {
 			return *context;
 		}
-		std::shared_ptr<PinIn> GetPinInShared() {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
+		std::shared_ptr<PinIn> GetPinInShared() noexcept {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
 		}
 		void ClearFreeList() {//手动清理对象池
@@ -175,6 +176,10 @@ namespace PinInCpp {
 			smartPtrObj.release();//不要了，已经被标记在对象池中待清除/复用了，所以这时候要release他释放其所有权
 			smartPtrObj.reset(newPtr);
 		}
+
+		template<size_t size>
+		using SizeTList = std::array<size_t, size>;
+
 		class NDense : public Node {//密集节点本质上就是数组
 		public:
 			virtual ~NDense() = default;
@@ -187,6 +192,18 @@ namespace PinInCpp {
 		private:
 			friend TreeSearcher;
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
+			/*class DenseVec {
+			public:
+
+				DenseVec(const DenseVec&) = delete;
+				DenseVec(DenseVec&&) = delete;
+				DenseVec& operator=(DenseVec&& src) = delete;
+			private:
+				size_t* start = nullptr;
+				size_t* end = nullptr;//首尾相减除以大小即是capacity
+				size_t* cursor = nullptr;//当前分配到的位置
+
+			};*/
 			std::vector<size_t> data;
 		};
 		class NSlice;
@@ -318,9 +335,18 @@ namespace PinInCpp {
 		std::unique_ptr<Node> root = nullptr;
 		std::vector<NAcc*> naccs;//观察者，不持有数据
 
-		ObjectPool<NDense> NDensePool;
-		ObjectPool<NSlice> NSlicePool;
-		ObjectPool<NMap> NMapPool;
+		ObjectPtrPool<NDense> NDensePool;
+		ObjectPtrPool<NSlice> NSlicePool;
+		ObjectPtrPool<NMap> NMapPool;
+		/*
+		ObjectPtrPool<SizeTList<1>> SizeTList1;
+		ObjectPtrPool<SizeTList<2>> SizeTList2;
+		ObjectPtrPool<SizeTList<4>> SizeTList4;
+		ObjectPtrPool<SizeTList<8>> SizeTList8;
+		ObjectPtrPool<SizeTList<16>> SizeTList16;
+		ObjectPtrPool<SizeTList<32>> SizeTList32;
+		ObjectPtrPool<SizeTList<64>> SizeTList64;
+		ObjectPtrPool<SizeTList<128>> SizeTList128;*/
 	};
 
 	/* 过长的模板实现 */

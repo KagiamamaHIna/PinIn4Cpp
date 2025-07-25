@@ -18,23 +18,23 @@ namespace PinInCpp {
 		/*virtual const std::vector<size_t>& offsets()const {
 			return strs_offset;
 		}*/
-		bool end(size_t i)const {
+		bool end(size_t i)const noexcept {
 			return strs[chars_offset[i]] == '\0';
 		}
 		size_t put(const std::string_view& s);//返回的是其插入完成后字符串首端索引
 		std::string getchar(size_t i)const;//获取指定字符
 		std::string getstr(size_t strStart)const;//输入首端索引构造完整字符串
-		std::string_view getchar_view(size_t i)const;//获取指定字符的只读视图 持有时不要变动字符串池！
-		std::string_view getstr_view(size_t strStart)const;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
-		uint32_t getcharFourCC(size_t i)const;//针对单字符的FourCC打包编码的实现
-		size_t getLastStrSize()const {//获取上一个插入的UTF8字符串的长度
+		std::string_view getchar_view(size_t i)const noexcept;//获取指定字符的只读视图 持有时不要变动字符串池！
+		std::string_view getstr_view(size_t strStart)const noexcept;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
+		uint32_t getcharFourCC(size_t i)const noexcept;//针对单字符的FourCC打包编码的实现
+		size_t getLastStrSize()const noexcept {//获取上一个插入的UTF8字符串的长度
 			return last_size;
 		}
 		//单位是字节
 		void reserve(size_t _Newcapacity) {
 			strs.reserve(_Newcapacity);
 		}
-		bool EqualChar(size_t indexA, size_t indexB)const;
+		bool EqualChar(size_t indexA, size_t indexB)const noexcept;
 		void ShrinkToFit() {
 			strs.shrink_to_fit();
 		}
