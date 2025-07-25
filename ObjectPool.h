@@ -90,21 +90,15 @@ namespace PinInCpp {
 				}
 				std::array<Block, OnePoolSize>& arr = pool.top();
 				T* result = reinterpret_cast<T*>(arr.data() + nextpos);
-				nextpos++;
-				try {
-					new (result) T(std::forward<_Types>(_Args)...);
-				}
-				catch (...) {
-					nextpos--;//分配归位，代表这块内存可以被重新占用
-					throw;
-				}
+				new (result) T(std::forward<_Types>(_Args)...);
+				nextpos++;//标记位移动延迟到构造完成，如果构造函数抛出异常，则相当于没移动，下一次依旧可以用，如果没有异常则正常移动，避免try块的设计
 				return std::unique_ptr<T, std::function<void(T*)>>(result, delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 			}
 			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
 				T* result = FreeList[FreeList.size() - 1];
-				//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
-				//延迟到这里析构，主要是方便ObjectPool的析构函数实现
 				if (!lastRenewUnfinished) {
+					//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
+					//延迟到这里析构，主要是方便ObjectPool的析构函数实现
 					result->~T();
 				}
 				try {

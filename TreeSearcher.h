@@ -20,7 +20,6 @@ namespace PinInCpp {
 
 	class TreeSearcher {
 	public:
-		virtual ~TreeSearcher() = default;
 		TreeSearcher(Logic logic, const std::string_view& PinyinDictionaryPath)
 			:logic{ logic }, context(std::make_shared<PinIn>(PinyinDictionaryPath)), acc(*context) {
 			init();
@@ -35,6 +34,7 @@ namespace PinInCpp {
 			:logic{ logic }, context(PinInShared), acc(*context) {
 			init();
 		}
+		virtual ~TreeSearcher() = default;
 
 		//因为绑定着this指针，所以不能移动和拷贝
 		TreeSearcher(const TreeSearcher&) = delete;
