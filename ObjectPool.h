@@ -104,7 +104,7 @@ namespace PinInCpp {
 	private:
 		constexpr static size_t NotUnfinished = static_cast<size_t>(-1);
 		struct Block {
-			std::byte b[sizeof(T)];
+			alignas(T) std::byte b[sizeof(T)];
 		};
 		void FreeToPool(T* ptr) {
 			FreeList.push_back(ptr);
