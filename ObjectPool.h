@@ -81,7 +81,7 @@ namespace PinInCpp {
 		}
 
 		//创建一个空的，但绑定好了删除器的shared_ptr
-		std::unique_ptr<T, std::function<void(T*)>> MakeSharedNullHasDeleter() {
+		std::shared_ptr<T> MakeSharedNullHasDeleter() {
 			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>();
 		}
 
