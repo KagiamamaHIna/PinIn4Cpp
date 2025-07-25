@@ -67,24 +67,22 @@ namespace PinInCpp {
 
 		template<typename... _Types>
 		std::unique_ptr<T, std::function<void(T*)>> MakeUnique(_Types&&..._Args) {//创建一个独占所有权的智能指针
-			std::shared_ptr<bool> IsDestructionPtr = IsDestruction;//先把所有权共享给函数局部
-			auto delFn = [this, IsDestructionPtr](T* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
-				if (!(*IsDestructionPtr)) {//如果没有被析构
-					this->FreeToPool(ptr);
-				}
-				};
-			return std::unique_ptr<T, std::function<void(T*)>>(NewObj(std::forward<_Types>(_Args)...), delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(T*)>>>(NewObj(std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 		}
 
 		template<typename... _Types>
 		std::shared_ptr<T> MakeShared(_Types&&..._Args) {//创建一个共享所有权的智能指针
-			std::shared_ptr<bool> IsDestructionPtr = IsDestruction;//先把所有权共享给函数局部
-			auto delFn = [this, IsDestructionPtr](T* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
-				if (!(*IsDestructionPtr)) {//如果没有被析构
-					this->FreeToPool(ptr);
-				}
-				};
-			return std::shared_ptr<T>(NewObj(std::forward<_Types>(_Args)...), delFn);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>(NewObj(std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+		}
+
+		//创建一个空的，但绑定好了删除器的unique_ptr
+		std::unique_ptr<T, std::function<void(T*)>> MakeUniqueNullHasDeleter() {
+			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(T*)>>>();
+		}
+
+		//创建一个空的，但绑定好了删除器的shared_ptr
+		std::unique_ptr<T, std::function<void(T*)>> MakeSharedNullHasDeleter() {
+			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>();
 		}
 
 		void FreeListShrinkToFit() {
@@ -98,7 +96,7 @@ namespace PinInCpp {
 			TrueClearMemoryPool();
 			FreeList.clear();//清空空闲列表
 
-			IsDestruction = std::make_shared<bool>(false);//新的，旧的那个不要了就行
+			IsDestruction = std::make_shared<bool>(false);//新的指针
 			lastRenewUnfinished = NotUnfinished;//重置可能的异常状态
 		}
 	private:
@@ -109,11 +107,23 @@ namespace PinInCpp {
 		void FreeToPool(T* ptr) {
 			FreeList.push_back(ptr);
 		}
+
+		template<typename retv>
+		retv MakeSmartPtrHasDeleter(T* ptr = nullptr) {
+			std::weak_ptr<bool> IsDestructionWeak = IsDestruction;//先把所有权共享给函数局部
+			auto delFn = [this, IsDestructionWeak](T* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
+				if (!IsDestructionWeak.expired()) {//如果没有被析构
+					this->FreeToPool(ptr);
+				}
+				};
+			return retv(ptr, delFn);
+		}
+
 		void TrueClearMemoryPool() {
 			if (pool.empty()) {
 				return;
 			}
-			*IsDestruction = true;//禁止智能指针调用FreeToPool
+			IsDestruction = nullptr;//释放内存，std::weak_ptr可以得知观察的指针不存在了，让禁止智能指针调用FreeToPool
 			T* lastRenewPtr = nullptr;
 			if (lastRenewUnfinished != NotUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
 				lastRenewPtr = FreeList[lastRenewUnfinished];
