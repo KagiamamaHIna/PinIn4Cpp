@@ -36,17 +36,24 @@ namespace PinInCpp {
 				return std::make_unique<T>(std::forward<_Types>(_Args)...);
 			}
 			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
-				std::unique_ptr<T> result(FreeList[FreeList.size() - 1]);
+				T* result = FreeList[FreeList.size() - 1];
 				//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
 				result->~T();//因为ClearFreeList中的delete也会调用析构函数，所以这里延迟到这里调用
 				FreeList.pop_back();
-				new (result.get()) T(std::forward<_Types>(_Args)...);
-				return result;//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+				try {
+					new (result) T(std::forward<_Types>(_Args)...);
+				}
+				catch (...) {//保证异常安全
+					delete result;
+					throw;
+				}
+				return std::unique_ptr<T>(result);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 			}
 		}
 	private:
 		std::vector<T*> FreeList;
 	};
+
 	//内存池+对象池机制，快速方便的池化对象和内存分配
 	//回收对象采用延迟析构模式，只有在对象池本身被析构了/从空闲列表上分配新对象了操作析构应该被析构的对象
 	template<typename T, size_t OnePoolSize>
@@ -84,7 +91,21 @@ namespace PinInCpp {
 		std::shared_ptr<T> MakeSharedNullHasDeleter() {
 			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>();
 		}
-
+		//当前分配出去的对象数量
+		size_t size()const noexcept {
+			if (pool.empty()) {
+				return 0;
+			}
+			return (pool.size() - 1) * OnePoolSize + nextpos - FreeList.size();
+		}
+		//单池容量
+		constexpr size_t GetOnePoolSize()const noexcept {
+			return OnePoolSize;
+		}
+		//实际占用大小
+		size_t PoolCapacity() const noexcept {
+			return pool.size() * OnePoolSize;
+		}
 		void FreeListShrinkToFit() {
 			FreeList.shrink_to_fit();
 		}
