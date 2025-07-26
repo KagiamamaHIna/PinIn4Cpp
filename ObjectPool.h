@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <deque>
 #include <stack>
 #include <array>
 #include <memory>
@@ -23,7 +23,6 @@ namespace PinInCpp {
 				delete ptr;
 			}
 			FreeList.clear();
-			FreeList.shrink_to_fit();//压缩空间
 		}
 		//你需要将一个指针作为裸指针（比如调用release成员函数）传递进去，由对象池接管这个指针，析构函数会被ObjectPool自动调用，也就是你不用也不要调用析构函数
 		//延迟析构的，只会在下一个对象需要分配时才析构这个对象（或者是ObjectPtrPool的ClearFreeList函数被调用了）
@@ -51,7 +50,7 @@ namespace PinInCpp {
 			}
 		}
 	private:
-		std::vector<T*> FreeList;
+		std::deque<T*> FreeList;
 	};
 
 	//内存池+对象池机制，快速方便的池化对象和内存分配
@@ -107,9 +106,6 @@ namespace PinInCpp {
 		size_t PoolCapacity() const noexcept {
 			return pool.size() * OnePoolSize;
 		}
-		void FreeListShrinkToFit() {
-			FreeList.shrink_to_fit();
-		}
 		//警告！！！这个api是用于精细管理内存的
 		//如果你想抛弃你之前分配的所有对象，让他们的生命周期立刻结束，调用这个能完成你想要的这个操作
 		//随后你可以继续用NewObj新建对象，对象池会申请一块新的内存用于分配
@@ -119,7 +115,7 @@ namespace PinInCpp {
 			FreeList.clear();//清空空闲列表
 
 			IsDestruction = std::make_shared<bool>(false);//新的指针
-			lastRenewUnfinished = NotUnfinished;//重置可能的异常状态
+			lastRenewUnfinished = false;//重置可能的异常状态
 		}
 	private:
 		constexpr static size_t NotUnfinished = static_cast<size_t>(-1);
@@ -127,7 +123,16 @@ namespace PinInCpp {
 			alignas(T) std::byte b[sizeof(T)];
 		};
 		void FreeToPool(T* ptr) {
-			FreeList.push_back(ptr);
+			if (lastRenewUnfinished) {
+				//如果是有异常状态的，则有一个已析构但未复用的对象存在队列末尾
+				//那么我们需要一个巧妙的方法，去把末尾的元素一致放在最后面，实现异常安全
+				T* last = FreeList.back();//先拷贝一份
+				FreeList.back() = ptr;//新指针覆写旧指针
+				FreeList.push_back(last);//把旧指针存到末尾，完成替换操作
+			}
+			else {//如果不是异常状态直接插入
+				FreeList.push_back(ptr);
+			}
 		}
 
 		template<typename retv>
@@ -146,10 +151,8 @@ namespace PinInCpp {
 				return;
 			}
 			IsDestruction = nullptr;//释放内存，std::weak_ptr可以得知观察的指针不存在了，让禁止智能指针调用FreeToPool
-			T* lastRenewPtr = nullptr;
-			if (lastRenewUnfinished != NotUnfinished) {//如果上一次析构完成但没有成功重分配的话，这个值是真
-				lastRenewPtr = FreeList[lastRenewUnfinished];
-			}
+			T* lastRenewPtr = lastRenewUnfinished ? FreeList.back() : nullptr;//标记析构了但没复用成功的
+
 			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
 				std::array<Block, OnePoolSize>& arr = pool.top();
 				for (size_t i = 0; i < nextpos; i++) {
@@ -178,40 +181,32 @@ namespace PinInCpp {
 			}
 			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
 				T* result;
-				if (lastRenewUnfinished == NotUnfinished) {
+				result = FreeList.back();
+				if (!lastRenewUnfinished) {//如果没有异常状态，则调用析构函数
 					//这里有可能会被vs2022的静态分析报警告 "忽略函数返回值"，但是析构函数没有返回值，所以是误报
 					//延迟到这里析构，主要是方便ObjectPool的析构函数实现
-					result = FreeList[FreeList.size() - 1];
 					result->~T();
-				}
-				else {
-					result = FreeList[lastRenewUnfinished];
 				}
 
 				try {
 					new (result) T(std::forward<_Types>(_Args)...);
 				}
 				catch (...) {
-					if (lastRenewUnfinished == NotUnfinished) {//检查是否需要标记，如果需要则就用下面的逻辑，不需要就按原样，等待下一次构造
-						lastRenewUnfinished = FreeList.size() - 1;//标记renew失败的索引，让下一次重新构造的时候优先选择这个内存
-					}
+					lastRenewUnfinished = true;
 					throw;
 				}
 
-				if (lastRenewUnfinished != NotUnfinished) {
-					//代表的是复用曾经构造异常的内存，这时候针对性移除元素
-					//这里我们用一个巧妙的实现，来快速交换lastRenewUnfinished标记元素和尾部元素，实现删除的O1操作
-					std::swap(FreeList[lastRenewUnfinished], FreeList[FreeList.size() - 1]);
-					lastRenewUnfinished = NotUnfinished;//标记复用成功，即 没有未完成 状态
+				if (lastRenewUnfinished) {
+					lastRenewUnfinished = false;//标记复用成功，即 没有未完成 状态
 				}
 				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
 				return result;
 			}
 		}
-		std::vector<T*> FreeList;
+		std::deque<T*> FreeList;
 		std::stack<std::array<Block, OnePoolSize>> pool;
 		std::shared_ptr<bool> IsDestruction = std::make_shared<bool>(false);
 		size_t nextpos = 0;
-		size_t lastRenewUnfinished = NotUnfinished;
+		bool lastRenewUnfinished = false;
 	};
 }
