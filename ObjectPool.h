@@ -56,11 +56,12 @@ namespace PinInCpp {
 
 	//内存池+对象池机制，快速方便的池化对象和内存分配
 	//回收对象采用延迟析构模式，只有在对象池本身被析构了/从空闲列表上分配新对象了操作析构应该被析构的对象
-	template<typename T, size_t OnePoolSize>
+	template<typename T, size_t OnePoolSize, typename base = T>
 	class ObjectPool {
 	public:
 		static_assert(!std::is_array_v<T>, "Cannot process c array");
 		static_assert(OnePoolSize, "pool size cannot be 0");
+		static_assert(std::is_same<T, base>::value || std::is_base_of<base, T>::value, "The base class must be the base class of T/T");
 
 		ObjectPool() {
 			pool.push(std::array<Block, OnePoolSize>());//压入一块内存
@@ -73,8 +74,8 @@ namespace PinInCpp {
 		ObjectPool& operator=(ObjectPool&&) = delete;
 
 		template<typename... _Types>
-		std::unique_ptr<T, std::function<void(T*)>> MakeUnique(_Types&&..._Args) {//创建一个独占所有权的智能指针
-			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(T*)>>>(NewObj(std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+		std::unique_ptr<T, std::function<void(base*)>> MakeUnique(_Types&&..._Args) {//创建一个独占所有权的智能指针
+			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(base*)>>>(NewObj(std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 		}
 
 		template<typename... _Types>
@@ -83,8 +84,8 @@ namespace PinInCpp {
 		}
 
 		//创建一个空的，但绑定好了删除器的unique_ptr
-		std::unique_ptr<T, std::function<void(T*)>> MakeUniqueNullHasDeleter() {
-			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(T*)>>>();
+		std::unique_ptr<T, std::function<void(base*)>> MakeUniqueNullHasDeleter() {
+			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(base*)>>>();
 		}
 
 		//创建一个空的，但绑定好了删除器的shared_ptr
@@ -132,9 +133,9 @@ namespace PinInCpp {
 		template<typename retv>
 		retv MakeSmartPtrHasDeleter(T* ptr = nullptr) {
 			std::weak_ptr<bool> IsDestructionWeak = IsDestruction;//先把所有权共享给函数局部
-			auto delFn = [this, IsDestructionWeak](T* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
+			auto delFn = [this, IsDestructionWeak](base* ptr) {//传递共享所有权的智能指针进去，确保他能被通知自己管理的内存是否被析构了
 				if (!IsDestructionWeak.expired()) {//如果没有被析构
-					this->FreeToPool(ptr);
+					this->FreeToPool((T*)ptr);
 				}
 				};
 			return retv(ptr, delFn);
