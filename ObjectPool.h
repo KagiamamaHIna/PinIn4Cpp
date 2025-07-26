@@ -141,7 +141,6 @@ namespace PinInCpp {
 			lastRenewUnfinished = false;//重置可能的异常状态
 		}
 	private:
-		constexpr static size_t NotUnfinished = static_cast<size_t>(-1);
 		struct Block {
 			alignas(T) std::byte b[sizeof(T)];
 		};
