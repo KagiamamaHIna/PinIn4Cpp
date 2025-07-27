@@ -1,6 +1,5 @@
 #pragma once
 #include <deque>
-#include <stack>
 #include <array>
 #include <memory>
 #include <type_traits>
@@ -86,7 +85,7 @@ namespace PinInCpp {
 		static_assert(std::is_same<T, base>::value || std::is_base_of<base, T>::value, "The base class must be the base class of T/T");
 
 		ObjectPool() {
-			pool.push(std::array<Block, OnePoolSize>());//压入一块内存
+			pool.push_back(std::array<Block, OnePoolSize>());//压入一块内存
 		}
 		~ObjectPool() {
 			TrueClearMemoryPool();
@@ -163,6 +162,7 @@ namespace PinInCpp {
 			IsDestruction = std::make_shared<bool>(false);//新的指针
 			lastRenewUnfinished = false;//重置可能的异常状态
 		}
+
 	private:
 		struct Block {
 			alignas(T) std::byte b[sizeof(T)];
@@ -199,7 +199,7 @@ namespace PinInCpp {
 			T* lastRenewPtr = lastRenewUnfinished ? FreeList.back() : nullptr;//标记析构了但没复用成功的
 
 			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
-				std::array<Block, OnePoolSize>& arr = pool.top();
+				std::array<Block, OnePoolSize>& arr = pool.back();
 				for (size_t i = 0; i < nextpos; i++) {
 					T* tmp = reinterpret_cast<T*>(arr.data() + i);
 					if (tmp != lastRenewPtr) {//避免重复析构
@@ -207,7 +207,7 @@ namespace PinInCpp {
 					}
 				}
 				nextpos = OnePoolSize;//如果下一次还有，则从下一次的顶部开始指定，结束后也是置顶的，确保潜在的下一次分配生效
-				pool.pop();
+				pool.pop_back();
 			}//析构函数手动执行完成后，剩下的内存块就可以安心交给STL
 		}
 
@@ -287,15 +287,15 @@ namespace PinInCpp {
 		}
 		T* GetPoolNewPtr() {
 			if (nextpos >= OnePoolSize) {//如果没有空间了，就分配新的一块并重置nextpos
-				pool.push(std::array<Block, OnePoolSize>());//压入一块新内存
+				pool.push_back(std::array<Block, OnePoolSize>());//压入一块新内存
 				nextpos = 0;
 			}
-			std::array<Block, OnePoolSize>& arr = pool.top();
+			std::array<Block, OnePoolSize>& arr = pool.back();
 			T* result = reinterpret_cast<T*>(arr.data() + nextpos);
 			return result;
 		}
 		std::deque<T*> FreeList;
-		std::stack<std::array<Block, OnePoolSize>> pool;
+		std::deque<std::array<Block, OnePoolSize>> pool;
 		std::shared_ptr<bool> IsDestruction = std::make_shared<bool>(false);
 		size_t nextpos = 0;
 		bool lastRenewUnfinished = false;
