@@ -4,6 +4,7 @@
 #include <memory>
 #include <type_traits>
 #include <functional>
+#include <forward_list>
 
 namespace PinInCpp {
 	//本质上是接管用不到的对象指针，在需要的时候重新构造/构造一个新的对象，如果你自己回收了也没问题，因为分配出去后权限归你
@@ -85,7 +86,7 @@ namespace PinInCpp {
 		static_assert(std::is_same<T, base>::value || std::is_base_of<base, T>::value, "The base class must be the base class of T/T");
 
 		ObjectPool() {
-			pool.push_back(std::array<Block, OnePoolSize>());//压入一块内存
+			PushNewBlock();//压入一块内存
 		}
 		~ObjectPool() {
 			TrueClearMemoryPool();
@@ -141,7 +142,7 @@ namespace PinInCpp {
 			if (pool.empty()) {
 				return 0;
 			}
-			return (pool.size() - 1) * OnePoolSize + nextpos - FreeList.size();
+			return (poolSize - 1) * OnePoolSize + nextpos - FreeList.size();
 		}
 		//单池容量
 		constexpr size_t GetOnePoolSize()const noexcept {
@@ -149,20 +150,83 @@ namespace PinInCpp {
 		}
 		//实际占用大小
 		size_t PoolCapacity() const noexcept {
-			return pool.size() * OnePoolSize;
+			return poolSize * OnePoolSize;
+		}
+		//池的数量
+		constexpr size_t PoolCount()const noexcept {
+			return poolSize;
 		}
 		//警告！！！这个api是用于精细管理内存的
 		//如果你想抛弃你之前分配的所有对象，让他们的生命周期立刻结束，调用这个能完成你想要的这个操作
 		//随后你可以继续用NewObj新建对象，对象池会申请一块新的内存用于分配
 		//如果你持有调用这个前由对象池分配的智能指针，调用此函数前记得先释放，当然，完成后也可以，我用共享所有权的智能指针确保了安全性
-		void ClearMemoryPool() {
+		void ClearAllMemoryPool() {
 			TrueClearMemoryPool();
 			FreeList.clear();//清空空闲列表
 
 			IsDestruction = std::make_shared<bool>(false);//新的指针
 			lastRenewUnfinished = false;//重置可能的异常状态
+			poolSize = 0;//重置大小
 		}
+		//尝试清理空闲块，注意！这可能是一个很耗时的操作
+		void ShrinkToFit() {
+			size_t FreeListSize = FreeList.size();
+			if (FreeListSize < nextpos) {//如果元素不满足一个块内分配的对象大小
+				return;
+			}
+			size_t pos;
+			T* lastRenewPtr = lastRenewUnfinished ? FreeList.back() : nullptr;//标记析构了但没复用成功的
 
+			auto before = pool.before_begin();
+			auto current = pool.begin();
+
+			bool isHead = true;
+			while (current != pool.end()) {
+				pos = 0;
+				std::array<Block, OnePoolSize>& blocks = *current;
+				T* BlocksStart = reinterpret_cast<T*>(blocks.data());
+				T* BlocksEnd = reinterpret_cast<T*>(blocks.data() + OnePoolSize);
+				for (const auto& ptr : FreeList) {//遍历空闲列表，寻找有多少个位于blocks范围内的指针
+					if (ptr >= BlocksStart && ptr < BlocksEnd) {
+						pos++;
+						if (pos == OnePoolSize) {
+							break;
+						}
+					}
+				}
+				if ((isHead && pos == nextpos) || pos == OnePoolSize) {
+					for (size_t i = 0; i < pos; i++) {
+						T* tmp = BlocksStart + i;
+						if (tmp != lastRenewPtr) {//避免重复析构
+							tmp->~T();
+						}
+						else {
+							lastRenewUnfinished = false;//如果真有，那么就重置异常状态
+						}
+					}
+					std::erase_if(FreeList, [BlocksStart, BlocksEnd](T* ptr) {
+						return (ptr >= BlocksStart && ptr < BlocksEnd);
+						});//如果在范围内，则移除
+
+					current = pool.erase_after(before);
+					poolSize--;
+					if (isHead) {//如果真的是头部被清理掉了
+						nextpos = OnePoolSize;//让下一次能分配
+					}
+				}
+				else {
+					before = current;
+					++current;
+				}
+				isHead = false;
+			}
+			if (pool.empty()) {
+				nextpos = OnePoolSize;//如果清空了，那么设置这个参数使下一次会自动分配
+			}
+		}
+		size_t FreeListSize() {
+			return FreeList.size();
+		}
 	private:
 		struct Block {
 			alignas(T) std::byte b[sizeof(T)];
@@ -199,7 +263,7 @@ namespace PinInCpp {
 			T* lastRenewPtr = lastRenewUnfinished ? FreeList.back() : nullptr;//标记析构了但没复用成功的
 
 			while (!pool.empty()) {//因为采用延迟析构实现，所以空闲列表中的指针都不会被真正的析构，只有在分配出去后/这里才会析构
-				std::array<Block, OnePoolSize>& arr = pool.back();
+				std::array<Block, OnePoolSize>& arr = pool.front();
 				for (size_t i = 0; i < nextpos; i++) {
 					T* tmp = reinterpret_cast<T*>(arr.data() + i);
 					if (tmp != lastRenewPtr) {//避免重复析构
@@ -207,7 +271,7 @@ namespace PinInCpp {
 					}
 				}
 				nextpos = OnePoolSize;//如果下一次还有，则从下一次的顶部开始指定，结束后也是置顶的，确保潜在的下一次分配生效
-				pool.pop_back();
+				pool.pop_front();
 			}//析构函数手动执行完成后，剩下的内存块就可以安心交给STL
 		}
 
@@ -287,15 +351,20 @@ namespace PinInCpp {
 		}
 		T* GetPoolNewPtr() {
 			if (nextpos >= OnePoolSize) {//如果没有空间了，就分配新的一块并重置nextpos
-				pool.push_back(std::array<Block, OnePoolSize>());//压入一块新内存
+				PushNewBlock();//压入一块新内存
 				nextpos = 0;
 			}
-			std::array<Block, OnePoolSize>& arr = pool.back();
+			std::array<Block, OnePoolSize>& arr = pool.front();
 			T* result = reinterpret_cast<T*>(arr.data() + nextpos);
 			return result;
 		}
+		void PushNewBlock() {
+			poolSize++;
+			pool.emplace_front(std::array<Block, OnePoolSize>());
+		}
 		std::deque<T*> FreeList;
-		std::deque<std::array<Block, OnePoolSize>> pool;
+		std::forward_list<std::array<Block, OnePoolSize>> pool;
+		size_t poolSize = 0;
 		std::shared_ptr<bool> IsDestruction = std::make_shared<bool>(false);
 		size_t nextpos = 0;
 		bool lastRenewUnfinished = false;
