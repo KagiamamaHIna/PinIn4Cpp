@@ -212,6 +212,7 @@ namespace PinInCpp {
 					poolSize--;
 					if (isHead) {//如果真的是头部被清理掉了
 						nextpos = OnePoolSize;//让下一次能分配
+						//因此不需要在外部判断是否为空，因为只有头部被清空的时候才需要下一次分配，那么清空本质上也是头部被清理掉了
 					}
 				}
 				else {
@@ -219,9 +220,6 @@ namespace PinInCpp {
 					++current;
 				}
 				isHead = false;
-			}
-			if (pool.empty()) {
-				nextpos = OnePoolSize;//如果清空了，那么设置这个参数使下一次会自动分配
 			}
 		}
 	private:
