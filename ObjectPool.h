@@ -105,6 +105,28 @@ namespace PinInCpp {
 			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>(NewObj(std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 		}
 
+		//创建一个独占所有权的智能指针
+		//自定义回收器传入的this指针是有效的对象，他没有被调用析构函数
+		//自定义回收器的函数签名是 void(T* this, _Types...)，这个是接受this和构造参数一致的签名
+		//也可以是 void(T* this) 这个签名也是合法的，区别是不会传入构造参数
+		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
+		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
+		template<typename... _Types>
+		std::unique_ptr<T, std::function<void(base*)>> MakeUniqueCustomRecycle(auto RecycleFn, _Types&&..._Args) {
+			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(base*)>>>(NewObjCustomRecycle(RecycleFn, std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+		}
+
+		//创建一个共享所有权的智能指针
+		//自定义回收器传入的this指针是有效的对象，他没有被调用析构函数
+		//自定义回收器的函数签名是 void(T* this, _Types...)，这个是接受this和构造参数一致的签名
+		//也可以是 void(T* this) 这个签名也是合法的，区别是不会传入构造参数
+		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
+		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
+		template<typename... _Types>
+		std::shared_ptr<T> MakeSharedCustomRecycle(auto RecycleFn, _Types&&..._Args) {//创建一个共享所有权的智能指针
+			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>(NewObjCustomRecycle(RecycleFn, std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+		}
+
 		//创建一个空的，但绑定好了删除器的unique_ptr
 		std::unique_ptr<T, std::function<void(base*)>> MakeUniqueNullHasDeleter() {
 			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(base*)>>>();
@@ -114,6 +136,7 @@ namespace PinInCpp {
 		std::shared_ptr<T> MakeSharedNullHasDeleter() {
 			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>();
 		}
+
 		//当前分配出去的对象数量
 		size_t size()const noexcept {
 			if (pool.empty()) {
@@ -191,12 +214,7 @@ namespace PinInCpp {
 		template<typename... _Types>
 		T* NewObj(_Types&&..._Args) {//目标是尝试构造一个对象并返回其裸指针
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
-				if (nextpos >= OnePoolSize) {//如果没有空间了，就分配新的一块并重置nextpos
-					pool.push(std::array<Block, OnePoolSize>());//压入一块新内存
-					nextpos = 0;
-				}
-				std::array<Block, OnePoolSize>& arr = pool.top();
-				T* result = reinterpret_cast<T*>(arr.data() + nextpos);
+				T* result = GetPoolNewPtr();
 				new (result) T(std::forward<_Types>(_Args)...);
 				nextpos++;//标记位移动延迟到构造完成，如果构造函数抛出异常，则相当于没移动，下一次依旧可以用，如果没有异常则正常移动，避免try块的设计
 				return result;
@@ -224,6 +242,49 @@ namespace PinInCpp {
 				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
 				return result;
 			}
+		}
+		template<typename type, typename = void>
+		struct IsArgsVoid : std::false_type {};
+
+		template<typename type>
+		struct IsArgsVoid<type, std::void_t<decltype(std::declval<type>()(std::declval<T*>()))>> : std::true_type {};
+
+		template<typename... _Types>
+		T* NewObjCustomRecycle(auto& fn, _Types&&..._Args) {
+			if (FreeList.empty()) {//如果对象池空闲，那么就新建
+				T* result = GetPoolNewPtr();
+				new (result) T(std::forward<_Types>(_Args)...);
+				nextpos++;//标记位移动延迟到构造完成，如果构造函数抛出异常，则相当于没移动，下一次依旧可以用，如果没有异常则正常移动，避免try块的设计
+				return result;
+			}
+			else {//不空闲，就从对象池中取一个标记为要析构的对象
+				T* result;
+				result = FreeList.back();
+				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
+					if constexpr (IsArgsVoid<decltype(fn)>::value) {
+						fn(result);
+					}
+					else {
+						fn(result, std::forward<_Types>(_Args)...);
+					}
+					//因为没有析构流程，所以抛出异常后还是安全的
+				}
+				else {//有异常状态，则用placement new
+					new (result) T(std::forward<_Types>(_Args)...);
+					lastRenewUnfinished = false;
+				}
+				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
+				return result;
+			}
+		}
+		T* GetPoolNewPtr() {
+			if (nextpos >= OnePoolSize) {//如果没有空间了，就分配新的一块并重置nextpos
+				pool.push(std::array<Block, OnePoolSize>());//压入一块新内存
+				nextpos = 0;
+			}
+			std::array<Block, OnePoolSize>& arr = pool.top();
+			T* result = reinterpret_cast<T*>(arr.data() + nextpos);
+			return result;
 		}
 		std::deque<T*> FreeList;
 		std::stack<std::array<Block, OnePoolSize>> pool;
