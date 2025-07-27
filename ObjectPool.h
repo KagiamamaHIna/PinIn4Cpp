@@ -224,9 +224,6 @@ namespace PinInCpp {
 				nextpos = OnePoolSize;//如果清空了，那么设置这个参数使下一次会自动分配
 			}
 		}
-		size_t FreeListSize() {
-			return FreeList.size();
-		}
 	private:
 		struct Block {
 			alignas(T) std::byte b[sizeof(T)];
