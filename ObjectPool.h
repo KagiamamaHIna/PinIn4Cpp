@@ -247,10 +247,18 @@ namespace PinInCpp {
 		struct IsArgsVoid : std::false_type {};
 
 		template<typename type>
-		struct IsArgsVoid<type, std::void_t<decltype(std::declval<type>()(std::declval<T*>()))>> : std::true_type {};
+		struct IsArgsVoid<type, std::void_t<decltype(std::declval<type>()(std::declval<T*>()))>> : std::true_type {};//判断能否传入单参this指针的形式
+
+		template<typename type, typename = void>
+		struct IsAnyFn : std::false_type {};
+
+		template<typename type>
+		struct IsAnyFn<type, std::void_t<decltype(std::function(std::declval<type>()))>> : std::true_type {};//通过判断能否被std::function封装，确定是否能被调用
 
 		template<typename... _Types>
 		T* NewObjCustomRecycle(auto& fn, _Types&&..._Args) {
+			static_assert(IsAnyFn<decltype(fn)>::value, "RecycleFn is not a function");
+
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
 				T* result = GetPoolNewPtr();
 				new (result) T(std::forward<_Types>(_Args)...);
