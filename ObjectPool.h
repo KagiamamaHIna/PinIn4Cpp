@@ -393,7 +393,7 @@ namespace PinInCpp {
 		}
 		void PushNewBlock() {
 			poolSize++;
-			pool.emplace_front(std::array<Block, OnePoolSize>());
+			pool.emplace_front();
 		}
 		std::deque<T*> FreeList;
 		std::forward_list<std::array<Block, OnePoolSize>> pool;
