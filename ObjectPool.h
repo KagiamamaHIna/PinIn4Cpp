@@ -7,6 +7,21 @@
 #include <forward_list>
 
 namespace PinInCpp {
+	//判断能否传入单参type2指针的形式
+	template<typename type, typename type2, typename = void>
+	struct IsArgsType2Ptr : std::false_type {};
+
+	template<typename type, typename type2>
+	struct IsArgsType2Ptr<type, type2, std::void_t<decltype(std::declval<type>()(std::declval<type2*>()))>> : std::true_type {};
+
+	//通过判断能否被std::function封装，确定是否能被调用
+	template<typename type, typename = void>
+	struct IsAnyFn : std::false_type {};
+
+	template<typename type>
+	struct IsAnyFn<type, std::void_t<decltype(std::function(std::declval<type>()))>> : std::true_type {};
+
+
 	//本质上是接管用不到的对象指针，在需要的时候重新构造/构造一个新的对象，如果你自己回收了也没问题，因为分配出去后权限归你
 	template<typename T>
 	class ObjectPtrPool {
@@ -69,6 +84,40 @@ namespace PinInCpp {
 				}
 				FreeList.pop_back();
 				return std::unique_ptr<T>(result);//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
+			}
+		}
+
+		//创建一个独占所有权的智能指针
+		//自定义回收器传入的this指针是有效的对象，他没有被调用析构函数
+		//自定义回收器的函数签名是 void(T* this, _Types...)，这个是接受this和构造参数一致的签名
+		//也可以是 void(T* this) 这个签名也是合法的，区别是不会传入构造参数
+		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
+		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
+		template<typename... _Types>
+		std::unique_ptr<T> NewObjCustomRecycle(auto RecycleFn, _Types&&..._Args) {
+			static_assert(IsAnyFn<decltype(RecycleFn)>::value, "RecycleFn is not a function");
+
+			if (FreeList.empty()) {//如果对象池空闲，那么就新建
+				return std::make_unique<T>(std::forward<_Types>(_Args)...);
+			}
+			else {//不空闲，就从对象池中取一个标记为要析构的对象，用placement new重新构造后转移所有权
+				T* result;
+				result = FreeList.back();
+				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
+					if constexpr (IsArgsType2Ptr<decltype(RecycleFn), T>::value) {
+						fn(result);
+					}
+					else {
+						fn(result, std::forward<_Types>(_Args)...);
+					}
+					//因为没有析构流程，所以抛出异常后还是安全的
+				}
+				else {//有异常状态，则用placement new
+					new (result) T(std::forward<_Types>(_Args)...);
+					lastRenewUnfinished = false;
+				}
+				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
+				return result;
 			}
 		}
 	private:
@@ -302,17 +351,6 @@ namespace PinInCpp {
 				return result;
 			}
 		}
-		template<typename type, typename = void>
-		struct IsArgsVoid : std::false_type {};
-
-		template<typename type>
-		struct IsArgsVoid<type, std::void_t<decltype(std::declval<type>()(std::declval<T*>()))>> : std::true_type {};//判断能否传入单参this指针的形式
-
-		template<typename type, typename = void>
-		struct IsAnyFn : std::false_type {};
-
-		template<typename type>
-		struct IsAnyFn<type, std::void_t<decltype(std::function(std::declval<type>()))>> : std::true_type {};//通过判断能否被std::function封装，确定是否能被调用
 
 		template<typename... _Types>
 		T* NewObjCustomRecycle(auto& fn, _Types&&..._Args) {
@@ -328,7 +366,7 @@ namespace PinInCpp {
 				T* result;
 				result = FreeList.back();
 				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
-					if constexpr (IsArgsVoid<decltype(fn)>::value) {
+					if constexpr (IsArgsType2Ptr<decltype(fn), T>::value) {
 						fn(result);
 					}
 					else {
