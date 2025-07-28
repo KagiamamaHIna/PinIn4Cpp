@@ -7,21 +7,6 @@
 #include <forward_list>
 
 namespace PinInCpp {
-	//判断能否传入单参type2指针的形式
-	template<typename type, typename type2, typename = void>
-	struct IsArgsType2Ptr : std::false_type {};
-
-	template<typename type, typename type2>
-	struct IsArgsType2Ptr<type, type2, std::void_t<decltype(std::declval<type>()(std::declval<type2*>()))>> : std::true_type {};
-
-	//通过判断能否被std::function封装，确定是否能被调用
-	template<typename type, typename = void>
-	struct IsAnyFn : std::false_type {};
-
-	template<typename type>
-	struct IsAnyFn<type, std::void_t<decltype(std::function(std::declval<type>()))>> : std::true_type {};
-
-
 	//本质上是接管用不到的对象指针，在需要的时候重新构造/构造一个新的对象，如果你自己回收了也没问题，因为分配出去后权限归你
 	template<typename T>
 	class ObjectPtrPool {
@@ -95,7 +80,7 @@ namespace PinInCpp {
 		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
 		template<typename... _Types>
 		std::unique_ptr<T> NewObjCustomRecycle(auto RecycleFn, _Types&&..._Args) {
-			static_assert(IsAnyFn<decltype(RecycleFn)>::value, "RecycleFn is not a function");
+			static_assert(std::is_invocable_v<decltype(RecycleFn), T*> || std::is_invocable_v<decltype(RecycleFn), T*, _Types...>, "RecycleFn is not a function / function signature is illegal");
 
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
 				return std::make_unique<T>(std::forward<_Types>(_Args)...);
@@ -104,7 +89,7 @@ namespace PinInCpp {
 				T* result;
 				result = FreeList.back();
 				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
-					if constexpr (IsArgsType2Ptr<decltype(RecycleFn), T>::value) {
+					if constexpr (std::is_invocable_v<decltype(RecycleFn), T*>) {
 						fn(result);
 					}
 					else {
@@ -354,7 +339,7 @@ namespace PinInCpp {
 
 		template<typename... _Types>
 		T* NewObjCustomRecycle(auto& fn, _Types&&..._Args) {
-			static_assert(IsAnyFn<decltype(fn)>::value, "RecycleFn is not a function");
+			static_assert(std::is_invocable_v<decltype(fn), T*> || std::is_invocable_v<decltype(fn), T*, _Types...>, "RecycleFn is not a function / function signature is illegal");
 
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
 				T* result = GetPoolNewPtr();
@@ -366,7 +351,7 @@ namespace PinInCpp {
 				T* result;
 				result = FreeList.back();
 				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
-					if constexpr (IsArgsType2Ptr<decltype(fn), T>::value) {
+					if constexpr (std::is_invocable_v<decltype(fn), T*>) {
 						fn(result);
 					}
 					else {
