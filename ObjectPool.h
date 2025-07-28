@@ -90,10 +90,10 @@ namespace PinInCpp {
 				result = FreeList.back();
 				if (!lastRenewUnfinished) {//如果没有异常状态，则进入自定义回收流程
 					if constexpr (std::is_invocable_v<decltype(RecycleFn), T*>) {
-						fn(result);
+						RecycleFn(result);
 					}
 					else {
-						fn(result, std::forward<_Types>(_Args)...);
+						RecycleFn(result, std::forward<_Types>(_Args)...);
 					}
 					//因为没有析构流程，所以抛出异常后还是安全的
 				}
