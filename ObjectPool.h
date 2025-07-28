@@ -79,7 +79,7 @@ namespace PinInCpp {
 		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
 		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
 		template<typename... _Types>
-		std::unique_ptr<T> NewObjCustomRecycle(auto RecycleFn, _Types&&..._Args) {
+		std::unique_ptr<T> NewObjCustomRecycle(auto& RecycleFn, _Types&&..._Args) {
 			static_assert(std::is_invocable_v<decltype(RecycleFn), T*> || std::is_invocable_v<decltype(RecycleFn), T*, _Types...>, "RecycleFn is not a function / function signature is illegal");
 
 			if (FreeList.empty()) {//如果对象池空闲，那么就新建
@@ -146,7 +146,7 @@ namespace PinInCpp {
 		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
 		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
 		template<typename... _Types>
-		std::unique_ptr<T, std::function<void(base*)>> MakeUniqueCustomRecycle(auto RecycleFn, _Types&&..._Args) {
+		std::unique_ptr<T, std::function<void(base*)>> MakeUniqueCustomRecycle(auto& RecycleFn, _Types&&..._Args) {
 			return MakeSmartPtrHasDeleter<std::unique_ptr<T, std::function<void(base*)>>>(NewObjCustomRecycle(RecycleFn, std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 		}
 
@@ -157,7 +157,7 @@ namespace PinInCpp {
 		//自定义回收器本身能被以上形式调用即可，不关心他的来源类型
 		//自定义回收器本身应该保证异常安全，抛出异常后不破坏原本的类
 		template<typename... _Types>
-		std::shared_ptr<T> MakeSharedCustomRecycle(auto RecycleFn, _Types&&..._Args) {//创建一个共享所有权的智能指针
+		std::shared_ptr<T> MakeSharedCustomRecycle(auto& RecycleFn, _Types&&..._Args) {//创建一个共享所有权的智能指针
 			return MakeSmartPtrHasDeleter<std::shared_ptr<T>>(NewObjCustomRecycle(RecycleFn, std::forward<_Types>(_Args)...));//通过RVO/移动构造之类的形式，转移这个智能指针的所有权
 		}
 
