@@ -102,7 +102,7 @@ namespace PinInCpp {
 					lastRenewUnfinished = false;
 				}
 				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
-				return result;
+				return std::unique_ptr<T>(result);
 			}
 		}
 	private:
