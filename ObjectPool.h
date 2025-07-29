@@ -187,7 +187,7 @@ namespace PinInCpp {
 			return poolSize * OnePoolSize;
 		}
 		//池的数量
-		constexpr size_t PoolCount()const noexcept {
+		size_t PoolCount()const noexcept {
 			return poolSize;
 		}
 		//警告！！！这个api是用于精细管理内存的
