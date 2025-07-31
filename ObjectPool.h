@@ -117,7 +117,7 @@ namespace PinInCpp {
 	public:
 		static_assert(!std::is_array_v<T>, "Cannot process c array");
 		static_assert(OnePoolSize, "pool size cannot be 0");
-		static_assert(std::is_same<T, base>::value || std::is_base_of<base, T>::value, "The base class must be the base class of T/T");
+		static_assert(std::is_same_v<T, base> || std::is_base_of_v<base, T>, "The base class must be the base class of T/T");
 
 		ObjectPool() {
 			PushNewBlock();//压入一块内存

@@ -18,7 +18,7 @@ namespace PinInCpp {
 	uint32_t FourCCToU32(const std::string_view& str) noexcept;
 	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
 	void U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
-	inline size_t getUTF8CharSize(char c) noexcept {
+	inline size_t getUTF8CharSize(const char c) noexcept {
 		if ((c & 0x80) == 0) { // 0xxxxxxx
 			return 1;
 		}

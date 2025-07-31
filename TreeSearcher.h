@@ -330,7 +330,7 @@ namespace PinInCpp {
 		std::unique_ptr<PinIn::Ticket> ticket;
 		UTF8StringPool strs;//应当继续贯彻零拷贝设计
 		Accelerator acc;
-		Logic logic;
+		const Logic logic;
 
 		std::unique_ptr<Node> root = nullptr;
 		std::vector<NAcc*> naccs;//观察者，不持有数据

@@ -22,23 +22,24 @@ namespace PinInCpp {
 
 	size_t UTF8StringPool::put(const std::string_view& s) {
 		strs.insert(strs.end(), s.begin(), s.end());//数据插入
+		strs.emplace_back('\0');
 
 		size_t result = last_offset;
 
 		size_t cursor = 0;
 		size_t end = s.size();
 		size_t lastCharsSize = chars_offset.size() - 1;
+		size_t currentLastOffset = last_offset;//走局部更快，不用走this指针
 		while (cursor < end) {
 			size_t charSize = getUTF8CharSize(s[cursor]);
 			chars_offset.emplace_back(chars_offset[lastCharsSize] + charSize);
 			cursor += charSize;
 			lastCharsSize++;
-			last_offset++;
+			currentLastOffset++;
 		}
-		last_size = last_offset - result;
+		last_size = currentLastOffset - result;
+		last_offset = currentLastOffset + 1;//空字符也有呢
 
-		last_offset++;//空字符也有呢
-		strs.emplace_back('\0');
 		chars_offset.emplace_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度
 		return result;
 	}
