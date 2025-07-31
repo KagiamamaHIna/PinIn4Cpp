@@ -18,19 +18,36 @@ namespace PinInCpp {
 	uint32_t FourCCToU32(const std::string_view& str) noexcept;
 	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
 	void U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
-
+	inline size_t getUTF8CharSize(char c) noexcept {
+		if ((c & 0x80) == 0) { // 0xxxxxxx
+			return 1;
+		}
+		else if ((c & 0xE0) == 0xC0) { // 110xxxxx
+			return 2;
+		}
+		else if ((c & 0xF0) == 0xE0) { // 1110xxxx
+			return 3;
+		}
+		else if ((c & 0xF8) == 0xF0) { // 11110xxx
+			return 4;
+		}
+		else {//这是一个非法的UTF-8首字节
+			return 1; //作为错误恢复，把它当作一个单字节处理
+		}
+	}
 	template<typename StrType>
 	class UTF8StringTemplate {
 	public:
 		UTF8StringTemplate() {}
 		UTF8StringTemplate(const StrType& input) {
-			size_t cursor = 0;
-			size_t end = input.size();
-			while (cursor < end) {
-				size_t charSize = getUTF8CharSize(input[cursor]);
-				str.emplace_back(input.substr(cursor, charSize));
-				cursor += charSize;
-			}
+			Init(input);
+		}
+		void reset(const StrType& input) {
+			str.clear();
+			Init(input);
+		}
+		void ShrinkToFit() {
+			str.shrink_to_fit();
 		}
 		std::string ToStream()const {
 			std::string result;
@@ -67,24 +84,16 @@ namespace PinInCpp {
 			return str.end();
 		}
 	private:
-		static size_t getUTF8CharSize(char c) noexcept {
-			if ((c & 0x80) == 0) { // 0xxxxxxx
-				return 1;
-			}
-			else if ((c & 0xE0) == 0xC0) { // 110xxxxx
-				return 2;
-			}
-			else if ((c & 0xF0) == 0xE0) { // 1110xxxx
-				return 3;
-			}
-			else if ((c & 0xF8) == 0xF0) { // 11110xxx
-				return 4;
-			}
-			else {//这是一个非法的UTF-8首字节
-				return 1; //作为错误恢复，把它当作一个单字节处理
+		void Init(const StrType& input) {
+			size_t cursor = 0;
+			size_t end = input.size();
+			while (cursor < end) {
+				size_t charSize = getUTF8CharSize(input[cursor]);
+				str.emplace_back(input.substr(cursor, charSize));
+				cursor += charSize;
 			}
 		}
-		std::vector<StrType> str = {};
+		std::vector<StrType> str;
 	};
 	using Utf8String = UTF8StringTemplate<std::string>;
 	using Utf8StringView = UTF8StringTemplate<std::string_view>;

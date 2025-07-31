@@ -2,7 +2,7 @@
 
 namespace PinInCpp {
 	UTF8StringPool::UTF8StringPool() {
-		chars_offset.push_back(0);//初始化时在开头添加0作为元素，可以避免if检查上一个元素是否越界
+		chars_offset.emplace_back(0);//初始化时在开头添加0作为元素，可以避免if检查上一个元素是否越界
 		//strs_offset.push_back(0);
 	}
 	/*
@@ -23,16 +23,23 @@ namespace PinInCpp {
 	size_t UTF8StringPool::put(const std::string_view& s) {
 		strs.insert(strs.end(), s.begin(), s.end());//数据插入
 
-		Utf8StringView utf8s(s);
-		last_size = utf8s.size();
 		size_t result = last_offset;
-		for (const auto& str : utf8s) {
+
+		size_t cursor = 0;
+		size_t end = s.size();
+		size_t lastCharsSize = chars_offset.size() - 1;
+		while (cursor < end) {
+			size_t charSize = getUTF8CharSize(s[cursor]);
+			chars_offset.emplace_back(chars_offset[lastCharsSize] + charSize);
+			cursor += charSize;
+			lastCharsSize++;
 			last_offset++;
-			chars_offset.push_back(chars_offset[chars_offset.size() - 1] + str.size());
 		}
+		last_size = last_offset - result;
+
 		last_offset++;//空字符也有呢
-		strs.push_back('\0');
-		chars_offset.push_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度
+		strs.emplace_back('\0');
+		chars_offset.emplace_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度
 		return result;
 	}
 
