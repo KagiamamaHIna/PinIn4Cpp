@@ -385,7 +385,7 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	static size_t StrCmp(const Utf8String& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
+	inline static size_t StrCmp(const Utf8String& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
 		for (size_t i = 0; i < len; i++) {
 			if (a[i + aStart] != b[i]) {

@@ -146,13 +146,22 @@ namespace PinInCpp {
 			if (!CharCache) {
 				return;
 			}
-			Utf8StringView u8str = str;
 			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
-			for (const auto& v : u8str) {
-				size_t id = GetPinyinId(v);
-				if (id != NullPinyinId && !cache.count(id)) {
-					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, v, id)));
+			size_t cursor = 0;
+			size_t end = str.size();
+			char buf[5];//缓冲区，避免堆分配
+			while (cursor < end) {
+				size_t charSize = getUTF8CharSize(str[cursor]);
+				for (size_t i = 0; i < charSize; i++) {//根据获取长度，深拷贝数据
+					buf[i] = str[cursor + i];
 				}
+				buf[charSize] = '\0';//加终止符
+
+				size_t id = GetPinyinId(buf);
+				if (id != NullPinyinId && !cache.count(id)) {
+					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, buf, id)));
+				}
+				cursor += charSize;
 			}
 		}
 		//强制生成一个空拼音id的缓存，配合上面那个api即可实现线程安全
