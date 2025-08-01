@@ -13,7 +13,9 @@ namespace PinInCpp {
 	*/
 	class UTF8StringPool {
 	public:
-		UTF8StringPool();
+		UTF8StringPool() {
+			chars_offset.emplace_back(0);//初始化时在开头添加0作为元素，可以避免if检查上一个元素是否越界
+		}
 
 		/*virtual const std::vector<size_t>& offsets()const {
 			return strs_offset;

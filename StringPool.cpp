@@ -1,25 +1,6 @@
 #include "StringPool.h"
 
 namespace PinInCpp {
-	UTF8StringPool::UTF8StringPool() {
-		chars_offset.emplace_back(0);//初始化时在开头添加0作为元素，可以避免if检查上一个元素是否越界
-		//strs_offset.push_back(0);
-	}
-	/*
-	size_t UTF8StringPool::put(const std::string& s) {
-		strs.insert(strs.end(), s.begin(), s.end());//数据插入
-
-		Utf8StringView utf8s(s);
-		strs_offset.push_back(strs_offset[strs_offset.size() - 1] + utf8s.size() + 1);
-		for (const auto& str : utf8s) {
-			chars_offset.push_back(chars_offset[chars_offset.size() - 1] + str.size());
-		}
-
-		strs.push_back('\0');
-		chars_offset.push_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度
-		return strs_offset[strs_offset.size() - 2];
-	}*/
-
 	size_t UTF8StringPool::put(const std::string_view& s) {
 		strs.insert(strs.end(), s.begin(), s.end());//数据插入
 		strs.emplace_back('\0');
@@ -82,18 +63,20 @@ namespace PinInCpp {
 	}
 
 	uint32_t UTF8StringPool::getcharFourCC(size_t i)const noexcept {
-		size_t size = chars_offset[i + 1];
-		size_t last = chars_offset[i];
+		size_t end = chars_offset[i + 1];
+		size_t start = chars_offset[i];
 		uint32_t result = 0;
 
-		size -= last;
-		for (size_t i = 0; i < size; i++) {
+		for (size_t i = start; i < end; i++) {
 			result <<= 8;
-			result |= (uint8_t)strs[last + i];
+			result |= (uint8_t)strs[i];
 		}
 		return result;
 	}
 	bool UTF8StringPool::EqualChar(size_t indexA, size_t indexB)const noexcept {
+		if (indexA == indexB) {//两个索引相等，那么就是同一个字符，必然相等
+			return true;
+		}
 		size_t AOffset = chars_offset[indexA];
 		size_t BOffset = chars_offset[indexB];
 		size_t Asize = chars_offset[indexA + 1] - AOffset;
