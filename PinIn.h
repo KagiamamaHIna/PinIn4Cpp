@@ -355,7 +355,7 @@ namespace PinInCpp {
 			std::vector<Pinyin> pinyin;
 		};
 	private:
-		void LineParser(const std::string_view str);
+		void LineParser(const Utf8StringView&);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:

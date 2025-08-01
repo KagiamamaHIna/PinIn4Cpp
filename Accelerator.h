@@ -15,7 +15,8 @@ namespace PinInCpp {
 		}
 		void search(const std::string_view& s) {
 			if (s != searchStr.ToStream()) {
-				searchStr = std::string(s);
+				searchStr.reset(std::string(s));
+
 				u32strVec.clear();
 				for (const auto& v : searchStr) {
 					u32strVec.emplace_back(FourCCToU32(v));

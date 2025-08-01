@@ -150,8 +150,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	void PinIn::LineParser(const std::string_view str) {
-		const Utf8StringView utf8str = Utf8StringView(str);//将字节流转换为utf8表示的字符串
+	void PinIn::LineParser(const Utf8StringView& utf8str) {
 		size_t i = 0;
 		size_t size = utf8str.size();
 		while (i + 1 < size && utf8str[i] != "#") {//#为注释，当i+1<size 即i已经到末尾字符的时候，还没检查到U+的结构即非法字符串，退出这一次循环
@@ -218,8 +217,10 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
+		Utf8StringView utf8str;
 		while (std::getline(fs, str)) {
-			LineParser(str);
+			utf8str.reset(str);
+			LineParser(utf8str);
 		}
 		pool.Fixed();
 	}
@@ -228,13 +229,16 @@ namespace PinInCpp {
 		//开始读取
 		std::string_view str;
 		size_t last_cursor = 0;
+		Utf8StringView utf8str;
 		for (size_t i = 0; i < input_data.size(); i++) {
 			if (input_data[i] == '\n') {//按行解析
-				LineParser(std::string_view(input_data.data() + last_cursor, i - last_cursor));
+				utf8str.reset(std::string_view(input_data.data() + last_cursor, i - last_cursor));
+				LineParser(utf8str);
 				last_cursor = i + 1;//跳过换行
 			}
 		}
-		LineParser(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor));//解析最后一行
+		utf8str.reset(std::string_view(input_data.data() + last_cursor, input_data.size() - last_cursor));
+		LineParser(utf8str);//解析最后一行
 		pool.Fixed();
 	}
 

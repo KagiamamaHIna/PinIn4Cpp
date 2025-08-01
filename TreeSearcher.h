@@ -49,7 +49,7 @@ namespace PinInCpp {
 		std::string GetStrById(size_t id) {//配套使用。id请使用ExecuteSearchGetSet返回的合法的来源
 			return strs.getstr(id);
 		}
-		std::string_view GetStrViewById(size_t id)const {//注意，这些视图可能会在插入新数据后变成悬垂视图！
+		std::string_view GetStrViewById(size_t id)const noexcept {//注意，这些视图可能会在插入新数据后变成悬垂视图！
 			return strs.getstr_view(id);
 		}
 		//单位是字节
@@ -194,7 +194,6 @@ namespace PinInCpp {
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
 			/*class DenseVec {
 			public:
-
 				DenseVec(const DenseVec&) = delete;
 				DenseVec(DenseVec&&) = delete;
 				DenseVec& operator=(DenseVec&& src) = delete;
@@ -202,7 +201,6 @@ namespace PinInCpp {
 				size_t* start = nullptr;
 				size_t* end = nullptr;//首尾相减除以大小即是capacity
 				size_t* cursor = nullptr;//当前分配到的位置
-
 			};*/
 			std::vector<size_t> data;
 		};
