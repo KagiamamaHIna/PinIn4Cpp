@@ -6,8 +6,9 @@ namespace PinInCpp {
 		ticket->renew();
 		size_t pos = strs.put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs.getLastStrSize() : 1;
-		for (size_t i = 0; i < end; i++) {
-			Node* result = root->put(*this, pos + i, pos);
+		end += pos;
+		for (size_t i = pos; i < end; i++) {
+			Node* result = root->put(*this, i, pos);
 			if (root.get() != result) {
 				NodeOwnershipReset(root, result);
 			}

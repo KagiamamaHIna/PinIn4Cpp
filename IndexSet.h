@@ -80,7 +80,7 @@ namespace PinInCpp {
 				}
 				return IndexSet::Init(it->second - 1);
 			}
-			void clear() {//仅删除键值对，不进行析构对象
+			void clear()noexcept {//仅删除键值对，不进行析构对象
 				data.clear();
 			}
 		private:
