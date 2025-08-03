@@ -18,7 +18,6 @@ namespace PinInCpp {
 			lastCharsSize++;
 			currentLastOffset++;
 		}
-		last_size = currentLastOffset - result;
 		last_offset = currentLastOffset + 1;//空字符也有呢
 
 		chars_offset.emplace_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度

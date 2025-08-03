@@ -5,13 +5,10 @@ namespace PinInCpp {
 	void TreeSearcher::put(const std::string_view& keyword) {
 		ticket->renew();
 		size_t pos = strs.put(keyword);
-		size_t end = logic == Logic::CONTAIN ? strs.getLastStrSize() : 1;
-		end += pos;
-		for (size_t i = pos; i < end; i++) {
-			Node* result = root->put(*this, i, pos);
-			if (root.get() != result) {
-				NodeOwnershipReset(root, result);
-			}
+		size_t end = logic == Logic::CONTAIN ? strs.getLastOffset() - 1 : pos + 1;
+		Node* result = root->putRange(*this, pos, end);
+		if (root.get() != result) {
+			NodeOwnershipReset(root, result);
 		}
 	}
 
@@ -91,6 +88,33 @@ namespace PinInCpp {
 		}
 	}
 
+	TreeSearcher::Node* TreeSearcher::NDense::putRange(TreeSearcher& p, size_t start, size_t end) {
+		if (data.size() + end - start >= TreeSearcher::NDenseThreshold) {
+			size_t pattern = data[0];
+			std::unique_ptr<Node> result = p.NSlicePool.NewObj(p, pattern, pattern + match(p));
+			Node* other = result.get();
+			for (size_t j = 0; j < data.size(); j += 2) {//数据转移
+				other = result->put(p, data[j], data[j + 1]);
+				if (other != result.get()) {//节点升级
+					p.NodeOwnershipReset(result, other);
+					//因为other本质上已经是新指针了，所以不用再次赋值。result通过这个转移所有权的函数现在他和other是同一个指针
+				}
+			}
+			other = result->putRange(p, start, end);
+			if (other != result.get()) {//节点升级
+				p.NodeOwnershipReset(result, other);
+			}
+			return result.release();
+		}
+		else {
+			for (size_t i = start; i < end; i++) {
+				data.emplace_back(i);
+				data.emplace_back(start);
+			}
+			return this;
+		}
+	}
+
 	size_t TreeSearcher::NDense::match(const TreeSearcher& p)const {//这个函数内，是不会put的，可以实现零拷贝设计
 		for (size_t i = 0; ; i++) {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
@@ -133,31 +157,30 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::index(TreeSearcher& p, const uint32_t c) {
+	void TreeSearcher::NAcc::indexUseCache(TreeSearcher& p, const uint32_t c) {
 		PinIn::Character* ch = p.context->GetCharCachePtr(c);
-		if (ch == nullptr) {
-			PinIn::Character ch = p.context->GetChar(c);
-			for (const auto& py : ch.GetPinyins()) {
-				const PinIn::Phoneme& ph = py.GetPhonemes()[0];
-				auto it = index_node.find(ph);
-				if (it == index_node.end()) {//对应的是字符集合为空
-					index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
-				}
-				else {//不为空
-					it->second.insert(c);
-				}
+		for (const auto& py : ch->GetPinyins()) {
+			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
+			auto it = index_node.find(ph);
+			if (it == index_node.end()) {//对应的是字符集合为空
+				index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
+			}
+			else {//不为空
+				it->second.insert(c);
 			}
 		}
-		else {
-			for (const auto& py : ch->GetPinyins()) {
-				const PinIn::Phoneme& ph = py.GetPhonemes()[0];
-				auto it = index_node.find(ph);
-				if (it == index_node.end()) {//对应的是字符集合为空
-					index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
-				}
-				else {//不为空
-					it->second.insert(c);
-				}
+	}
+
+	void TreeSearcher::NAcc::indexNotUseCache(TreeSearcher& p, const uint32_t c) {
+		PinIn::Character ch = p.context->GetChar(c);
+		for (const auto& py : ch.GetPinyins()) {
+			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
+			auto it = index_node.find(ph);
+			if (it == index_node.end()) {//对应的是字符集合为空
+				index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
+			}
+			else {//不为空
+				it->second.insert(c);
 			}
 		}
 	}
@@ -175,6 +198,25 @@ namespace PinInCpp {
 		}
 		if (exit_node.get() != n) {
 			p.NodeOwnershipReset(exit_node, n);
+		}
+		return start == end ? exit_node.release() : this;
+	}
+
+	TreeSearcher::Node* TreeSearcher::NSlice::putRange(TreeSearcher& p, size_t start, size_t end) {
+		Node* n;
+		for (size_t i = start; i < end; i++) {
+			size_t length = this->end - this->start;
+			size_t match = p.acc.common(this->start, i, length);
+			if (match >= length) {
+				n = exit_node->put(p, i + length, start);
+			}
+			else {
+				cut(p, this->start + match);
+				n = exit_node->put(p, i + match, start);
+			}
+			if (exit_node.get() != n) {
+				p.NodeOwnershipReset(exit_node, n);
+			}
 		}
 		return start == end ? exit_node.release() : this;
 	}

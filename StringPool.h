@@ -29,8 +29,8 @@ namespace PinInCpp {
 		std::string_view getchar_view(size_t i)const noexcept;//获取指定字符的只读视图 持有时不要变动字符串池！
 		std::string_view getstr_view(size_t strStart)const noexcept;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
 		uint32_t getcharFourCC(size_t i)const noexcept;//针对单字符的FourCC打包编码的实现
-		size_t getLastStrSize()const noexcept {//获取上一个插入的UTF8字符串的长度
-			return last_size;
+		size_t getLastOffset()const noexcept {//获取上一个插入的UTF8字符串的长度
+			return last_offset;
 		}
 		//单位是字节
 		void reserve(size_t _Newcapacity) {
@@ -44,7 +44,6 @@ namespace PinInCpp {
 		std::vector<char> strs;//字节数组，用于将多个字符串(字节流)放入容器中，避免内存碎片
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量
 		size_t last_offset = 0;//替代设计
-		size_t last_size = 0;
 		std::vector<size_t> chars_offset;//索引表示的为字符的位置，值表示的是字符的末尾，用上一个值代表字符的开始
 	};
 }

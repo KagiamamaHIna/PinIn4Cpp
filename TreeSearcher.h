@@ -167,6 +167,8 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result) = 0;
 			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) = 0;
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end) = 0;
+
 			//将自身载入对象池
 			virtual void FreeToPool(TreeSearcher& p) = 0;
 		};
@@ -186,22 +188,13 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NDensePool.FreeToPool(this);
 			}
 		private:
 			friend TreeSearcher;
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
-			/*class DenseVec {
-			public:
-				DenseVec(const DenseVec&) = delete;
-				DenseVec(DenseVec&&) = delete;
-				DenseVec& operator=(DenseVec&& src) = delete;
-			private:
-				size_t* start = nullptr;
-				size_t* end = nullptr;//首尾相减除以大小即是capacity
-				size_t* cursor = nullptr;//当前分配到的位置
-			};*/
 			std::vector<size_t> data;
 		};
 		class NSlice;
@@ -224,6 +217,7 @@ namespace PinInCpp {
 				}
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void FreeToPool(TreeSearcher& p) {
 				if constexpr (CanUpgrade) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
 					p.NMapPool.FreeToPool(this);
@@ -271,13 +265,39 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) {
 				NodeMap.put(p, keyword, id);//绝对不会升级，不需要检查
-				index(p, p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+				if (p.context->IsCharCacheEnabled()) {
+					indexUseCache(p, p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+				}
+				else {
+					indexNotUseCache(p, p.strs.getcharFourCC(keyword));
+				}
+				return this;
+			}
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end) {
+				NodeMap.putRange(p, start, end);
+				if (p.context->IsCharCacheEnabled()) {
+					for (size_t i = start; i < end; i++) {
+						indexUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
+					}
+				}
+				else {
+					for (size_t i = start; i < end; i++) {
+						indexNotUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
+					}
+				}
 				return this;
 			}
 			void reload(TreeSearcher& p) {
 				index_node.clear();//释放所有音素
-				for (const auto& [k, v] : *NodeMap.children) {
-					index(p, k);
+				if (p.context->IsCharCacheEnabled()) {
+					for (const auto& [k, v] : *NodeMap.children) {
+						indexUseCache(p, k);
+					}
+				}
+				else {
+					for (const auto& [k, v] : *NodeMap.children) {
+						indexNotUseCache(p, k);
+					}
 				}
 			}
 			//你不需要，只需要一个空函数即可
@@ -287,7 +307,8 @@ namespace PinInCpp {
 				NodeMap.children = std::move(src.children);
 				NodeMap.leaves = std::move(src.leaves);
 			}
-			void index(TreeSearcher& p, const uint32_t c);
+			void indexUseCache(TreeSearcher& p, const uint32_t c);
+			void indexNotUseCache(TreeSearcher& p, const uint32_t c);
 			//这个就不做升级优化了，通常都很多，做升级优化内存降下来不明显还引入了更多的运行时开销，有明显的性能下降
 			std::unordered_map<PinIn::Phoneme, std::unordered_set<uint32_t>> index_node;
 			NMapOwned NodeMap;
@@ -306,6 +327,7 @@ namespace PinInCpp {
 				exit_node->get(p, ret);
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NSlicePool.FreeToPool(this);
 			}
@@ -393,6 +415,47 @@ namespace PinInCpp {
 			}
 			Node* src = sub;
 			sub = sub->put(p, keyword + 1, id);
+			if (src != sub) {
+				reset_children(p, ch, sub);
+			}
+		}
+		if constexpr (CanUpgrade) {
+			if (children != nullptr && children->size() > NMapThreshold) {
+				return new NAcc(p, *this);
+			}
+			return this;
+		}
+		else {//编译时分支
+			return this;
+		}
+	}
+
+	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
+	TreeSearcher::Node* TreeSearcher::NMapTemplate<CanUpgrade>::putRange(TreeSearcher& p, size_t start, size_t end) {
+		if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
+			init();
+		}
+		/*
+		putRange本质上就是在模仿根据范围遍历。put方法里的
+		if (p.strs.end(keyword)) {//字符串视图不会尝试指向一个\0的字符，用end判断是最安全且合法的
+			leaves.insert(id);
+		}
+		这段代码，不可能发生在根据指定范围遍历的情况，因为不包括终止字符长度
+		这个本意是当整个字符串字典树构造到末尾的时候，由map自己承担这个节点，因为不需要再构建额外的树了
+		因为指定范围的遍历并不会包括终止字符，所以不需要
+		*/
+		for (size_t i = start; i < end; i++) {
+			uint32_t ch = p.strs.getcharFourCC(i);
+			auto it = children->find(ch);//查找
+			Node* sub;
+			if (it == children->end()) {
+				sub = put(ch, p.NDensePool.NewObj());
+			}
+			else {
+				sub = it->second.get();
+			}
+			Node* src = sub;
+			sub = sub->put(p, i + 1, start);
 			if (src != sub) {
 				reset_children(p, ch, sub);
 			}
