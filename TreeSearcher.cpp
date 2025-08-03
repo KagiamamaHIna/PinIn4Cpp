@@ -82,6 +82,15 @@ namespace PinInCpp {
 			return result.release();
 		}
 		else {
+			size_t capacity = data.capacity();
+			if (data.size() + 2 > capacity) {//手动定制扩容，避免因扩容因子1.5导致的多次扩容造成性能下降，稳定为2的次方，同时这样可以让内存占用不浪费，因为NDense上限就是128元素
+				if (capacity == 0) {
+					data.reserve(2);
+				}
+				else {
+					data.reserve(capacity * 2);
+				}
+			}
 			data.emplace_back(keyword);
 			data.emplace_back(id);
 			return this;
@@ -89,7 +98,8 @@ namespace PinInCpp {
 	}
 
 	TreeSearcher::Node* TreeSearcher::NDense::putRange(TreeSearcher& p, size_t start, size_t end) {
-		if (data.size() + end - start >= TreeSearcher::NDenseThreshold) {
+		size_t NewSize = data.size() + end - start;
+		if (NewSize >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
 			std::unique_ptr<Node> result = p.NSlicePool.NewObj(p, pattern, pattern + match(p));
 			Node* other = result.get();
@@ -107,6 +117,21 @@ namespace PinInCpp {
 			return result.release();
 		}
 		else {
+			size_t capacity = data.capacity();
+			if (NewSize > capacity) {
+				//手动定制扩容，避免因扩容因子1.5导致的多次扩容造成性能下降，稳定为2的次方，同时这样可以让内存占用不浪费，因为NDense上限就是128元素
+				//并且这里我们可以预知要分配多少，而提前定制
+				if (capacity == 0) {
+					size_t NewCapacity = (end - start) * 2;
+					if (NewCapacity > TreeSearcher::NDenseThreshold) {
+						NewCapacity = TreeSearcher::NDenseThreshold;
+					}
+					data.reserve(NewCapacity);
+				}
+				else {
+					data.reserve(capacity * 2);
+				}
+			}
 			for (size_t i = start; i < end; i++) {
 				data.emplace_back(i);
 				data.emplace_back(start);
