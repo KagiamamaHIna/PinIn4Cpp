@@ -122,11 +122,7 @@ namespace PinInCpp {
 				//手动定制扩容，避免因扩容因子1.5导致的多次扩容造成性能下降，稳定为2的次方，同时这样可以让内存占用不浪费，因为NDense上限就是128元素
 				//并且这里我们可以预知要分配多少，而提前定制
 				if (capacity == 0) {
-					size_t NewCapacity = (end - start) * 2;
-					if (NewCapacity > TreeSearcher::NDenseThreshold) {
-						NewCapacity = TreeSearcher::NDenseThreshold;
-					}
-					data.reserve(NewCapacity);
+					data.reserve((end - start) * 2);
 				}
 				else {
 					data.reserve(capacity * 2);
