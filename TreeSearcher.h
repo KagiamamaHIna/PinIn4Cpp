@@ -179,9 +179,6 @@ namespace PinInCpp {
 			smartPtrObj.reset(newPtr);
 		}
 
-		template<size_t size>
-		using SizeTList = std::array<size_t, size>;
-
 		class NDense : public Node {//密集节点本质上就是数组
 		public:
 			virtual ~NDense() = default;
@@ -358,15 +355,6 @@ namespace PinInCpp {
 		ObjectPtrPool<NDense> NDensePool;
 		ObjectPtrPool<NSlice> NSlicePool;
 		ObjectPtrPool<NMap> NMapPool;
-		/*
-		ObjectPtrPool<SizeTList<1>> SizeTList1;
-		ObjectPtrPool<SizeTList<2>> SizeTList2;
-		ObjectPtrPool<SizeTList<4>> SizeTList4;
-		ObjectPtrPool<SizeTList<8>> SizeTList8;
-		ObjectPtrPool<SizeTList<16>> SizeTList16;
-		ObjectPtrPool<SizeTList<32>> SizeTList32;
-		ObjectPtrPool<SizeTList<64>> SizeTList64;
-		ObjectPtrPool<SizeTList<128>> SizeTList128;*/
 	};
 
 	/* 过长的模板实现 */
