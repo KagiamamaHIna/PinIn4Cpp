@@ -9,27 +9,27 @@ namespace PinInCpp {
 
 		size_t cursor = 0;
 		size_t end = s.size();
-		size_t lastCharsSize = chars_offset.size() - 1;
+		size_t lastCharsSize = chars_offset[chars_offset.size() - 1];
 		size_t currentLastOffset = last_offset;//走局部更快，不用走this指针
 		while (cursor < end) {
 			size_t charSize = getUTF8CharSize(s[cursor]);
-			chars_offset.emplace_back(chars_offset[lastCharsSize] + charSize);
+			lastCharsSize += charSize;
+			chars_offset.emplace_back(lastCharsSize);
 			cursor += charSize;
-			lastCharsSize++;
 			currentLastOffset++;
 		}
 		last_offset = currentLastOffset + 1;//空字符也有呢
 
-		chars_offset.emplace_back(chars_offset[chars_offset.size() - 1] + 1);//结尾符的宽度
+		chars_offset.emplace_back(lastCharsSize + 1);//结尾符的宽度
 		return result;
 	}
 
 	std::string UTF8StringPool::getchar(size_t i)const {
-		size_t size = chars_offset[i + 1];
-		size_t last = chars_offset[i];
+		size_t end = chars_offset[i + 1];
+		size_t start = chars_offset[i];
 
 		std::string result;
-		result.insert(result.end(), strs.begin() + last, strs.begin() + size);
+		result.insert(result.end(), strs.begin() + start, strs.begin() + end);
 
 		return result;
 	}
@@ -46,10 +46,10 @@ namespace PinInCpp {
 	}
 
 	std::string_view UTF8StringPool::getchar_view(size_t i)const noexcept {
-		size_t size = chars_offset[i + 1];
-		size_t last = chars_offset[i];
+		size_t end = chars_offset[i + 1];
+		size_t start = chars_offset[i];
 
-		return std::string_view(strs.data() + last, size - last);
+		return std::string_view(strs.data() + start, end - start);
 	}
 
 	std::string_view UTF8StringPool::getstr_view(size_t strStart)const noexcept {
