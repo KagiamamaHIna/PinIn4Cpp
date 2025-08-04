@@ -302,13 +302,13 @@ namespace PinInCpp {
 		private:
 			friend Pinyin;//由Pinyin类执行构建
 			void reload();//本质上只需要代表好它的对象即可，本质上应该禁用，因为切换时音素本身也有可能会被切换，这时候视图可能是危险的，要确保重载行为在框架内是合理的
-			explicit Phoneme(PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
+			explicit Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
 				reload();
 			}
 			void reloadNoMap();//无Local表的纯逻辑处理
 			void reloadHasMap();//有Local表的逻辑查表混合处理
 
-			PinIn& ctx;//直接绑定拼音上下文，方便reload
+			const PinIn& ctx;//直接绑定拼音上下文，方便reload
 			const std::string_view src;
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
@@ -326,10 +326,10 @@ namespace PinInCpp {
 			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
 		private:
 			friend Character;//由Character类执行构建
-			Pinyin(PinIn& p, size_t id) :ctx{ p }, id{ id } {
+			Pinyin(const PinIn& p, size_t id) :ctx{ p }, id{ id } {
 				reload();
 			}
-			PinIn& ctx;
+			const PinIn& ctx;
 			bool duo = false;
 			bool sequence = false;
 			std::vector<Phoneme> phonemes;
@@ -358,8 +358,8 @@ namespace PinInCpp {
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
-			Character(PinIn& p, std::string_view ch, const size_t id);
-			PinIn& ctx;
+			Character(const PinIn& p, std::string_view ch, const size_t id);
+			const PinIn& ctx;
 			const std::string ch;//需要持有一个字符串，因为这个是依赖输入源的，不是拼音数据
 			std::vector<Pinyin> pinyin;
 		};

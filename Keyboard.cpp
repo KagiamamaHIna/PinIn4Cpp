@@ -29,7 +29,7 @@ namespace PinInCpp {
 				size_t valueSize = value.size();
 				size_t valueStart = pool.put(value);
 				data.push_back({ keySize,keyStart,valueSize,valueStart });
-				for (const auto& str : Keyboard::standard(value, *this)) {//key是基于标准拼音的，所以只用检查value
+				for (const auto& str : Keyboard::Standard(value)) {//key是基于标准拼音的，所以只用检查value
 					if (HasData.count(str)) {//有就直接跳过
 						continue;
 					}
@@ -196,7 +196,7 @@ namespace PinInCpp {
 		return { s };
 	}
 
-	std::vector<std::string_view> Keyboard::split(std::string_view s) {
+	std::vector<std::string_view> Keyboard::split(std::string_view s)const {
 		if (s.empty()) { //可选？ 要为了性能不检查吧（
 			return {};
 		}
@@ -210,12 +210,12 @@ namespace PinInCpp {
 				body = it->second;//这个映射是没声调的，确实应该直接赋值
 			}
 		}
-		std::vector<std::string_view> result = cutter(body, *this);
+		std::vector<std::string_view> result = cutter(body);
 		result.emplace_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
 	}
 
-	std::vector<std::string_view> Keyboard::standard(std::string_view s, Keyboard&) {
+	std::vector<std::string_view> Keyboard::Standard(std::string_view s) {
 		std::vector<std::string_view> result;
 		size_t cursor = 0;
 		if (hasInitial(s)) {
@@ -229,8 +229,18 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<std::string_view> Keyboard::zero(std::string_view s, Keyboard& k) {
-		std::vector<std::string_view> ss = standard(s, k);
+	std::vector<std::string_view> Keyboard::Zero(std::string_view s) {
+		std::vector<std::string_view> ss = Standard(s);
+		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
+			std::string_view finale = ss[0];//取字符串第一个元素
+			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
+			ss.emplace_back(finale);//因为职责改变，去除了声调在这里，所以只有一个音素的情况下，直接最后追加即可
+		}
+		return ss;
+	}
+
+	std::vector<std::string_view> Keyboard::ZeroZiranmaOrXiaohe(std::string_view s) {
+		std::vector<std::string_view> ss = Standard(s);
 		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
 			std::string_view finale = ss[0];//取字符串第一个元素
 			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
@@ -244,6 +254,21 @@ namespace PinInCpp {
 		return ss;
 	}
 
+	std::vector<std::string_view> Keyboard::ZeroOInitial(std::string_view s) {
+		std::vector<std::string_view> ss = Standard(s);
+		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
+			ss.insert(ss.begin(), "o");//微软双拼的规则是没声母的情况下声母为o
+		}
+		return ss;
+	}
+
+	std::vector<std::string_view> Keyboard::ZeroAInitial(std::string_view s) {
+		std::vector<std::string_view> ss = Standard(s);
+		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
+			ss.insert(ss.begin(), "a");//微软双拼的规则是没声母的情况下声母为o
+		}
+		return ss;
+	}
 	//文件内私有
 	const static std::map<std::string, std::string> DAQIAN_KEYS = std::map<std::string, std::string>({
 		{"", ""}, {"0", ""}, {"1", " "}, {"2", "6"}, {"3", "3"},
@@ -349,13 +374,13 @@ namespace PinInCpp {
 		{"un", "m"}, {"uo", "o"}, {"ve", "n"}, {"sh", "i"}, {"zh", "u"},
 	});
 
-	const Keyboard Keyboard::QUANPIN = Keyboard(std::nullopt, std::nullopt, Keyboard::standard, false, true);
-	const Keyboard Keyboard::DAQIAN = Keyboard(PHONETIC_LOCAL, DAQIAN_KEYS, Keyboard::standard, false, false);
-	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::MICROSOFT = Keyboard(std::nullopt, MICROSOFT_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::PINYINPP = Keyboard(std::nullopt, PINYINPP_KEYS, Keyboard::zero, true, false);
-	const Keyboard Keyboard::ZIGUANG = Keyboard(std::nullopt, ZIGUANG_KEYS, Keyboard::zero, true, false);
+	const Keyboard Keyboard::QUANPIN = Keyboard(std::nullopt, std::nullopt, Keyboard::Standard, false, true);
+	const Keyboard Keyboard::DAQIAN = Keyboard(PHONETIC_LOCAL, DAQIAN_KEYS, Keyboard::Standard, false, false);
+	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
+	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
+	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::ZeroOInitial, true, false);
+	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::ZeroAInitial, true, false);
+	const Keyboard Keyboard::MICROSOFT = Keyboard(std::nullopt, MICROSOFT_KEYS, Keyboard::ZeroOInitial, true, false);
+	const Keyboard Keyboard::PINYINPP = Keyboard(std::nullopt, PINYINPP_KEYS, Keyboard::Zero, true, false);
+	const Keyboard Keyboard::ZIGUANG = Keyboard(std::nullopt, ZIGUANG_KEYS, Keyboard::ZeroOInitial, true, false);
 }

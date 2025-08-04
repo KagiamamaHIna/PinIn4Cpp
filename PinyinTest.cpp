@@ -30,7 +30,6 @@ constexpr int SearcherLoopCount = 1;
 
 int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
-
 	std::fstream file("small.txt");//数据读取
 	std::string line;
 	std::vector<std::string> FileCache;

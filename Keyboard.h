@@ -4,6 +4,7 @@
 #include <optional>
 #include <functional>
 #include <set>
+
 /*
 	拼音上下文是带声调的！
 	拼音字符应当都是ASCII可表示的字符，不然字符串处理会出问题
@@ -17,7 +18,7 @@ namespace PinInCpp {
 	class Keyboard;
 	//应该只处理音节，无需处理音调，自定义逻辑的时候请注意！和原始Java项目行为不一致
 	//你不应该在里面手动进行音素的改造，比如v->u，他们应该是交由其他的方法处理的，这是纯粹的切割音素函数
-	using CutterFn = std::function<std::vector<std::string_view>(std::string_view, Keyboard&)>;
+	using CutterFn = std::function<std::vector<std::string_view>(std::string_view)>;
 
 	class Keyboard {
 	public:
@@ -28,13 +29,25 @@ namespace PinInCpp {
 
 		std::string_view keys(std::string_view s)const noexcept;
 		std::vector<std::string_view> GetFuzzyPhoneme(std::string_view s)const;
-		std::vector<std::string_view> split(std::string_view s);
+		std::vector<std::string_view> split(std::string_view s)const;
 		bool GetHasFuuzyLocal()const noexcept {//用于确定音素reload是否进行查表和纯逻辑行为
 			return MapLocalFuzzy.has_value();
 		}
 
-		static std::vector<std::string_view> standard(std::string_view s, Keyboard&);//本身就是一个标准的，处理全拼音素的全局函数
-		static std::vector<std::string_view> zero(std::string_view s, Keyboard& k);
+		//本身就是一个标准的，处理全拼音素的CutterFn
+		static std::vector<std::string_view> Standard(std::string_view s);
+
+		//在standard的基础上，零声母情况下的 韵母第一个字母+韵母所在键 方案的CutterFn
+		static std::vector<std::string_view> Zero(std::string_view s);
+
+		//在standard的基础上，零声母情况下的 韵母第一个字母+韵母所在键，两字母的韵母全拼 方案的CutterFn，给自然码/小鹤双拼双拼使用的
+		static std::vector<std::string_view> ZeroZiranmaOrXiaohe(std::string_view s);
+
+		//在standard的基础上，零声母情况下的声母为 o 方案CutterFn
+		static std::vector<std::string_view> ZeroOInitial(std::string_view s);
+
+		//在standard的基础上，零声母情况下的声母为 a 方案CutterFn
+		static std::vector<std::string_view> ZeroAInitial(std::string_view s);
 
 		static const Keyboard QUANPIN;//类内不完整，所以这些的构造放cpp文件了
 		static const Keyboard DAQIAN;

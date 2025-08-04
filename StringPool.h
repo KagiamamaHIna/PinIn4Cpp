@@ -45,31 +45,4 @@ namespace PinInCpp {
 		size_t last_offset = 0;//替代设计
 		std::vector<size_t> chars_offset;//索引表示的为字符的位置，值表示的是字符的末尾，用上一个值代表字符的开始
 	};
-
-	class StringPool {
-	public:
-		StringPool() = default;
-		StringPool(const StringPool& src) {
-			for (const auto& [k, _] : src.data) {
-				std::unique_ptr<char[]> NewStr = std::unique_ptr<char[]>(new char[k.size()]);
-				memcpy(NewStr.get(), k.data(), k.size());
-				std::string_view result(NewStr.get(), k.size());
-				data.insert_or_assign(result, std::move(NewStr));
-			}
-		}
-		std::string_view PutNewOrGet(std::string_view str) {
-			auto it = data.find(str);
-			if (it != data.end()) {
-				return it->first;
-			}
-
-			std::unique_ptr<char[]> NewStr = std::unique_ptr<char[]>(new char[str.size()]);
-			memcpy(NewStr.get(), str.data(), str.size());
-			std::string_view result(NewStr.get(), str.size());
-			data.insert_or_assign(result, std::move(NewStr));
-			return result;
-		}
-	private:
-		std::unordered_map<std::string_view, std::unique_ptr<char[]>> data;
-	};
 }

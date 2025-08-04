@@ -587,7 +587,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	PinIn::Character::Character(PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
+	PinIn::Character::Character(const PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
 		if (id == NullPinyinId) {
 			return;//无效拼音数据
 		}
