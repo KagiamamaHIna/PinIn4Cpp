@@ -2,7 +2,7 @@
 
 namespace PinInCpp {
 
-	void TreeSearcher::put(const std::string_view& keyword) {
+	void TreeSearcher::put(std::string_view keyword) {
 		ticket->renew();
 		size_t pos = strs.put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs.getLastOffset() - 1 : pos + 1;
@@ -12,7 +12,7 @@ namespace PinInCpp {
 		}
 	}
 
-	std::vector<std::string> TreeSearcher::ExecuteSearch(const std::string_view& s) {
+	std::vector<std::string> TreeSearcher::ExecuteSearch(std::string_view s) {
 		std::unordered_set<size_t> ret;
 		CommonSearch(s, ret);
 
@@ -24,7 +24,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<std::string_view> TreeSearcher::ExecuteSearchView(const std::string_view& s) {
+	std::vector<std::string_view> TreeSearcher::ExecuteSearchView(std::string_view s) {
 		std::unordered_set<size_t> ret;
 		CommonSearch(s, ret);
 
@@ -36,7 +36,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::unordered_set<size_t> TreeSearcher::ExecuteSearchGetSet(const std::string_view& s) {
+	std::unordered_set<size_t> TreeSearcher::ExecuteSearchGetSet(std::string_view s) {
 		std::unordered_set<size_t> ret;
 		CommonSearch(s, ret);
 		return ret;

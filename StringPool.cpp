@@ -1,7 +1,9 @@
 #include "StringPool.h"
 
+#include "PinIn.h"//避免循环依赖问题
+
 namespace PinInCpp {
-	size_t UTF8StringPool::put(const std::string_view& s) {
+	size_t UTF8StringPool::put(std::string_view s) {
 		strs.insert(strs.end(), s.begin(), s.end());//数据插入
 		strs.emplace_back('\0');
 

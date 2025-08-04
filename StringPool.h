@@ -1,9 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
-
-#include "PinIn.h"
-
+#include <unordered_map>
+#include <memory>
 
 namespace PinInCpp {
 	/*
@@ -23,13 +22,13 @@ namespace PinInCpp {
 		bool end(size_t i)const noexcept {
 			return strs[chars_offset[i]] == '\0';
 		}
-		size_t put(const std::string_view& s);//返回的是其插入完成后字符串首端索引
+		size_t put(std::string_view s);//返回的是其插入完成后字符串首端索引
 		std::string getchar(size_t i)const;//获取指定字符
 		std::string getstr(size_t strStart)const;//输入首端索引构造完整字符串
 		std::string_view getchar_view(size_t i)const noexcept;//获取指定字符的只读视图 持有时不要变动字符串池！
 		std::string_view getstr_view(size_t strStart)const noexcept;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
 		uint32_t getcharFourCC(size_t i)const noexcept;//针对单字符的FourCC打包编码的实现
-		size_t getLastOffset()const noexcept {//获取上一个插入的UTF8字符串的长度
+		size_t getLastOffset()const noexcept {//获取上次插入完成后的偏移值
 			return last_offset;
 		}
 		//单位是字节
@@ -45,5 +44,32 @@ namespace PinInCpp {
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量
 		size_t last_offset = 0;//替代设计
 		std::vector<size_t> chars_offset;//索引表示的为字符的位置，值表示的是字符的末尾，用上一个值代表字符的开始
+	};
+
+	class StringPool {
+	public:
+		StringPool() = default;
+		StringPool(const StringPool& src) {
+			for (const auto& [k, _] : src.data) {
+				std::unique_ptr<char[]> NewStr = std::unique_ptr<char[]>(new char[k.size()]);
+				memcpy(NewStr.get(), k.data(), k.size());
+				std::string_view result(NewStr.get(), k.size());
+				data.insert_or_assign(result, std::move(NewStr));
+			}
+		}
+		std::string_view PutNewOrGet(std::string_view str) {
+			auto it = data.find(str);
+			if (it != data.end()) {
+				return it->first;
+			}
+
+			std::unique_ptr<char[]> NewStr = std::unique_ptr<char[]>(new char[str.size()]);
+			memcpy(NewStr.get(), str.data(), str.size());
+			std::string_view result(NewStr.get(), str.size());
+			data.insert_or_assign(result, std::move(NewStr));
+			return result;
+		}
+	private:
+		std::unordered_map<std::string_view, std::unique_ptr<char[]>> data;
 	};
 }

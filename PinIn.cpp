@@ -48,7 +48,7 @@ namespace PinInCpp {
 		}
 	}
 
-	uint32_t FourCCToU32(const std::string_view& str) noexcept {
+	uint32_t FourCCToU32(std::string_view str) noexcept {
 		uint32_t result = 0;
 
 		size_t size = str.size();
@@ -84,7 +84,7 @@ namespace PinInCpp {
 		buf[0] |= c;
 	}
 
-	size_t PinIn::CharPool::put(const std::string_view& s) {
+	size_t PinIn::CharPool::put(std::string_view s) {
 		size_t result = strs->size();
 		strs->insert(strs->end(), s.begin(), s.end());//插入字符串
 		return result;
@@ -209,7 +209,7 @@ namespace PinInCpp {
 	}
 
 	//PinIn类
-	PinIn::PinIn(const std::string_view& path) {
+	PinIn::PinIn(std::string_view path) {
 		std::fstream fs = std::fstream(std::string(path), std::ios::in);
 		if (!fs.is_open()) {//未成功打开 
 			//std::cerr << "file did not open successfully(StrToPinyin)\n";
@@ -242,7 +242,7 @@ namespace PinInCpp {
 		pool.Fixed();
 	}
 
-	bool PinIn::HasPinyin(const std::string_view& str)const noexcept {
+	bool PinIn::HasPinyin(std::string_view str)const noexcept {
 		return static_cast<bool>(data.count(FourCCToU32(str)));
 	}
 
@@ -270,7 +270,7 @@ namespace PinInCpp {
 		}
 	}
 
-	std::vector<std::string> PinIn::GetPinyin(const std::string_view& str, bool hasTone)const {
+	std::vector<std::string> PinIn::GetPinyin(std::string_view str, bool hasTone)const {
 		auto it = data.find(FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string>{std::string(str)};
@@ -281,7 +281,7 @@ namespace PinInCpp {
 		return DeleteTone<std::string>(this, it->second);
 	}
 
-	std::vector<std::string_view> PinIn::GetPinyinView(const std::string_view& str, bool hasTone)const {
+	std::vector<std::string_view> PinIn::GetPinyinView(std::string_view str, bool hasTone)const {
 		auto it = data.find(FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string_view>{str};
@@ -292,7 +292,7 @@ namespace PinInCpp {
 		return DeleteTone<std::string_view>(this, it->second);
 	}
 
-	std::vector<std::vector<std::string>> PinIn::GetPinyinList(const std::string_view& str, bool hasTone)const {
+	std::vector<std::vector<std::string>> PinIn::GetPinyinList(std::string_view str, bool hasTone)const {
 		Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string>> result;
 		result.reserve(utf8v.size());
@@ -302,7 +302,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<std::vector<std::string_view>> PinIn::GetPinyinViewList(const std::string_view& str, bool hasTone)const {
+	std::vector<std::vector<std::string_view>> PinIn::GetPinyinViewList(std::string_view str, bool hasTone)const {
 		Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string_view>> result;
 		result.reserve(utf8v.size());
@@ -312,7 +312,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	PinIn::Character* PinIn::GetCharCachePtr(const std::string_view& str) {
+	PinIn::Character* PinIn::GetCharCachePtr(std::string_view str) {
 		if (CharCache) {
 			size_t id = GetPinyinId(str);
 			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
@@ -587,7 +587,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	PinIn::Character::Character(const PinIn& p, const std::string_view& ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
+	PinIn::Character::Character(PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
 		if (id == NullPinyinId) {
 			return;//无效拼音数据
 		}

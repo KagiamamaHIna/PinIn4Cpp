@@ -1,5 +1,6 @@
 #pragma once
 #include "StringPool.h"
+#include "PinIn.h"
 
 namespace PinInCpp {
 	class Accelerator {
@@ -13,7 +14,7 @@ namespace PinInCpp {
 		const uint32_t searchU32FourCC(size_t i) {
 			return u32strVec[i];
 		}
-		void search(const std::string_view& s) {
+		void search(std::string_view s) {
 			if (s != searchStr.ToStream()) {
 				searchStr.reset(std::string(s));
 

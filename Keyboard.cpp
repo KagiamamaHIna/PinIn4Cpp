@@ -1,7 +1,7 @@
 #include "Keyboard.h"
 
 namespace PinInCpp {
-	bool hasInitial(const std::string_view& s) {//判断是否有声母
+	bool hasInitial(std::string_view s) {//判断是否有声母
 		if (s.empty()) {
 			return false;
 		}
@@ -29,7 +29,7 @@ namespace PinInCpp {
 				size_t valueSize = value.size();
 				size_t valueStart = pool.put(value);
 				data.push_back({ keySize,keyStart,valueSize,valueStart });
-				for (const auto& str : Keyboard::standard(value)) {//key是基于标准拼音的，所以只用检查value
+				for (const auto& str : Keyboard::standard(value, *this)) {//key是基于标准拼音的，所以只用检查value
 					if (HasData.count(str)) {//有就直接跳过
 						continue;
 					}
@@ -168,7 +168,7 @@ namespace PinInCpp {
 		}
 	}
 
-	std::string_view Keyboard::keys(const std::string_view& s)const noexcept {
+	std::string_view Keyboard::keys(std::string_view s)const noexcept {
 		if (MapKeys == std::nullopt) {
 			return s;
 		}
@@ -182,7 +182,7 @@ namespace PinInCpp {
 		return s;
 	}
 
-	std::vector<std::string_view> Keyboard::GetFuzzyPhoneme(const std::string_view& s)const {
+	std::vector<std::string_view> Keyboard::GetFuzzyPhoneme(std::string_view s)const {
 		if (MapLocalFuzzy == std::nullopt) {
 			return { s };
 		}
@@ -196,7 +196,7 @@ namespace PinInCpp {
 		return { s };
 	}
 
-	std::vector<std::string_view> Keyboard::split(const std::string_view& s)const {
+	std::vector<std::string_view> Keyboard::split(std::string_view s) {
 		if (s.empty()) { //可选？ 要为了性能不检查吧（
 			return {};
 		}
@@ -210,12 +210,12 @@ namespace PinInCpp {
 				body = it->second;//这个映射是没声调的，确实应该直接赋值
 			}
 		}
-		std::vector<std::string_view> result = cutter(body);
+		std::vector<std::string_view> result = cutter(body, *this);
 		result.emplace_back(tone);//取最后一个字符构造字符串(声调)
 		return result;
 	}
 
-	std::vector<std::string_view> Keyboard::standard(const std::string_view& s) {
+	std::vector<std::string_view> Keyboard::standard(std::string_view s, Keyboard&) {
 		std::vector<std::string_view> result;
 		size_t cursor = 0;
 		if (hasInitial(s)) {
@@ -229,8 +229,8 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<std::string_view> Keyboard::zero(const std::string_view& s) {
-		std::vector<std::string_view> ss = standard(s);
+	std::vector<std::string_view> Keyboard::zero(std::string_view s, Keyboard& k) {
+		std::vector<std::string_view> ss = standard(s, k);
 		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
 			std::string_view finale = ss[0];//取字符串第一个元素
 			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
