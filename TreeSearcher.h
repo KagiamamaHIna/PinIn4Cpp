@@ -124,14 +124,26 @@ namespace PinInCpp {
 							return this;//如果查到，有相等的，则为重复
 						}
 					}
-					data.push_back(input_v);
-					if (data.size() > ContainerThreshold) {
+					//置前检查，避免潜在的不必要堆分配
+					if (data.size() + 1 > ContainerThreshold) {
 						std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
 						for (const value& v : data) {
 							result->insert(v);
 						}
+						result->insert(input_v);
 						return result.release();
 					}
+
+					size_t capacity = data.capacity();
+					if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
+						if (capacity == 0) {
+							data.reserve(1);
+						}
+						else {
+							data.reserve(capacity * 2);
+						}
+					}
+					data.emplace_back(input_v);
 					return this;
 				}
 				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {

@@ -50,15 +50,15 @@ namespace PinInCpp {
 		//在standard的基础上，零声母情况下的声母为 a 方案CutterFn
 		static std::vector<std::string_view> ZeroAInitial(std::string_view s);
 
-		static const Keyboard QUANPIN;//类内不完整，所以这些的构造放cpp文件了
-		static const Keyboard DAQIAN;
-		static const Keyboard XIAOHE;
-		static const Keyboard ZIRANMA;
-		static const Keyboard SOUGOU;
-		static const Keyboard GUOBIAO;
-		static const Keyboard MICROSOFT;
-		static const Keyboard PINYINPP;
-		static const Keyboard ZIGUANG;
+		static const Keyboard QUANPIN;//基础的全拼方案 PinIn类的默认方案
+		static const Keyboard DAQIAN;//注音（大千）输入法方案
+		static const Keyboard XIAOHE;//小鹤双拼方案
+		static const Keyboard ZIRANMA;//自然码双拼方案
+		static const Keyboard SOUGOU;//搜狗双拼方案
+		static const Keyboard GUOBIAO;//国标双拼方案
+		static const Keyboard MICROSOFT;//微软双拼方案
+		static const Keyboard PINYINPP;//拼音加加双拼方案
+		static const Keyboard ZIGUANG;//紫光双拼方案
 
 		bool duo;
 		bool sequence;

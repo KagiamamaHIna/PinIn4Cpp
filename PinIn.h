@@ -368,9 +368,19 @@ namespace PinInCpp {
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
-			size_t put(std::string_view s);
-			size_t putChar(const char s);
-			void putEnd();
+			size_t put(std::string_view s) {
+				size_t result = strs->size();
+				strs->insert(strs->end(), s.begin(), s.end());//插入字符串
+				return result;
+			}
+			size_t putChar(const char s) {
+				size_t result = strs->size();
+				strs->push_back(s);
+				return result;
+			}
+			void putEnd() {
+				strs->push_back('\0');
+			}
 			std::vector<std::string> getPinyinVec(size_t i)const;
 			std::string_view getPinyinView(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去

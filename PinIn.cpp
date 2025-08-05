@@ -84,22 +84,6 @@ namespace PinInCpp {
 		buf[0] |= c;
 	}
 
-	size_t PinIn::CharPool::put(std::string_view s) {
-		size_t result = strs->size();
-		strs->insert(strs->end(), s.begin(), s.end());//插入字符串
-		return result;
-	}
-
-	size_t PinIn::CharPool::putChar(const char s) {
-		size_t result = strs->size();
-		strs->push_back(s);
-		return result;
-	}
-
-	void PinIn::CharPool::putEnd() {
-		strs->push_back('\0');
-	}
-
 	std::vector<std::string> PinIn::CharPool::getPinyinVec(size_t i)const {//根据理论上的正确格式来讲，应当是用','字符分隔拼音，然后用'\0'作为拼音数据末尾
 		//编辑i当作索引id即可
 		size_t cursor = 0;//直接在result上构造字符串，用这个代表当前访问的字符串
