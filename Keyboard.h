@@ -22,6 +22,7 @@ namespace PinInCpp {
 
 	class Keyboard {
 	public:
+		//duo参数为真代表这是个双拼方案，sequence为真代表启用序列匹配，只匹配单ASCII字符(一般用于全拼)
 		Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence);
 		virtual ~Keyboard() = default;
 		//移动构造函数应该是安全的，因为向量也会被移动
