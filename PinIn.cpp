@@ -426,7 +426,7 @@ namespace PinInCpp {
 		}
 		for (const auto& str : strs) {
 			size_t size = StrCmp(source, str, start);
-			if (partial && start + size == source.size()) {//显式手动转换，表明我知道这个转换且需要，避免编译期警告
+			if (partial && size != 0 && start + size == source.size()) {//显式手动转换，表明我知道这个转换且需要，避免编译期警告
 				result.set(static_cast<uint32_t>(size));  // ending match
 			}
 			else if (size == str.size()) {
