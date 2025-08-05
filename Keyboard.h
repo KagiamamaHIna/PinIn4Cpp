@@ -84,7 +84,7 @@ namespace PinInCpp {
 		void InsertDataFn(const OptionalStrMap& srcData, std::vector<InsertStrData>& data, std::vector<InsertStrMultiData>* LocalFuzzyData = nullptr);
 		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data);
 		class StrPool;
-		void ViewDeepCopy(const StrPool& srcPool, const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target);
+		void ViewDeepCopy(const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target);
 
 		//不是StringPoolBase的派生类，是用于Keyboard持有字符串生命周期的内存池
 		class StrPool {
@@ -111,6 +111,12 @@ namespace PinInCpp {
 			}
 			const char* data()const {
 				return strs.data();
+			}
+			void reserve(size_t size) {
+				strs.reserve(size);
+			}
+			size_t size()const noexcept {
+				return strs.size();
 			}
 		private:
 			std::vector<char> strs;

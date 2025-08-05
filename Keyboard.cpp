@@ -87,19 +87,15 @@ namespace PinInCpp {
 			Target.insert_or_assign(key, value);
 		}
 	}
-	void Keyboard::ViewDeepCopy(const Keyboard::StrPool& srcPool, const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target) {
-		size_t srcPoolPtr = reinterpret_cast<size_t>(srcPool.data());
+	void Keyboard::ViewDeepCopy(const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target) {
 		char* poolptr = pool.data();
-		for (const auto& [k, v] : srcMap) {
-			size_t keyStart = reinterpret_cast<size_t>(k.data());
-			keyStart -= srcPoolPtr;//视图指针基址减去其来源即他的偏移量
+		for (const auto& [key, value] : srcMap) {
+			size_t keySize = key.size();
+			size_t keyStart = pool.put(key);
 
-			size_t valueStart = reinterpret_cast<size_t>(v.data());
-			valueStart -= srcPoolPtr;//视图指针基址减去其来源即他的偏移量
-
-			std::string_view key(poolptr + keyStart, k.size());
-			std::string_view value(poolptr + valueStart, v.size());
-			Target.insert_or_assign(key, value);
+			size_t valueSize = value.size();
+			size_t valueStart = pool.put(value);
+			Target.insert_or_assign(std::string_view(poolptr + keyStart, keySize), std::string_view(poolptr + valueStart, valueSize));
 		}
 	}
 	Keyboard::Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence)
@@ -137,34 +133,31 @@ namespace PinInCpp {
 			CreateViewOnMap(MapKeys.value(), MapKeysData);
 		}
 	}
-	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, pool{ src.pool }, cutter{ src.cutter } {
+	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, cutter{ src.cutter } {
+		pool.reserve(src.pool.size());//预分配合适大小，避免数据重分配造成视图失效
 		//重建视图
 		if (src.MapLocalFuzzy.has_value()) {
 			MapLocalFuzzy = std::map<std::string_view, std::vector<std::string_view>>();
 			char* poolptr = pool.data();
 			auto& Target = MapLocalFuzzy.value();
 
-			size_t srcPoolPtr = reinterpret_cast<size_t>(src.pool.data());
 			for (const auto& [key, vec] : src.MapLocalFuzzy.value()) {
-				size_t keyStart = reinterpret_cast<size_t>(key.data());
-				keyStart -= srcPoolPtr;//视图指针基址减去其来源即他的偏移量
+				size_t keyStart = pool.put(key);
 
 				std::string_view keyView(poolptr + keyStart, key.size());//构造键
 				for (const auto& v : vec) {
-					size_t valueStart = reinterpret_cast<size_t>(v.data());
-					valueStart -= srcPoolPtr;//视图指针基址减去其来源即他的偏移量
-
+					size_t valueStart = pool.put(v);
 					Target[keyView].emplace_back(std::string_view(poolptr + valueStart, v.size()));
 				}
 			}
 		}
 		if (src.MapKeys.has_value()) {
 			MapKeys = std::map<std::string_view, std::string_view>();
-			ViewDeepCopy(src.pool, src.MapKeys.value(), MapKeys.value());
+			ViewDeepCopy(src.MapKeys.value(), MapKeys.value());
 		}
 		if (src.MapLocal.has_value()) {
 			MapLocal = std::map<std::string_view, std::string_view>();
-			ViewDeepCopy(src.pool, src.MapLocal.value(), MapLocal.value());
+			ViewDeepCopy(src.MapLocal.value(), MapLocal.value());
 		}
 	}
 
