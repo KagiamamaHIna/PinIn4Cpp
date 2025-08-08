@@ -40,7 +40,7 @@ namespace PinInCpp {
 			std::vector<std::string> result;
 			for (const auto& vec : ResultSet) {
 				for (const auto& str : vec) {
-					result.push_back(std::string(str));
+					result.emplace_back(str);
 				}
 			}
 			return result;
@@ -50,7 +50,7 @@ namespace PinInCpp {
 			std::vector<std::string_view> result;
 			for (const auto& vec : ResultSet) {
 				for (const auto& str : vec) {
-					result.push_back(str);
+					result.emplace_back(str);
 				}
 			}
 			return result;

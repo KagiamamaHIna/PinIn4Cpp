@@ -76,6 +76,7 @@ namespace PinInCpp {
 		}
 		void ShrinkToFit() {//调用的是std::vector<char>::shrink_to_fit
 			strs.ShrinkToFit();
+			acc.ShrinkToFit();
 		}
 	private:
 		void init() {

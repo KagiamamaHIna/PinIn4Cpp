@@ -369,7 +369,7 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	inline static size_t StrCmp(const Utf8String& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
+	inline static size_t StrCmp(const Utf8StringView& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
 		for (size_t i = 0; i < len; i++) {
 			if (a[i + aStart] != b[i]) {
@@ -388,7 +388,7 @@ namespace PinInCpp {
 		return false;
 	}
 
-	IndexSet PinIn::Phoneme::match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const noexcept {
+	IndexSet PinIn::Phoneme::match(const Utf8StringView& source, IndexSet idx, size_t start, bool partial)const noexcept {
 		if (empty()) {
 			return idx;
 		}
@@ -403,7 +403,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	IndexSet PinIn::Phoneme::match(const Utf8String& source, size_t start, bool partial)const noexcept {
+	IndexSet PinIn::Phoneme::match(const Utf8StringView& source, size_t start, bool partial)const noexcept {
 		IndexSet result = IndexSet::Init();
 		if (empty()) {
 			return result;
@@ -543,7 +543,7 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Pinyin::match(const Utf8String& str, size_t start, bool partial)const noexcept {
+	IndexSet PinIn::Pinyin::match(const Utf8StringView& str, size_t start, bool partial)const noexcept {
 		IndexSet ret = IndexSet::Init();
 		if (duo) {
 			// in shuangpin we require initial and final both present,
@@ -582,7 +582,7 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Character::match(const Utf8String& u8str, size_t start, bool partial)const noexcept {
+	IndexSet PinIn::Character::match(const Utf8StringView& u8str, size_t start, bool partial)const noexcept {
 		IndexSet ret = u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE;
 		for (const auto& p : pinyin) {
 			ret.merge(p.match(u8str, start, partial));

@@ -39,10 +39,10 @@ namespace PinInCpp {
 	class UTF8StringTemplate {
 	public:
 		UTF8StringTemplate() {}
-		UTF8StringTemplate(const StrType& input) {
+		UTF8StringTemplate(std::string_view input) {
 			Init(input);
 		}
-		void reset(const StrType& input) {
+		void reset(std::string_view input) {
 			str.clear();
 			Init(input);
 		}
@@ -84,7 +84,7 @@ namespace PinInCpp {
 			return str.end();
 		}
 	private:
-		void Init(const StrType& input) {
+		void Init(std::string_view input) {
 			size_t cursor = 0;
 			size_t end = input.size();
 			while (cursor < end) {
@@ -260,7 +260,7 @@ namespace PinInCpp {
 		class Element {//基类，确保这些成分都像原始的设计一样，可以被转换为这个基本的类
 		public:
 			virtual ~Element() = default;
-			virtual IndexSet match(const Utf8String& source, size_t start, bool partial)const = 0;
+			virtual IndexSet match(const Utf8StringView& source, size_t start, bool partial)const = 0;
 			virtual std::string ToString()const = 0;
 		};
 		class Pinyin;
@@ -291,8 +291,8 @@ namespace PinInCpp {
 				return strs.empty();
 			}
 			bool matchSequence(const char c)const noexcept;
-			IndexSet match(const Utf8String& source, IndexSet idx, size_t start, bool partial)const noexcept;
-			IndexSet match(const Utf8String& source, size_t start, bool partial)const noexcept;
+			IndexSet match(const Utf8StringView& source, IndexSet idx, size_t start, bool partial)const noexcept;
+			IndexSet match(const Utf8StringView& source, size_t start, bool partial)const noexcept;
 			const std::vector<std::string_view>& GetAtoms()const noexcept {//获取这个音素的最小成分(原子)，即它表达了什么音素
 				return strs;
 			}
@@ -322,7 +322,7 @@ namespace PinInCpp {
 				return std::string(ctx.pool.getPinyinView(id));
 			}
 			void reload();
-			IndexSet match(const Utf8String& str, size_t start, bool partial)const noexcept;
+			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
 			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
 		private:
 			friend Character;//由Character类执行构建
@@ -354,7 +354,7 @@ namespace PinInCpp {
 					p.reload();
 				}
 			}
-			IndexSet match(const Utf8String& str, size_t start, bool partial)const noexcept;
+			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建

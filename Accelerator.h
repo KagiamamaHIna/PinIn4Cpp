@@ -8,15 +8,16 @@ namespace PinInCpp {
 		Accelerator(PinIn& p) : ctx{ p } {
 
 		}
-		const Utf8String& search() {
+		const Utf8StringView& search() {
 			return searchStr;
 		}
 		const uint32_t searchU32FourCC(size_t i) {
 			return u32strVec[i];
 		}
 		void search(std::string_view s) {
-			if (s != searchStr.ToStream()) {
-				searchStr.reset(std::string(s));
+			if (s != searchSrcStr) {
+				searchSrcStr = s;
+				searchStr.reset(searchSrcStr);
 
 				u32strVec.clear();
 				for (const auto& v : searchStr) {
@@ -34,6 +35,12 @@ namespace PinInCpp {
 		void setProvider(UTF8StringPool* provider_ptr) {
 			provider = provider_ptr;
 		}
+		void ShrinkToFit() {
+			u32strVec.shrink_to_fit();
+			searchStr.ShrinkToFit();
+			searchSrcStr.shrink_to_fit();
+			cache.shrink_to_fit();
+		}
 
 		IndexSet get(const PinIn::Pinyin& p, size_t offset);
 		IndexSet get(const uint32_t ch, size_t offset);
@@ -42,7 +49,7 @@ namespace PinInCpp {
 		bool matches(size_t offset, size_t start);
 		bool begins(size_t offset, size_t start);
 		bool contains(size_t offset, size_t start);
-		const Utf8String& getSearchStr() {
+		const Utf8StringView& getSearchStr() {
 			return searchStr;
 		}
 	private:
@@ -50,7 +57,8 @@ namespace PinInCpp {
 
 		PinIn& ctx;
 		std::vector<IndexSet::Storage> cache;
-		Utf8String searchStr;
+		Utf8StringView searchStr;
+		std::string searchSrcStr;
 		std::vector<uint32_t> u32strVec;
 		bool partial = false;
 	};
