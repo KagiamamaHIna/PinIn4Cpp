@@ -363,7 +363,7 @@ namespace PinInCpp {
 		const Logic logic;
 
 		std::unique_ptr<Node> root = nullptr;
-		std::vector<NAcc*> naccs;//观察者，不持有数据
+		std::deque<NAcc*> naccs;//观察者，不持有数据
 
 		ObjectPtrPool<NDense> NDensePool;
 		ObjectPtrPool<NSlice> NSlicePool;

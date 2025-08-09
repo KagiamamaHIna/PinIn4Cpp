@@ -6,9 +6,6 @@ namespace PinInCpp {
 	}
 
 	IndexSet Accelerator::get(const PinIn::Pinyin& p, size_t offset) {
-		if (cache.size() <= offset) {//检查是否过小
-			cache.resize(offset + 1);//过小触发resize，重设置大小
-		}
 		IndexSet::Storage& data = cache[offset];
 		IndexSet ret = data.get(p.id);
 		if (ret == IndexSet::NONE) {

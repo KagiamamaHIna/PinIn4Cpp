@@ -373,6 +373,7 @@ namespace PinInCpp {
 	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
 	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
 	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::ZeroOInitial, true, false);
+	const Keyboard Keyboard::ZHINENG_ABC = Keyboard(std::nullopt, ZHINENG_ABC_KEYS, Keyboard::ZeroOInitial, true, false);
 	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::ZeroAInitial, true, false);
 	const Keyboard Keyboard::MICROSOFT = Keyboard(std::nullopt, MICROSOFT_KEYS, Keyboard::ZeroOInitial, true, false);
 	const Keyboard Keyboard::PINYINPP = Keyboard(std::nullopt, PINYINPP_KEYS, Keyboard::Zero, true, false);

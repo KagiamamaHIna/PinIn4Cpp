@@ -55,6 +55,7 @@ namespace PinInCpp {
 		static const Keyboard XIAOHE;//小鹤双拼方案
 		static const Keyboard ZIRANMA;//自然码双拼方案
 		static const Keyboard SOUGOU;//搜狗双拼方案
+		static const Keyboard ZHINENG_ABC;//智能ABC双拼方案
 		static const Keyboard GUOBIAO;//国标双拼方案
 		static const Keyboard MICROSOFT;//微软双拼方案
 		static const Keyboard PINYINPP;//拼音加加双拼方案

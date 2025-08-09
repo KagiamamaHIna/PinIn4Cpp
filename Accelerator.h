@@ -18,6 +18,9 @@ namespace PinInCpp {
 			if (s != searchSrcStr) {
 				searchSrcStr = s;
 				searchStr.reset(searchSrcStr);
+				if (cache.size() < searchStr.size()) {
+					cache.resize(searchStr.size());
+				}
 
 				u32strVec.clear();
 				for (const auto& v : searchStr) {
