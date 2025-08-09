@@ -1,10 +1,6 @@
 #include "Accelerator.h"
 
 namespace PinInCpp {
-	inline static bool utf8_string_end(const Utf8String& str, size_t index)noexcept {
-		return index >= str.size();
-	}
-
 	IndexSet Accelerator::get(const PinIn::Pinyin& p, size_t offset) {
 		IndexSet::Storage& data = cache[offset];
 		IndexSet ret = data.get(p.id);

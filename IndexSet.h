@@ -84,7 +84,7 @@ namespace PinInCpp {
 				data.clear();
 			}
 		private:
-			std::unordered_map<size_t, uint32_t>data;
+			std::unordered_map<size_t, uint32_t> data;
 		};
 	private:
 		uint32_t value;

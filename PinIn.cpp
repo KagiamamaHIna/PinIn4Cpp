@@ -410,7 +410,10 @@ namespace PinInCpp {
 		}
 		for (const auto& str : strs) {
 			size_t size = StrCmp(source, str, start);
-			if (partial && size != 0 && start + size == source.size()) {//显式手动转换，表明我知道这个转换且需要，避免编译期警告
+			if (size == 0) {
+				continue;
+			}
+			if (partial && start + size == source.size()) {//显式手动转换，表明我知道这个转换且需要，避免编译期警告
 				result.set(static_cast<uint32_t>(size));  // ending match
 			}
 			else if (size == str.size()) {
@@ -564,7 +567,9 @@ namespace PinInCpp {
 				ret.merge(active);
 			}
 		}
-		if (sequence && phonemes[0].matchSequence(str[start][0])) {//内部音素都是ASCII范围内的，所以本质上就是在比较ASCII，直接取字符丢进去比较就行
+		//内部音素都是ASCII范围内的，所以本质上就是在比较ASCII，直接取字符丢进去比较就行
+		//UTF8的ASCII字符和原始的ASCII字符一致，我们检查一下大小可以作为快路径跳出，如果不符合要求的话
+		if (sequence && str[start].size() == 1 && phonemes[0].matchSequence(str[start][0])) {
 			ret.set(1);
 		}
 
