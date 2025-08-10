@@ -1,5 +1,7 @@
 #include "PinIn.h"
 
+#include "BinUtils.h"
+
 namespace PinInCpp {
 	//函数定义
 	//Unicode码转utf8字符
@@ -368,6 +370,16 @@ namespace PinInCpp {
 
 		ctx.modification++;
 	}
+
+	/*std::vector<uint8_t> PinIn::Serialization()const {
+		std::vector<uint8_t> result;
+		PushQWUint8(result, pool.size());
+		if (empty()) {
+			return result;
+		}
+		result.insert(result.end(), pool.data(), pool.data() + pool.size());
+		return result;
+	}*/
 
 	inline static size_t StrCmp(const Utf8StringView& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
