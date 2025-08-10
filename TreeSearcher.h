@@ -12,6 +12,7 @@
 #include "Accelerator.h"
 #include "Keyboard.h"
 #include "ObjectPool.h"
+#include "BinUtils.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -35,6 +36,13 @@ namespace PinInCpp {
 			init();
 		}
 		virtual ~TreeSearcher() = default;
+
+		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
+		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
+		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
+		static std::unique_ptr<TreeSearcher> Deserialization(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0);
+		std::vector<uint8_t> Serialization()const;
 
 		//因为绑定着this指针，所以不能移动和拷贝
 		TreeSearcher(const TreeSearcher&) = delete;
@@ -101,7 +109,10 @@ namespace PinInCpp {
 			public:
 				virtual ~AbstractSet() = default;
 				virtual AbstractSet* insert(const value& input_v) = 0;
+				virtual void DeserializationInsert(const value& input_v) = 0;
 				virtual void AddToSTLSet(std::unordered_set<value>& input_v) = 0;//有点反客为主了
+				virtual size_t size()const noexcept = 0;
+				virtual void forEach(std::function<void(const value&)>& fn)const = 0;
 			};
 			class HashSet : public AbstractSet {
 			public:
@@ -109,9 +120,20 @@ namespace PinInCpp {
 					data.insert(input_v);
 					return this;
 				}
+				virtual void DeserializationInsert(const value& input_v) {
+					data.insert(input_v);
+				}
 				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
 					for (const value& v : data) {
 						input_v.insert(v);
+					}
+				}
+				virtual size_t size()const noexcept {
+					return data.size();
+				}
+				virtual void forEach(std::function<void(const value&)>& fn)const {
+					for (const auto& v : data) {
+						fn(v);
 					}
 				}
 			private:
@@ -147,10 +169,24 @@ namespace PinInCpp {
 					data.emplace_back(input_v);
 					return this;
 				}
+				virtual void DeserializationInsert(const value& input_v) {
+					data.emplace_back(input_v);
+				}
 				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
 					for (const value& v : data) {
 						input_v.insert(v);
 					}
+				}
+				virtual size_t size()const noexcept {
+					return data.size();
+				}
+				virtual void forEach(std::function<void(const value&)>& fn)const {
+					for (const auto& v : data) {
+						fn(v);
+					}
+				}
+				void reserve(size_t _Newcapacity) {
+					data.reserve(_Newcapacity);
 				}
 			private:
 				std::vector<value> data;
@@ -163,6 +199,16 @@ namespace PinInCpp {
 					insert(v);
 				}
 			}
+			ObjSet(size_t size) {
+				if (size > ContainerThreshold) {
+					Container = std::make_unique<HashSet>();
+				}
+				else {
+					std::unique_ptr<ArraySet> temp = std::make_unique<ArraySet>();
+					temp->reserve(size);
+					Container = std::move(temp);
+				}
+			}
 			void insert(const value& input_v) {
 				AbstractSet* set = Container->insert(input_v);
 				if (set != Container.get()) {
@@ -172,7 +218,20 @@ namespace PinInCpp {
 			void AddToSTLSet(std::unordered_set<value>& input_v) {
 				Container->AddToSTLSet(input_v);
 			}
+			size_t size()const noexcept {
+				return Container->size();
+			}
+			void forEach(std::function<void(const value&)> fn)const {
+				Container->forEach(fn);
+			}
+			void DeserializationInsert(const value& v) {
+				Container->DeserializationInsert(v);
+			}
 		};
+		enum class NodeType : uint8_t {
+			NDenseType, NSliceType, NMapType, NAccType
+		};
+
 		class Node {//节点类本身是私有的就行了，构造函数公有但外部不需要知道存在节点类
 		public://节点类中用参数传递TreeSearcher的引用比类成员要高效，因为类成员要走this指针解析，第一个参数传引用在x64环境下一般是寄存器传递，绕过了this指针中间商，所以构建速度变更快了
 			virtual ~Node() = default;
@@ -181,9 +240,12 @@ namespace PinInCpp {
 			//为了实现节点替换行为，我已经在API内约定好了，返回一个它本身或者一个新的Node指针，所以前后不一致的时候重设，并且new的方法不会持有这个指针
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) = 0;
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end) = 0;
+			//要求递归的去序列化节点数据
+			virtual void Serialization(std::vector<uint8_t>& data)const = 0;
 
 			//将自身载入对象池
 			virtual void FreeToPool(TreeSearcher& p) = 0;
+			static std::unique_ptr<Node> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index);
 		};
 		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
 		void NodeOwnershipReset(std::unique_ptr<Node>& smartPtrObj, Node* newPtr) {
@@ -199,11 +261,25 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
+			virtual void Serialization(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NDense> Deserialization(const std::vector<uint8_t>& data, size_t& index) {
+				size_t dataSize = static_cast<size_t>(GetU8VecQW(data, index));
+
+				index += 8;
+				std::unique_ptr<NDense> result = std::make_unique<NDense>();
+				result->data.reserve(dataSize);
+
+				for (size_t i = 0; i < dataSize; i++) {
+					result->data.emplace_back(static_cast<size_t>(GetU8VecQW(data, index)));
+					index += 8;
+				}
+
+				return result;
+			}
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NDensePool.FreeToPool(this);
 			}
 		private:
-			friend TreeSearcher;
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
 			std::vector<size_t> data;
 		};
@@ -228,6 +304,48 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
+			virtual void Serialization(std::vector<uint8_t>& data)const {
+				if constexpr (CanUpgrade) {
+					data.push_back(static_cast<uint8_t>(NodeType::NMapType));
+				}
+				PushQWUint8(data, leaves.size());
+				leaves.forEach([&](size_t i) {
+					PushQWUint8(data, i);
+				});
+				if constexpr (CanUpgrade) {
+					if (children == nullptr) {//没指针插入代表假的数字
+						PushQWUint8(data, 0);
+						return;
+					}
+				}
+				PushQWUint8(data, children->size());
+				for (const auto& [k, v] : *children) {
+					PushDWUint8(data, k);
+					v->Serialization(data);
+				}
+			}
+			static std::unique_ptr<NMapTemplate> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+				size_t leavesSize = static_cast<size_t>(GetU8VecQW(data, index));
+				index += 8;
+				std::unique_ptr<NMapTemplate> result = std::make_unique<NMapTemplate>();
+				result->leaves = ObjSet<size_t>(leavesSize);
+				for (size_t i = 0; i < leavesSize; i++) {
+					result->leaves.DeserializationInsert(static_cast<size_t>(GetU8VecQW(data, index)));
+					index += 8;
+				}
+				size_t childrenSize = static_cast<size_t>(GetU8VecQW(data, index));
+				index += 8;
+				if (childrenSize == 0) {
+					return result;
+				}
+				result->children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
+				for (size_t i = 0; i < childrenSize; i++) {
+					uint32_t fourCC = GetU8VecDW(data, index);
+					index += 4;
+					result->children->insert_or_assign(fourCC, Node::Deserialization(p, data, index));
+				}
+				return result;
+			}
 			virtual void FreeToPool(TreeSearcher& p) {
 				if constexpr (CanUpgrade) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
 					p.NMapPool.FreeToPool(this);
@@ -273,30 +391,8 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& result) {
 				NodeMap.get(p, result);//直接调用原始的版本，因为原版Java代码写的是继承，所以没有显式实现
 			}
-			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) {
-				NodeMap.put(p, keyword, id);//绝对不会升级，不需要检查
-				if (p.context->IsCharCacheEnabled()) {
-					indexUseCache(p, p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
-				}
-				else {
-					indexNotUseCache(p, p.strs.getcharFourCC(keyword));
-				}
-				return this;
-			}
-			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end) {
-				NodeMap.putRange(p, start, end);
-				if (p.context->IsCharCacheEnabled()) {
-					for (size_t i = start; i < end; i++) {
-						indexUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
-					}
-				}
-				else {
-					for (size_t i = start; i < end; i++) {
-						indexNotUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
-					}
-				}
-				return this;
-			}
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			void reload(TreeSearcher& p) {
 				index_node.clear();//释放所有音素
 				if (p.context->IsCharCacheEnabled()) {
@@ -310,6 +406,8 @@ namespace PinInCpp {
 					}
 				}
 			}
+			virtual void Serialization(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NAcc> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index);
 			//你不需要，只需要一个空函数即可
 			virtual void FreeToPool(TreeSearcher& p) {}
 		private:
@@ -338,10 +436,22 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
+			virtual void Serialization(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NSlice> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+				size_t start = static_cast<size_t>(GetU8VecQW(data, index));
+				index += 8;
+				size_t end = static_cast<size_t>(GetU8VecQW(data, index));
+				index += 8;
+				std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
+				result->exit_node = Node::Deserialization(p, data, index);
+
+				return result;
+			}
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NSlicePool.FreeToPool(this);
 			}
 		private:
+			NSlice(size_t start, size_t end) :start{ start }, end{ end } {}
 			void cut(TreeSearcher& p, size_t offset);
 			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
 			std::unique_ptr<Node> exit_node = nullptr;

@@ -10,6 +10,7 @@
 #include "IndexSet.h"
 
 namespace PinInCpp {
+	constexpr uint32_t BinDataVersion = 1;
 	//Unicode码转utf8字符
 	uint32_t UnicodeToUtf8(char32_t)noexcept;
 	//十六进制数字字符串转int
@@ -104,6 +105,16 @@ namespace PinInCpp {
 			return "File not successfully opened";
 		}
 	};
+	class BinaryVersionInvalidException : public std::exception {
+	public:
+		//不会持有任何资源，请传字符串字面量
+		BinaryVersionInvalidException(const char* str = "Invalid binary file version") :str{ str } {
+		}
+		virtual const char* what() {
+			return str;
+		}
+		const char* str;
+	};
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
 	//文件解析策略为：跳过错误行
@@ -112,6 +123,14 @@ namespace PinInCpp {
 		class Character;//你应该在这里，因为你是公开接口里返回的对象！(向前声明)
 		PinIn(std::string_view path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
+
+		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
+		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
+		//Keyboard本身是无法序列化的，手动传入你想要的，不传用默认的全拼
+		static PinIn Deserialization(const std::vector<uint8_t>& data, std::optional<Keyboard> keyboard = std::nullopt, size_t index = 0);
+		std::vector<uint8_t> Serialization()const;
+
 		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(const uint32_t hanziFourCC)const {
 			auto it = data.find(hanziFourCC);
@@ -256,8 +275,6 @@ namespace PinInCpp {
 			return Config(*this);
 		}
 
-		//std::vector<uint8_t> Serialization()const;
-
 		//权责关系:Phoneme->Pinyin->Character->PinIn
 		class Element {//基类，确保这些成分都像原始的设计一样，可以被转换为这个基本的类
 		public:
@@ -366,10 +383,19 @@ namespace PinInCpp {
 			std::vector<Pinyin> pinyin;
 		};
 	private:
+		PinIn() = default;//私有的，用于给反序列化接口生成一个空的PinIn对象
+
 		void LineParser(const Utf8StringView&);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:
+			CharPool() {
+				strs = std::make_unique<std::vector<char>>();
+			}
+			CharPool(std::unique_ptr<char[]> data, size_t DataSize) {
+				FixedStrs = std::move(data);
+				poolSize = DataSize;
+			}
 			size_t put(std::string_view s) {
 				size_t result = strs->size();
 				strs->insert(strs->end(), s.begin(), s.end());//插入字符串
@@ -388,7 +414,7 @@ namespace PinInCpp {
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
 			bool empty()const noexcept {
 				if (strs == nullptr) {
-					return poolSize;
+					return poolSize == 0;
 				}
 				else {
 					return strs->empty();
@@ -410,7 +436,7 @@ namespace PinInCpp {
 				return poolSize;
 			}
 		private:
-			std::unique_ptr<std::vector<char>> strs = std::make_unique<std::vector<char>>();//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
+			std::unique_ptr<std::vector<char>> strs = nullptr;//用这个存储包括向量的结构，优化内存占用的同时存储完整的拼音字符串并提供id
 			std::unique_ptr<char[]> FixedStrs = nullptr;
 			size_t poolSize = 0;
 		};

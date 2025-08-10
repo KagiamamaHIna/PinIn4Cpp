@@ -39,6 +39,11 @@ namespace PinInCpp {
 		void ShrinkToFit() {
 			strs.shrink_to_fit();
 		}
+		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
+		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
+		static UTF8StringPool Deserialization(const std::vector<uint8_t>& data, size_t index = 0);
+		std::vector<uint8_t> Serialization()const;
 	private:
 		std::vector<char> strs;//字节数组，用于将多个字符串(字节流)放入容器中，避免内存碎片
 		//std::vector<size_t> strs_offset;//表示每组字符串的宽度偏移量

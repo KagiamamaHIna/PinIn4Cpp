@@ -42,6 +42,32 @@ namespace PinInCpp {
 		return ret;
 	}
 
+	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+		NodeType type = static_cast<NodeType>(data[index]);
+		index++;
+		std::unique_ptr<Node> result;
+		switch (type) {
+		case NodeType::NDenseType: {
+			result = NDense::Deserialization(data, index);
+			break;
+		}
+		case NodeType::NSliceType: {
+			result = NSlice::Deserialization(p, data, index);
+			break;
+		}
+		case NodeType::NMapType: {
+			result = NMap::Deserialization(p, data, index);
+			break;
+		}
+		case NodeType::NAccType: {
+			result = NAcc::Deserialization(p, data, index);
+			break;
+		}
+		}
+
+		return result;
+	}
+
 	void TreeSearcher::NDense::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 		bool full = p.logic == Logic::EQUAL;
 		if (!full && p.acc.search().size() == offset) {
@@ -136,6 +162,14 @@ namespace PinInCpp {
 		}
 	}
 
+	void TreeSearcher::NDense::Serialization(std::vector<uint8_t>& data)const {
+		data.push_back(static_cast<uint8_t>(NodeType::NDenseType));
+		PushQWUint8(data, this->data.size());
+		for (const auto& v : this->data) {
+			PushQWUint8(data, v);
+		}
+	}
+
 	size_t TreeSearcher::NDense::match(const TreeSearcher& p)const {//这个函数内，是不会put的，可以实现零拷贝设计
 		for (size_t i = 0; ; i++) {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
@@ -178,6 +212,32 @@ namespace PinInCpp {
 		}
 	}
 
+	TreeSearcher::Node* TreeSearcher::NAcc::put(TreeSearcher& p, size_t keyword, size_t id) {
+		NodeMap.put(p, keyword, id);//绝对不会升级，不需要检查
+		if (p.context->IsCharCacheEnabled()) {
+			indexUseCache(p, p.strs.getcharFourCC(keyword));//put完后构建索引，并且不再有put操作，应该是安全的
+		}
+		else {
+			indexNotUseCache(p, p.strs.getcharFourCC(keyword));
+		}
+		return this;
+	}
+
+	TreeSearcher::Node* TreeSearcher::NAcc::putRange(TreeSearcher& p, size_t start, size_t end) {
+		NodeMap.putRange(p, start, end);
+		if (p.context->IsCharCacheEnabled()) {
+			for (size_t i = start; i < end; i++) {
+				indexUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
+			}
+		}
+		else {
+			for (size_t i = start; i < end; i++) {
+				indexNotUseCache(p, p.strs.getcharFourCC(i));//put完后构建索引，并且不再有put操作，应该是安全的
+			}
+		}
+		return this;
+	}
+
 	void TreeSearcher::NAcc::indexUseCache(TreeSearcher& p, const uint32_t c) {
 		PinIn::Character* ch = p.context->GetCharCachePtr(c);
 		for (const auto& py : ch->GetPinyins()) {
@@ -204,6 +264,16 @@ namespace PinInCpp {
 				it->second.insert(c);
 			}
 		}
+	}
+
+	void TreeSearcher::NAcc::Serialization(std::vector<uint8_t>& data)const {
+		data.push_back(static_cast<uint8_t>(NodeType::NAccType));
+		NodeMap.Serialization(data);
+	}
+
+	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+		std::unique_ptr<TreeSearcher::NAcc> result = std::make_unique<TreeSearcher::NAcc>(p, *NMap::Deserialization(p, data, index));
+		return result;
 	}
 
 	TreeSearcher::Node* TreeSearcher::NSlice::put(TreeSearcher& p, size_t keyword, size_t id) {
@@ -242,6 +312,13 @@ namespace PinInCpp {
 		return start == end ? exit_node.release() : this;
 	}
 
+	void TreeSearcher::NSlice::Serialization(std::vector<uint8_t>& data)const {
+		data.push_back(static_cast<uint8_t>(NodeType::NSliceType));
+		PushQWUint8(data, start);
+		PushQWUint8(data, end);
+		exit_node->Serialization(data);
+	}
+
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
 		std::unique_ptr<NMap> insert = p.NMapPool.NewObj();//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
@@ -272,5 +349,39 @@ namespace PinInCpp {
 				get(p, ret, offset + i, start + 1);
 			}
 		}
+	}
+
+	std::unique_ptr<TreeSearcher> TreeSearcher::Deserialization(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index) {
+		uint32_t ver = GetU8VecDW(data, index);
+		if (ver != BinDataVersion) {
+			throw BinaryVersionInvalidException("TreeSearcher: Invalid binary file version");
+		}
+		index += 4;
+		Logic logic = static_cast<Logic>(data[index]);
+		index++;
+
+		std::unique_ptr<TreeSearcher> result = std::make_unique<TreeSearcher>(logic, PinInShared);
+
+		size_t StrPoolSize = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+
+		result->strs = UTF8StringPool::Deserialization(data, index);
+		index += StrPoolSize;
+
+		result->root = Node::Deserialization(*result, data, index);
+		return result;
+	}
+
+	std::vector<uint8_t> TreeSearcher::Serialization()const {
+		std::vector<uint8_t> result;
+		PushDWUint8(result, BinDataVersion);
+		result.push_back(static_cast<uint8_t>(logic));
+
+		std::vector<uint8_t> StrPoolData = strs.Serialization();//字符串池数据
+		PushQWUint8(result, StrPoolData.size());
+		result.insert(result.end(), StrPoolData.begin(), StrPoolData.end());
+
+		root->Serialization(result);
+		return result;
 	}
 }

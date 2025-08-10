@@ -371,15 +371,110 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	/*std::vector<uint8_t> PinIn::Serialization()const {
+	PinIn PinIn::Deserialization(const std::vector<uint8_t>& data, std::optional<Keyboard> keyboard, size_t index) {
+		uint32_t ver = GetU8VecDW(data, index);
+		if (ver != BinDataVersion) {
+			throw BinaryVersionInvalidException("PinIn: Invalid binary file version");
+		}
+		PinIn result;
+		index += 4;
+		if (keyboard.has_value()) {//keyboard注入
+			result.keyboard = std::move(keyboard.value());
+		}
+		//配置加载
+		result.fZh2Z = data[index];
+		index++;
+		result.fSh2S = data[index];
+		index++;
+		result.fCh2C = data[index];
+		index++;
+		result.fAng2An = data[index];
+		index++;
+		result.fIng2In = data[index];
+		index++;
+		result.fEng2En = data[index];
+		index++;
+		result.fU2V = data[index];
+		index++;
+		result.fFirstChar = data[index];
+		index++;
+		bool CharCacheEnable = data[index];
+		if (!CharCacheEnable) {
+			result.SetCharCache(false);
+		}
+		index++;
+
+		size_t poolSize = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+
+		std::unique_ptr<char[]> poolData = std::unique_ptr<char[]>(new char[poolSize]);//重建字符数据
+		memcpy(poolData.get(), data.data() + index, poolSize);
+		result.pool = CharPool(std::move(poolData), poolSize);
+		index += poolSize;
+
+		size_t dataSize = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+
+		for (size_t i = 0; i < dataSize; i++) {//重建关联数据
+			uint32_t k = GetU8VecDW(data, index);
+			index += 4;
+			size_t v = static_cast<size_t>(GetU8VecQW(data, index));
+			index += 8;
+			result.data.insert_or_assign(k, v);
+		}
+
+		if (CharCacheEnable) {
+			result.PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
+			size_t cacheSize = static_cast<size_t>(GetU8VecQW(data, index));
+			index += 8;
+
+			for (size_t i = 0; i < cacheSize; i++) {
+				uint32_t fourCC = GetU8VecDW(data, index);
+				result.GetCharCachePtr(fourCC);
+				index += 4;
+			}
+		}
+
+		return result;
+	}
+
+	std::vector<uint8_t> PinIn::Serialization()const {
 		std::vector<uint8_t> result;
-		PushQWUint8(result, pool.size());
+		PushDWUint8(result, BinDataVersion);
+
+		result.push_back(fZh2Z);
+		result.push_back(fSh2S);
+		result.push_back(fCh2C);
+		result.push_back(fAng2An);
+		result.push_back(fIng2In);
+		result.push_back(fEng2En);
+		result.push_back(fU2V);
+		result.push_back(fFirstChar);
+		result.push_back(CharCache.has_value());//插入是否开启缓存的数据
+
+		PushQWUint8(result, pool.size());//字符数组数据
 		if (empty()) {
 			return result;
 		}
 		result.insert(result.end(), pool.data(), pool.data() + pool.size());
+
+		PushQWUint8(result, data.size());//关联表数据
+		for (const auto& [k, v] : data) {
+			PushDWUint8(result, k);
+			PushQWUint8(result, v);
+		}
+
+		if (CharCache.has_value()) {
+			PushQWUint8(result, CharCache.value().size());
+			for (const auto& v : CharCache.value()) {
+				if (v.second->id == NullPinyinId) {
+					continue;
+				}
+				PushDWUint8(result, FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
+			}
+		}
 		return result;
-	}*/
+	}
 
 	inline static size_t StrCmp(const Utf8StringView& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());

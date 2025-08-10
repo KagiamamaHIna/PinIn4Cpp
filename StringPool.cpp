@@ -1,6 +1,7 @@
 #include "StringPool.h"
 
 #include "PinIn.h"//避免循环依赖问题
+#include "BinUtils.h"
 
 namespace PinInCpp {
 	size_t UTF8StringPool::put(std::string_view s) {
@@ -91,5 +92,49 @@ namespace PinInCpp {
 			}
 		}
 		return true;
+	}
+	UTF8StringPool UTF8StringPool::Deserialization(const std::vector<uint8_t>& data, size_t index) {
+		uint32_t ver = GetU8VecDW(data, index);
+		if (ver != BinDataVersion) {
+			throw BinaryVersionInvalidException("UTF8StringPool: Invalid binary file version");
+		}
+		UTF8StringPool result;
+		result.chars_offset.clear();//清除空余的0，方便后续进行压入操作
+
+		index += 4;
+
+		result.last_offset = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+
+		size_t strsSize = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+		result.strs.reserve(strsSize);
+
+		result.strs.insert(result.strs.end(), data.begin() + index, data.begin() + index + strsSize);
+		index += strsSize;
+
+		size_t offsetSize = static_cast<size_t>(GetU8VecQW(data, index));
+		result.chars_offset.reserve(offsetSize);
+
+		for (size_t i = 0; i < offsetSize; i++) {
+			index += 8;
+			result.chars_offset.push_back(static_cast<size_t>(GetU8VecQW(data, index)));//因为要确保与32/64位环境无关，不能直接插入
+		}
+		return result;
+	}
+
+	std::vector<uint8_t> UTF8StringPool::Serialization()const {
+		std::vector<uint8_t> result;
+		PushDWUint8(result, BinDataVersion);
+		PushQWUint8(result, last_offset);
+
+		PushQWUint8(result, strs.size());
+		result.insert(result.end(), strs.begin(), strs.end());
+
+		PushQWUint8(result, chars_offset.size());
+		for (const auto& v : chars_offset) {//因为要确保与32/64位环境无关，不能直接插入
+			PushQWUint8(result, v);
+		}
+		return result;
 	}
 }
