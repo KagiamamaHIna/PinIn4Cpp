@@ -49,6 +49,9 @@ namespace PinInCpp {
 		TreeSearcher(TreeSearcher&&) = delete;
 		TreeSearcher& operator=(TreeSearcher&& src) = delete;
 
+		constexpr Logic GetLogic()const noexcept {
+			return logic;
+		}
 		void put(std::string_view keyword);//插入待搜索项，内部无查重，大小写敏感
 		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
 		std::vector<std::string> ExecuteSearch(std::string_view s);//执行搜索
