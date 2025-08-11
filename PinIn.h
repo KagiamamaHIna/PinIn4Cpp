@@ -145,6 +145,8 @@ namespace PinInCpp {
 		PinIn(std::string_view path);
 		PinIn(const std::vector<char>& input_data);//数据加载模式
 
+		//可以用这个进行快捷打包，函数定义就在这个文件末尾:PinInDataPack(std::string_view dataPath, std::string_view binPath)
+
 		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
@@ -162,6 +164,9 @@ namespace PinInCpp {
 		bool SerializeToFile(std::string_view path)const {
 			return WriteBinFile(std::string(path), Serialize());
 		}
+
+		std::vector<uint8_t> PreCacheSerialize()const;
+		void PreCacheDeserialize(const std::vector<uint8_t>& data, size_t index = 0);
 
 		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(const uint32_t hanziFourCC)const {
@@ -516,6 +521,11 @@ namespace PinInCpp {
 		{"ḿ", {'m', 2}}, {"m̀", {'m', 4}}
 		});
 	};
+	//快捷打包函数，指定字典文件（data）和输出二进制文件的路径即可
+	inline bool PinInDataPack(std::string_view dataPath, std::string_view binPath) {
+		return PinIn(dataPath).SerializeToFile(binPath);
+	}
+
 	inline bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b)noexcept {
 		return a.GetSrc() == b.GetSrc();
 	}

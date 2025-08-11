@@ -476,6 +476,32 @@ namespace PinInCpp {
 		return result;
 	}
 
+	std::vector<uint8_t> PinIn::PreCacheSerialize()const {
+		std::vector<uint8_t> result;
+		if (CharCache.has_value()) {
+			PushQWUint8(result, CharCache.value().size());
+			for (const auto& v : CharCache.value()) {
+				if (v.second->id == NullPinyinId) {
+					continue;
+				}
+				PushDWUint8(result, FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
+			}
+		}
+		return result;
+	}
+
+	void PinIn::PreCacheDeserialize(const std::vector<uint8_t>& data, size_t index) {
+		PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
+		size_t cacheSize = static_cast<size_t>(GetU8VecQW(data, index));
+		index += 8;
+
+		for (size_t i = 0; i < cacheSize; i++) {
+			uint32_t fourCC = GetU8VecDW(data, index);
+			GetCharCachePtr(fourCC);
+			index += 4;
+		}
+	}
+
 	inline static size_t StrCmp(const Utf8StringView& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
 		for (size_t i = 0; i < len; i++) {

@@ -67,7 +67,7 @@ namespace PinInCpp {
 				result->TreePool[i] = TreeSearcher::Deserialize(data, PinInShared, index);
 				index += TreeSize;
 			}
-
+			PinInShared->PreCacheDeserialize(data, index);//加载缓存数据
 			return result;
 		}
 		static std::optional<std::unique_ptr<ParallelSearch>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
@@ -89,6 +89,10 @@ namespace PinInCpp {
 				PushQWUint8(result, temp.size());
 				result.insert(result.end(), temp.begin(), temp.end());
 			}
+
+			std::vector<uint8_t> temp = context->PreCacheSerialize();
+			result.insert(result.end(), temp.begin(), temp.end());//记录缓存数据，防止反序列化回来的时候因为缺少缓存导致线程不安全
+
 			return result;
 		}
 		//返回真代表写入成功

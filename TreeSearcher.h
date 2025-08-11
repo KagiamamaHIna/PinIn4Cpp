@@ -422,7 +422,7 @@ namespace PinInCpp {
 			}
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
-				std::unique_ptr<TreeSearcher::NAcc> result = std::make_unique<TreeSearcher::NAcc>(p, *NMap::Deserialize(p, data, index));
+				std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *NMap::Deserialize(p, data, index));
 				return result;
 			}
 			//你不需要，只需要一个空函数即可
