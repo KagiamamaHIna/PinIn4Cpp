@@ -27,8 +27,7 @@ namespace PinInCpp {
 		size_t fileSize = static_cast<size_t>(inputFile.tellg());
 		inputFile.seekg(0, std::ios::beg);
 
-		std::vector<uint8_t> result;
-		result.reserve(fileSize);
+		std::vector<uint8_t> result(fileSize);
 		inputFile.read((char*)result.data(), fileSize);
 		return result;
 	}
