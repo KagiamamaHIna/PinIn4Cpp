@@ -42,7 +42,7 @@ namespace PinInCpp {
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
-		static std::unique_ptr<ParallelSearch> Deserialization(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
+		static std::unique_ptr<ParallelSearch> Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
 			uint32_t ver = GetU8VecDW(data, index);
 			if (ver != BinDataVersion) {
 				throw BinaryVersionInvalidException("ParallelSearch: Invalid binary file version");
@@ -64,13 +64,20 @@ namespace PinInCpp {
 			for (size_t i = 0; i < TreeNum; i++) {
 				size_t TreeSize = static_cast<size_t>(GetU8VecQW(data, index));
 				index += 8;
-				result->TreePool[i] = TreeSearcher::Deserialization(data, PinInShared, index);
+				result->TreePool[i] = TreeSearcher::Deserialize(data, PinInShared, index);
 				index += TreeSize;
 			}
 
 			return result;
 		}
-		std::vector<uint8_t> Serialization()const {
+		static std::optional<std::unique_ptr<ParallelSearch>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
+			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			if (!data.has_value()) {
+				return std::nullopt;
+			}
+			return Deserialize(data.value(), PinInShared, index);
+		}
+		std::vector<uint8_t> Serialize()const {
 			std::vector<uint8_t> result;
 			PushDWUint8(result, BinDataVersion);
 			result.push_back(static_cast<uint8_t>(TreePool[0]->GetLogic()));
@@ -78,11 +85,15 @@ namespace PinInCpp {
 			PushQWUint8(result, TreeNum);
 
 			for (const auto& v : TreePool) {
-				std::vector<uint8_t> temp = v->Serialization();
+				std::vector<uint8_t> temp = v->Serialize();
 				PushQWUint8(result, temp.size());
 				result.insert(result.end(), temp.begin(), temp.end());
 			}
 			return result;
+		}
+		//返回真代表写入成功
+		bool SerializationToFile(std::string_view path)const {
+			return WriteBinFile(std::string(path), Serialize());
 		}
 
 		ParallelSearch(const ParallelSearch&) = delete;

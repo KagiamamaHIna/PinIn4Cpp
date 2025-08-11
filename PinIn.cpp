@@ -371,7 +371,7 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	PinIn PinIn::Deserialization(const std::vector<uint8_t>& data, std::optional<Keyboard> keyboard, size_t index) {
+	PinIn PinIn::Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard, size_t index) {
 		uint32_t ver = GetU8VecDW(data, index);
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("PinIn: Invalid binary file version");
@@ -379,7 +379,7 @@ namespace PinInCpp {
 		PinIn result;
 		index += 4;
 		if (keyboard.has_value()) {//keyboard注入
-			result.keyboard = std::move(keyboard.value());
+			result.keyboard = keyboard.value();
 		}
 		//配置加载
 		result.fZh2Z = data[index];
@@ -438,7 +438,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<uint8_t> PinIn::Serialization()const {
+	std::vector<uint8_t> PinIn::Serialize()const {
 		std::vector<uint8_t> result;
 		PushDWUint8(result, BinDataVersion);
 

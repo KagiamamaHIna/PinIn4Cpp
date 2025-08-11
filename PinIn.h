@@ -11,6 +11,27 @@
 
 namespace PinInCpp {
 	constexpr uint32_t BinDataVersion = 1;
+	inline bool WriteBinFile(const std::string& path, const std::vector<uint8_t>& BinData) {//写入二进制文件
+		std::ofstream outputFile(path, std::ios::binary | std::ios::trunc);
+		bool result = outputFile.is_open();
+		outputFile.write((const char*)BinData.data(), BinData.size());
+		outputFile.close();
+		return result;
+	}
+	inline std::optional<std::vector<uint8_t>> ReadBinFile(const std::string& path) {//读取二进制文件
+		std::ifstream inputFile(path, std::ios::binary | std::ios::out);
+		if (!inputFile.is_open()) {//未成功打开 
+			return std::nullopt;
+		}
+		inputFile.seekg(0, std::ios::end);//移动文件指针以获得文件大小
+		size_t fileSize = static_cast<size_t>(inputFile.tellg());
+		inputFile.seekg(0, std::ios::beg);
+
+		std::vector<uint8_t> result;
+		result.reserve(fileSize);
+		inputFile.read((char*)result.data(), fileSize);
+		return result;
+	}
 	//Unicode码转utf8字符
 	uint32_t UnicodeToUtf8(char32_t)noexcept;
 	//十六进制数字字符串转int
@@ -128,8 +149,19 @@ namespace PinInCpp {
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//Keyboard本身是无法序列化的，手动传入你想要的，不传用默认的全拼
-		static PinIn Deserialization(const std::vector<uint8_t>& data, std::optional<Keyboard> keyboard = std::nullopt, size_t index = 0);
-		std::vector<uint8_t> Serialization()const;
+		static PinIn Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0);
+		static std::optional<PinIn> DeserializeFromFile(std::string_view path, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0) {
+			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			if (!data.has_value()) {
+				return std::nullopt;
+			}
+			return Deserialize(data.value(), keyboard, index);
+		}
+		std::vector<uint8_t> Serialize()const;
+		//返回真代表写入成功
+		bool SerializeToFile(std::string_view path)const {
+			return WriteBinFile(std::string(path), Serialize());
+		}
 
 		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(const uint32_t hanziFourCC)const {

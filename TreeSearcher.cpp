@@ -42,25 +42,25 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
 		NodeType type = static_cast<NodeType>(data[index]);
 		index++;
 		std::unique_ptr<Node> result;
 		switch (type) {
 		case NodeType::NDenseType: {
-			result = NDense::Deserialization(data, index);
+			result = NDense::Deserialize(data, index);
 			break;
 		}
 		case NodeType::NSliceType: {
-			result = NSlice::Deserialization(p, data, index);
+			result = NSlice::Deserialize(p, data, index);
 			break;
 		}
 		case NodeType::NMapType: {
-			result = NMap::Deserialization(p, data, index);
+			result = NMap::Deserialize(p, data, index);
 			break;
 		}
 		case NodeType::NAccType: {
-			result = NAcc::Deserialization(p, data, index);
+			result = NAcc::Deserialize(p, data, index);
 			break;
 		}
 		}
@@ -162,7 +162,7 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NDense::Serialization(std::vector<uint8_t>& data)const {
+	void TreeSearcher::NDense::Serialize(std::vector<uint8_t>& data)const {
 		data.push_back(static_cast<uint8_t>(NodeType::NDenseType));
 		PushQWUint8(data, this->data.size());
 		for (const auto& v : this->data) {
@@ -266,14 +266,9 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NAcc::Serialization(std::vector<uint8_t>& data)const {
+	void TreeSearcher::NAcc::Serialize(std::vector<uint8_t>& data)const {
 		data.push_back(static_cast<uint8_t>(NodeType::NAccType));
-		NodeMap.Serialization(data);
-	}
-
-	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
-		std::unique_ptr<TreeSearcher::NAcc> result = std::make_unique<TreeSearcher::NAcc>(p, *NMap::Deserialization(p, data, index));
-		return result;
+		NodeMap.Serialize(data);
 	}
 
 	TreeSearcher::Node* TreeSearcher::NSlice::put(TreeSearcher& p, size_t keyword, size_t id) {
@@ -312,11 +307,11 @@ namespace PinInCpp {
 		return start == end ? exit_node.release() : this;
 	}
 
-	void TreeSearcher::NSlice::Serialization(std::vector<uint8_t>& data)const {
+	void TreeSearcher::NSlice::Serialize(std::vector<uint8_t>& data)const {
 		data.push_back(static_cast<uint8_t>(NodeType::NSliceType));
 		PushQWUint8(data, start);
 		PushQWUint8(data, end);
-		exit_node->Serialization(data);
+		exit_node->Serialize(data);
 	}
 
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
@@ -351,7 +346,7 @@ namespace PinInCpp {
 		}
 	}
 
-	std::unique_ptr<TreeSearcher> TreeSearcher::Deserialization(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index) {
+	std::unique_ptr<TreeSearcher> TreeSearcher::Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index) {
 		uint32_t ver = GetU8VecDW(data, index);
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("TreeSearcher: Invalid binary file version");
@@ -365,23 +360,23 @@ namespace PinInCpp {
 		size_t StrPoolSize = static_cast<size_t>(GetU8VecQW(data, index));
 		index += 8;
 
-		result->strs = UTF8StringPool::Deserialization(data, index);
+		result->strs = UTF8StringPool::Deserialize(data, index);
 		index += StrPoolSize;
 
-		result->root = Node::Deserialization(*result, data, index);
+		result->root = Node::Deserialize(*result, data, index);
 		return result;
 	}
 
-	std::vector<uint8_t> TreeSearcher::Serialization()const {
+	std::vector<uint8_t> TreeSearcher::Serialize()const {
 		std::vector<uint8_t> result;
 		PushDWUint8(result, BinDataVersion);
 		result.push_back(static_cast<uint8_t>(logic));
 
-		std::vector<uint8_t> StrPoolData = strs.Serialization();//字符串池数据
+		std::vector<uint8_t> StrPoolData = strs.Serialize();//字符串池数据
 		PushQWUint8(result, StrPoolData.size());
 		result.insert(result.end(), StrPoolData.begin(), StrPoolData.end());
 
-		root->Serialization(result);
+		root->Serialize(result);
 		return result;
 	}
 }

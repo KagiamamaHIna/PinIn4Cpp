@@ -41,8 +41,19 @@ namespace PinInCpp {
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
-		static std::unique_ptr<TreeSearcher> Deserialization(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0);
-		std::vector<uint8_t> Serialization()const;
+		static std::unique_ptr<TreeSearcher> Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0);
+		static std::optional<std::unique_ptr<TreeSearcher>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
+			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			if (!data.has_value()) {
+				return std::nullopt;
+			}
+			return Deserialize(data.value(), PinInShared, index);
+		}
+		std::vector<uint8_t> Serialize()const;
+		//返回真代表写入成功
+		bool SerializeToFile(std::string_view path)const {
+			return WriteBinFile(std::string(path), Serialize());
+		}
 
 		//因为绑定着this指针，所以不能移动和拷贝
 		TreeSearcher(const TreeSearcher&) = delete;
@@ -244,11 +255,11 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id) = 0;
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end) = 0;
 			//要求递归的去序列化节点数据
-			virtual void Serialization(std::vector<uint8_t>& data)const = 0;
+			virtual void Serialize(std::vector<uint8_t>& data)const = 0;
 
 			//将自身载入对象池
 			virtual void FreeToPool(TreeSearcher& p) = 0;
-			static std::unique_ptr<Node> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index);
+			static std::unique_ptr<Node> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index);
 		};
 		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
 		void NodeOwnershipReset(std::unique_ptr<Node>& smartPtrObj, Node* newPtr) {
@@ -264,8 +275,8 @@ namespace PinInCpp {
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			virtual void Serialization(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NDense> Deserialization(const std::vector<uint8_t>& data, size_t& index) {
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NDense> Deserialize(const std::vector<uint8_t>& data, size_t& index) {
 				size_t dataSize = static_cast<size_t>(GetU8VecQW(data, index));
 
 				index += 8;
@@ -307,7 +318,7 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			virtual void Serialization(std::vector<uint8_t>& data)const {
+			virtual void Serialize(std::vector<uint8_t>& data)const {
 				if constexpr (CanUpgrade) {
 					data.push_back(static_cast<uint8_t>(NodeType::NMapType));
 				}
@@ -324,10 +335,10 @@ namespace PinInCpp {
 				PushQWUint8(data, children->size());
 				for (const auto& [k, v] : *children) {
 					PushDWUint8(data, k);
-					v->Serialization(data);
+					v->Serialize(data);
 				}
 			}
-			static std::unique_ptr<NMapTemplate> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
 				size_t leavesSize = static_cast<size_t>(GetU8VecQW(data, index));
 				index += 8;
 				std::unique_ptr<NMapTemplate> result = std::make_unique<NMapTemplate>();
@@ -345,7 +356,7 @@ namespace PinInCpp {
 				for (size_t i = 0; i < childrenSize; i++) {
 					uint32_t fourCC = GetU8VecDW(data, index);
 					index += 4;
-					result->children->insert_or_assign(fourCC, Node::Deserialization(p, data, index));
+					result->children->insert_or_assign(fourCC, Node::Deserialize(p, data, index));
 				}
 				return result;
 			}
@@ -409,8 +420,11 @@ namespace PinInCpp {
 					}
 				}
 			}
-			virtual void Serialization(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NAcc> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index);
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+				std::unique_ptr<TreeSearcher::NAcc> result = std::make_unique<TreeSearcher::NAcc>(p, *NMap::Deserialize(p, data, index));
+				return result;
+			}
 			//你不需要，只需要一个空函数即可
 			virtual void FreeToPool(TreeSearcher& p) {}
 		private:
@@ -439,14 +453,14 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			virtual void Serialization(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NSlice> Deserialization(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
 				size_t start = static_cast<size_t>(GetU8VecQW(data, index));
 				index += 8;
 				size_t end = static_cast<size_t>(GetU8VecQW(data, index));
 				index += 8;
 				std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
-				result->exit_node = Node::Deserialization(p, data, index);
+				result->exit_node = Node::Deserialize(p, data, index);
 
 				return result;
 			}

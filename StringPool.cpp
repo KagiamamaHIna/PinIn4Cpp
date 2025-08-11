@@ -93,7 +93,7 @@ namespace PinInCpp {
 		}
 		return true;
 	}
-	UTF8StringPool UTF8StringPool::Deserialization(const std::vector<uint8_t>& data, size_t index) {
+	UTF8StringPool UTF8StringPool::Deserialize(const std::vector<uint8_t>& data, size_t index) {
 		uint32_t ver = GetU8VecDW(data, index);
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("UTF8StringPool: Invalid binary file version");
@@ -123,7 +123,15 @@ namespace PinInCpp {
 		return result;
 	}
 
-	std::vector<uint8_t> UTF8StringPool::Serialization()const {
+	std::optional<UTF8StringPool> UTF8StringPool::DeserializeFromFile(std::string_view path, size_t index) {
+		std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+		if (!data.has_value()) {
+			return std::nullopt;
+		}
+		return Deserialize(data.value(), index);
+	}
+
+	std::vector<uint8_t> UTF8StringPool::Serialize()const {
 		std::vector<uint8_t> result;
 		PushDWUint8(result, BinDataVersion);
 		PushQWUint8(result, last_offset);
@@ -136,5 +144,9 @@ namespace PinInCpp {
 			PushQWUint8(result, v);
 		}
 		return result;
+	}
+
+	bool UTF8StringPool::SerializationToFile(std::string_view path)const {
+		return WriteBinFile(std::string(path), Serialize());
 	}
 }
