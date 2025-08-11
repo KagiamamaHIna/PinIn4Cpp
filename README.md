@@ -15,6 +15,7 @@
 - - [相当于PinIn这个issue1的解决方案](https://github.com/Towdium/PinIn/issues/1)
 - 只实现了TreeSearcher
 - 提供了新的ParallelSearch类，内置线程池机制的并行化树搜索，在数据量很大时可以提供更好的即时搜索性能
+- 提供了PinIn类、TreeSearcher类、ParallelSearch类的序列化和反序列化接口，以提供快速加载已有结构的功能
 
 搜索方面应该和原版无异
 
