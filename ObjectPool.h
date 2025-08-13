@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <functional>
 #include <forward_list>
+#include <new>
+#include <utility>
 
 namespace PinInCpp {
 	//本质上是接管用不到的对象指针，在需要的时候重新构造/构造一个新的对象，如果你自己回收了也没问题，因为分配出去后权限归你
@@ -21,7 +23,7 @@ namespace PinInCpp {
 		void ClearFreeList() {
 			if (lastRenewUnfinished) {
 				T* src = FreeList.back();
-				delete reinterpret_cast<void*>(src);//回收内存，但是转换为void*，避免delete调用析构函数
+				::operator delete(src);//回收内存，但是要避免delete调用析构函数
 				FreeList.pop_back();
 				lastRenewUnfinished = false;
 			}
@@ -57,7 +59,7 @@ namespace PinInCpp {
 				}
 
 				try {
-					new (result) T(std::forward<_Types>(_Args)...);
+					result = new (result) T(std::forward<_Types>(_Args)...);
 				}
 				catch (...) {
 					lastRenewUnfinished = true;
@@ -109,7 +111,7 @@ namespace PinInCpp {
 		std::deque<T*> FreeList;
 		bool lastRenewUnfinished = false;
 	};
-
+	/* 目前不打算维护这个组件
 	//内存池+对象池机制，快速方便的池化对象和内存分配
 	//回收对象采用延迟析构模式，只有在对象池本身被析构了/从空闲列表上分配新对象了操作析构应该被析构的对象
 	template<typename T, size_t OnePoolSize, typename base = T>
@@ -322,7 +324,7 @@ namespace PinInCpp {
 				}
 
 				try {
-					new (result) T(std::forward<_Types>(_Args)...);
+					result = new (result) T(std::forward<_Types>(_Args)...);
 				}
 				catch (...) {
 					lastRenewUnfinished = true;
@@ -360,7 +362,7 @@ namespace PinInCpp {
 					//因为没有析构流程，所以抛出异常后还是安全的
 				}
 				else {//有异常状态，则用placement new
-					new (result) T(std::forward<_Types>(_Args)...);
+					result = new (result) T(std::forward<_Types>(_Args)...);
 					lastRenewUnfinished = false;
 				}
 				FreeList.pop_back();//将这段代码放到placement new之后，如果T构造函数异常了，则不弹出空闲列表
@@ -386,5 +388,5 @@ namespace PinInCpp {
 		std::shared_ptr<bool> IsDestruction = std::make_shared<bool>(false);
 		size_t nextpos = 0;
 		bool lastRenewUnfinished = false;
-	};
+	};*/
 }

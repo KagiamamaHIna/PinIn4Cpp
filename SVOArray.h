@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <type_traits>
+#include <new>
 
 namespace PinInCpp {
 	//一个特化组件，实现一个通用的SVO容器有点太麻烦了，不考虑删除，但是支持清空
@@ -49,15 +50,15 @@ namespace PinInCpp {
 		}
 		T& operator[](size_t key)noexcept {
 			if (dataSize > __size) {
-				return *reinterpret_cast<T*>(data.longData.data + key);
+				return *reinterpret_cast<T*>(data.longData.data[key]);
 			}
-			return *reinterpret_cast<T*>(data.shortData.data + key);
+			return *reinterpret_cast<T*>(data.shortData.data[key]);
 		}
 		const T& operator[](size_t key)const noexcept {
 			if (dataSize > __size) {
-				return *reinterpret_cast<const T*>(data.longData.data + key);
+				return *reinterpret_cast<const T*>(data.longData.data[key]);
 			}
-			return *reinterpret_cast<const T*>(data.shortData.data + key);
+			return *reinterpret_cast<const T*>(data.shortData.data[key]);
 		}
 
 		T& at(size_t key) {
@@ -65,18 +66,18 @@ namespace PinInCpp {
 				throw std::out_of_range("invalid vector subscript");
 			}
 			if (dataSize > __size) {
-				return *reinterpret_cast<T*>(data.longData.data + key);
+				return *reinterpret_cast<T*>(data.longData.data[key]);
 			}
-			return *reinterpret_cast<T*>(data.shortData.data + key);
+			return *reinterpret_cast<T*>(data.shortData.data[key]);
 		}
 		const T& at(size_t key)const {
 			if (key >= dataSize) {
 				throw std::out_of_range("invalid vector subscript");
 			}
 			if (dataSize > __size) {
-				return *reinterpret_cast<const T*>(data.longData.data + key);
+				return *reinterpret_cast<const T*>(data.longData.data[key]);
 			}
-			return *reinterpret_cast<const T*>(data.shortData.data + key);
+			return *reinterpret_cast<const T*>(data.shortData.data[key]);
 		}
 
 		template<typename... _Types>
@@ -93,12 +94,12 @@ namespace PinInCpp {
 
 				T* Src = reinterpret_cast<T*>(data.shortData.data);
 				size_t cap = dataSize * 2;
-				Chunk* newChunk = new Chunk[cap];//申请缓冲区，假设移动构造不抛异常
+				Chunk* newChunk = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * cap, HeapAlign));//申请缓冲区，假设移动构造不抛异常
 				for (size_t i = 0; i < __size; i++) {
-					new (reinterpret_cast<T*>(newChunk + i)) T(std::move(Src[i]));//调用移动构造函数移动资源
+					new (reinterpret_cast<T*>(newChunk[i])) T(std::move(Src[i]));//调用移动构造函数移动资源
 					Src[i].~T();//析构掉数据
 				}
-				new (reinterpret_cast<T*>(newChunk + __size)) T(std::move(temp));//移动临时对象
+				new (reinterpret_cast<T*>(newChunk[__size])) T(std::move(temp));//移动临时对象
 				dataSize++;
 				data.longData.cap = cap;
 				data.longData.data = newChunk;
@@ -107,12 +108,12 @@ namespace PinInCpp {
 				if (dataSize >= data.longData.cap) {
 					size_t cap = dataSize * 2;
 					T* Src = reinterpret_cast<T*>(data.longData.data);
-					Chunk* newChunk = new Chunk[cap];//申请缓冲区，假设移动构造不抛异常
+					Chunk* newChunk = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * cap, HeapAlign));//申请缓冲区，假设移动构造不抛异常
 					for (size_t i = 0; i < dataSize; i++) {
-						new (reinterpret_cast<T*>(newChunk + i)) T(std::move(Src[i]));//调用移动构造函数移动资源
+						new (reinterpret_cast<T*>(newChunk[i])) T(std::move(Src[i]));//调用移动构造函数移动资源
 						Src[i].~T();//析构掉数据
 					}
-					delete[] data.longData.data;//回收旧缓冲区
+					::operator delete (data.longData.data, HeapAlign);//回收旧缓冲区
 					data.longData.cap = cap;//更新cap，因为这个是根据容量确定的，所以后续如果抛出异常了dataSize没自增，那么也不会再次进入扩容判断
 					data.longData.data = newChunk;
 				}
@@ -148,13 +149,13 @@ namespace PinInCpp {
 		void TrueClear() {
 			if (dataSize > __size) {//只有大于的情况才代表变成大向量了
 				for (size_t i = 0; i < dataSize; i++) {
-					reinterpret_cast<T*>(data.longData.data + i)->~T();
+					reinterpret_cast<T*>(data.longData.data[i])->~T();
 				}
-				delete[] data.longData.data;
+				::operator delete (data.longData.data, HeapAlign);
 			}
 			else {
 				for (size_t i = 0; i < dataSize; i++) {
-					reinterpret_cast<T*>(data.shortData.data + i)->~T();
+					reinterpret_cast<T*>(data.shortData.data[i])->~T();
 				}
 			}
 		}
@@ -165,7 +166,7 @@ namespace PinInCpp {
 			dataSize = src.dataSize;
 			if (dataSize > __size) {
 				data.longData.cap = src.data.longData.cap;
-				data.longData.data = new Chunk[data.longData.cap];
+				data.longData.data = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * data.longData.cap, HeapAlign));
 				SrcElem = reinterpret_cast<const T*>(src.data.longData.data);
 				TargetElem = reinterpret_cast<T*>(data.longData.data);
 			}
@@ -187,7 +188,7 @@ namespace PinInCpp {
 					TargetElem[j].~T();
 				}
 				if (dataSize > __size) {
-					delete[] data.longData.data;
+					::operator delete (data.longData.data, HeapAlign);
 				}
 				throw;
 			}
@@ -203,27 +204,26 @@ namespace PinInCpp {
 				T* SrcElem = reinterpret_cast<T*>(src.data.shortData.data);
 				T* TargetElem = reinterpret_cast<T*>(data.shortData.data);
 				for (size_t i = 0; i < dataSize; i++) {
-					new (TargetElem + i) T(std::move(SrcElem[i]));
+					new (TargetElem[i]) T(std::move(SrcElem[i]));
 					SrcElem[i].~T();
 				}
 			}
 			src.data.shortData = {};//清空原始数据
 			src.dataSize = 0;
 		}
-		struct Chunk {
-			alignas(T) std::byte b[sizeof(T)];
+		using Chunk = std::byte[sizeof(T)];
+		struct ShortUnit {
+			alignas(T) Chunk data[__size];
 		};
-		struct ShortUint {
-			Chunk data[__size];
-		};
-		struct LongUint {
+		struct LongUnit {
 			size_t cap;
 			Chunk* data;
 		};
 		union DataUnion {
-			ShortUint shortData;
-			LongUint longData;
+			ShortUnit shortData;
+			LongUnit longData;
 		};
+		static constexpr std::align_val_t HeapAlign = std::align_val_t(alignof(T));
 
 		size_t dataSize = 0;//容器的大小，同时是下一个分配的位置
 		DataUnion data;

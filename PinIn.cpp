@@ -3,89 +3,6 @@
 #include "BinUtils.h"
 
 namespace PinInCpp {
-	//函数定义
-	//Unicode码转utf8字符
-	uint32_t UnicodeToUtf8(char32_t unicodeChar) noexcept {
-		uint32_t utf8 = 0;
-		if (unicodeChar <= 0x7F) {
-			//1字节数据
-			utf8 = static_cast<char>(unicodeChar);
-		}
-		else if (unicodeChar <= 0x7FF) {
-			//2字节数据
-			utf8 |= static_cast<uint8_t>(0xC0 | ((unicodeChar >> 6) & 0x1F));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
-		}
-		else if (unicodeChar <= 0xFFFF) {
-			//3字节数据
-			utf8 |= static_cast<uint8_t>(0xE0 | ((unicodeChar >> 12) & 0x0F));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 6) & 0x3F));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
-		}
-		else if (unicodeChar <= 0x10FFFF) {
-			//4字节数据
-			utf8 |= static_cast<uint8_t>(0xF0 | ((unicodeChar >> 18) & 0x07));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 12) & 0x3F));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | ((unicodeChar >> 6) & 0x3F));
-			utf8 <<= 8;
-			utf8 |= static_cast<uint8_t>(0x80 | (unicodeChar & 0x3F));
-		}
-		return utf8;
-	}
-
-	int HexStrToInt(const std::string& str) {
-		try {
-			return std::stoi(str, nullptr, 16);
-		}
-		catch (std::invalid_argument&) {//跳过错误行策略
-			return -1;
-		}
-		catch (std::out_of_range&) {//跳过错误行策略
-			return -1;
-		}
-	}
-
-	uint32_t FourCCToU32(std::string_view str) noexcept {
-		uint32_t result = 0;
-
-		size_t size = str.size();
-		size = size > 4 ? 4 : size;//限制宽度
-		for (size_t i = 0; i < size; i++) {
-			result <<= 8;
-			result |= (uint8_t)str[i];
-		}
-		return result;
-	}
-
-	void U32FourCCToCharBuf(char buf[5], uint32_t c)noexcept {
-		size_t size;
-		if (c <= 0xFF) {
-			size = 1;
-		}
-		else if (c <= 0xFFFF) {
-			size = 2;
-		}
-		else if (c <= 0xFFFFFF) {
-			size = 3;
-		}
-		else {
-			size = 4;
-		}
-		for (size_t i = 0; i < 5; i++) {
-			buf[i] = 0;//缓冲区清空
-		}
-		for (size_t i = size - 1; i != 0; i--) {
-			buf[i] |= c;
-			c >>= 8;
-		}
-		buf[0] |= c;
-	}
-
 	std::vector<std::string> PinIn::CharPool::getPinyinVec(size_t i)const {//根据理论上的正确格式来讲，应当是用','字符分隔拼音，然后用'\0'作为拼音数据末尾
 		//编辑i当作索引id即可
 		size_t cursor = 0;//直接在result上构造字符串，用这个代表当前访问的字符串
@@ -199,7 +116,7 @@ namespace PinInCpp {
 		std::fstream fs = std::fstream(std::string(path), std::ios::in);
 		if (!fs.is_open()) {//未成功打开 
 			//std::cerr << "file did not open successfully(StrToPinyin)\n";
-			throw PinyinFileNotOpen();
+			throw PinyinFileNotOpenException();
 		}
 		//开始读取
 		std::string str;
@@ -340,6 +257,29 @@ namespace PinInCpp {
 		}
 	}
 
+	void PinIn::PreCacheString(std::string_view str) {
+		if (!CharCache) {
+			return;
+		}
+		std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
+		size_t cursor = 0;
+		size_t end = str.size();
+		char buf[5];//缓冲区，避免堆分配
+		while (cursor < end) {
+			size_t charSize = getUTF8CharSize(str[cursor]);
+			for (size_t i = 0; i < charSize; i++) {//根据获取长度，深拷贝数据
+				buf[i] = str[cursor + i];
+			}
+			buf[charSize] = '\0';//加终止符
+
+			size_t id = GetPinyinId(buf);
+			if (id != NullPinyinId && !cache.count(id)) {
+				cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, buf, id)));
+			}
+			cursor += charSize;
+		}
+	}
+
 	PinIn::Config::Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
 		//剩下构造一些浅拷贝也无影响的
 		fZh2Z = ctx.fZh2Z;
@@ -371,67 +311,52 @@ namespace PinInCpp {
 		ctx.modification++;
 	}
 
-	PinIn PinIn::Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard, size_t index) {
-		uint32_t ver = GetU8VecDW(data, index);
+	std::shared_ptr<PinIn> PinIn::Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard, size_t index) {
+		VecU8Reader reader(data, index);
+		uint32_t ver = reader.GetDoubleWord();
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("PinIn: Invalid binary file version");
 		}
-		PinIn result;
-		index += 4;
+		std::shared_ptr<PinIn> result(new PinIn);
 		if (keyboard.has_value()) {//keyboard注入
-			result.keyboard = keyboard.value();
+			result->keyboard = keyboard.value();
 		}
 		//配置加载
-		result.fZh2Z = data[index];
-		index++;
-		result.fSh2S = data[index];
-		index++;
-		result.fCh2C = data[index];
-		index++;
-		result.fAng2An = data[index];
-		index++;
-		result.fIng2In = data[index];
-		index++;
-		result.fEng2En = data[index];
-		index++;
-		result.fU2V = data[index];
-		index++;
-		result.fFirstChar = data[index];
-		index++;
-		bool CharCacheEnable = data[index];
+		result->fZh2Z = reader.GetByte();
+		result->fSh2S = reader.GetByte();
+		result->fCh2C = reader.GetByte();
+		result->fAng2An = reader.GetByte();
+		result->fIng2In = reader.GetByte();
+		result->fEng2En = reader.GetByte();
+		result->fU2V = reader.GetByte();
+		result->fFirstChar = reader.GetByte();
+		bool CharCacheEnable = reader.GetByte();
 		if (!CharCacheEnable) {
-			result.SetCharCache(false);
+			result->SetCharCache(false);
 		}
-		index++;
 
-		size_t poolSize = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
+		size_t poolSize = reader.GetSizeTFromQW();
 
 		std::unique_ptr<char[]> poolData = std::unique_ptr<char[]>(new char[poolSize]);//重建字符数据
-		memcpy(poolData.get(), data.data() + index, poolSize);
-		result.pool = CharPool(std::move(poolData), poolSize);
-		index += poolSize;
+		memcpy(poolData.get(), data.data() + reader.GetIndex(), poolSize);
+		result->pool = CharPool(std::move(poolData), poolSize);
+		reader.AddIndex(poolSize);
 
-		size_t dataSize = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
+		size_t dataSize = reader.GetSizeTFromQW();
 
 		for (size_t i = 0; i < dataSize; i++) {//重建关联数据
-			uint32_t k = GetU8VecDW(data, index);
-			index += 4;
-			size_t v = static_cast<size_t>(GetU8VecQW(data, index));
-			index += 8;
-			result.data.insert_or_assign(k, v);
+			uint32_t k = reader.GetDoubleWord();
+			size_t v = reader.GetSizeTFromQW();
+			result->data.insert_or_assign(k, v);
 		}
 
 		if (CharCacheEnable) {
-			result.PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
-			size_t cacheSize = static_cast<size_t>(GetU8VecQW(data, index));
-			index += 8;
+			result->PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
+			size_t cacheSize = reader.GetSizeTFromQW();
 
 			for (size_t i = 0; i < cacheSize; i++) {
-				uint32_t fourCC = GetU8VecDW(data, index);
-				result.GetCharCachePtr(fourCC);
-				index += 4;
+				uint32_t fourCC = reader.GetDoubleWord();
+				result->GetCharCachePtr(fourCC);
 			}
 		}
 
@@ -479,7 +404,11 @@ namespace PinInCpp {
 	std::vector<uint8_t> PinIn::PreCacheSerialize()const {
 		std::vector<uint8_t> result;
 		if (CharCache.has_value()) {
-			PushQWUint8(result, CharCache.value().size());
+			size_t CacheSize = CharCache.value().size();
+			if (CharCache.value().count(NullPinyinId)) {//万恶的差一错误
+				CacheSize--;
+			}
+			PushQWUint8(result, CacheSize);
 			for (const auto& v : CharCache.value()) {
 				if (v.second->id == NullPinyinId) {
 					continue;
@@ -491,14 +420,13 @@ namespace PinInCpp {
 	}
 
 	void PinIn::PreCacheDeserialize(const std::vector<uint8_t>& data, size_t index) {
+		VecU8Reader reader(data, index);
 		PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
-		size_t cacheSize = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
+		size_t cacheSize = reader.GetSizeTFromQW();
 
 		for (size_t i = 0; i < cacheSize; i++) {
-			uint32_t fourCC = GetU8VecDW(data, index);
+			uint32_t fourCC = reader.GetDoubleWord();
 			GetCharCachePtr(fourCC);
-			index += 4;
 		}
 	}
 

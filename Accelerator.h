@@ -6,7 +6,6 @@ namespace PinInCpp {
 	class Accelerator {
 	public:
 		Accelerator(PinIn& p) : ctx{ p } {
-
 		}
 		const Utf8StringView& search() {
 			return searchStr;

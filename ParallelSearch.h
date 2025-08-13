@@ -2,6 +2,7 @@
 #include <thread>
 #include <barrier>
 #include <mutex>
+#include <exception>
 
 #include "TreeSearcher.h"
 
@@ -40,34 +41,29 @@ namespace PinInCpp {
 
 		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//不过有可能抛出std::out_of_range，抛出这个代表读取时越界了，通常意味着结构错误
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
 		static std::unique_ptr<ParallelSearch> Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
-			uint32_t ver = GetU8VecDW(data, index);
+			VecU8Reader reader(data, index);
+			uint32_t ver = reader.GetDoubleWord();
 			if (ver != BinDataVersion) {
 				throw BinaryVersionInvalidException("ParallelSearch: Invalid binary file version");
 			}
-			index += 4;
+			Logic logic = static_cast<Logic>(reader.GetByte());
 
-			Logic logic = static_cast<Logic>(data[index]);
-			index++;
-
-			size_t NextIndex = static_cast<size_t>(GetU8VecQW(data, index));
-			index += 8;
-
-			size_t TreeNum = static_cast<size_t>(GetU8VecQW(data, index));
-			index += 8;
+			size_t NextIndex = reader.GetSizeTFromQW();
+			size_t TreeNum = reader.GetSizeTFromQW();
 
 			std::unique_ptr<ParallelSearch> result = std::make_unique<ParallelSearch>(logic, PinInShared, TreeNum);
 			result->NextIndex = NextIndex;
 
 			for (size_t i = 0; i < TreeNum; i++) {
-				size_t TreeSize = static_cast<size_t>(GetU8VecQW(data, index));
-				index += 8;
-				result->TreePool[i] = TreeSearcher::Deserialize(data, PinInShared, index);
-				index += TreeSize;
+				size_t TreeSize = reader.GetSizeTFromQW();
+				result->TreePool[i] = TreeSearcher::Deserialize(reader.GetData(), PinInShared, reader.GetIndex());
+				reader.AddIndex(TreeSize);
 			}
-			PinInShared->PreCacheDeserialize(data, index);//加载缓存数据
+			PinInShared->PreCacheDeserialize(reader.GetData(), reader.GetIndex());//加载缓存数据
 			return result;
 		}
 		static std::optional<std::unique_ptr<ParallelSearch>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
@@ -96,7 +92,7 @@ namespace PinInCpp {
 			return result;
 		}
 		//返回真代表写入成功
-		bool SerializationToFile(std::string_view path)const {
+		bool SerializeToFile(std::string_view path)const {
 			return WriteBinFile(std::string(path), Serialize());
 		}
 

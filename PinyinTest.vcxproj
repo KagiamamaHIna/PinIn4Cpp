@@ -149,6 +149,7 @@
     <ClCompile Include="PinyinFormat.cpp" />
     <ClCompile Include="PinyinTest.cpp" />
     <ClCompile Include="StringPool.cpp" />
+    <ClCompile Include="StringUtils.cpp" />
     <ClCompile Include="TreeSearcher.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -160,6 +161,7 @@
     <ClInclude Include="PinIn.h" />
     <ClInclude Include="PinyinFormat.h" />
     <ClInclude Include="StringPool.h" />
+    <ClInclude Include="StringUtils.h" />
     <ClInclude Include="SVOArray.h" />
     <ClInclude Include="TreeSearcher.h" />
   </ItemGroup>

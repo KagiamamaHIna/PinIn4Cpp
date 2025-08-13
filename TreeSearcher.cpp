@@ -42,25 +42,25 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
-		NodeType type = static_cast<NodeType>(data[index]);
-		index++;
+	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+		NodeType type = static_cast<NodeType>(reader.GetByte());
+
 		std::unique_ptr<Node> result;
 		switch (type) {
 		case NodeType::NDenseType: {
-			result = NDense::Deserialize(data, index);
+			result = NDense::Deserialize(reader);
 			break;
 		}
 		case NodeType::NSliceType: {
-			result = NSlice::Deserialize(p, data, index);
+			result = NSlice::Deserialize(p, reader);
 			break;
 		}
 		case NodeType::NMapType: {
-			result = NMap::Deserialize(p, data, index);
+			result = NMap::Deserialize(p, reader);
 			break;
 		}
 		case NodeType::NAccType: {
-			result = NAcc::Deserialize(p, data, index);
+			result = NAcc::Deserialize(p, reader);
 			break;
 		}
 		}
@@ -327,23 +327,22 @@ namespace PinInCpp {
 	}
 
 	std::unique_ptr<TreeSearcher> TreeSearcher::Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index) {
-		uint32_t ver = GetU8VecDW(data, index);
+		VecU8Reader reader(data, index);
+
+		uint32_t ver = reader.GetDoubleWord();
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("TreeSearcher: Invalid binary file version");
 		}
-		index += 4;
-		Logic logic = static_cast<Logic>(data[index]);
-		index++;
+		Logic logic = static_cast<Logic>(reader.GetByte());
 
 		std::unique_ptr<TreeSearcher> result = std::make_unique<TreeSearcher>(logic, PinInShared);
 
-		size_t StrPoolSize = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
+		size_t StrPoolSize = reader.GetSizeTFromQW();
 
-		result->strs = UTF8StringPool::Deserialize(data, index);
-		index += StrPoolSize;
+		result->strs = UTF8StringPool::Deserialize(reader.GetData(), reader.GetIndex());
+		reader.AddIndex(StrPoolSize);
 
-		result->root = Node::Deserialize(*result, data, index);
+		result->root = Node::Deserialize(*result, reader);
 		return result;
 	}
 

@@ -92,4 +92,56 @@ namespace PinInCpp {
 
 		return result;
 	}
+
+	bool WriteBinFile(const std::string& path, const std::vector<uint8_t>& BinData) {
+		std::ofstream outputFile(path, std::ios::binary | std::ios::trunc);
+		bool result = outputFile.is_open();
+		if (!result) {
+			return result;
+		}
+		outputFile.write((const char*)BinData.data(), BinData.size());
+		outputFile.close();
+		return result;
+	}
+
+	std::optional<std::vector<uint8_t>> ReadBinFile(const std::string& path) {
+		std::ifstream inputFile(path, std::ios::binary | std::ios::out);
+		if (!inputFile.is_open()) {//未成功打开 
+			return std::nullopt;
+		}
+		inputFile.seekg(0, std::ios::end);//移动文件指针以获得文件大小
+		size_t fileSize = static_cast<size_t>(inputFile.tellg());
+		inputFile.seekg(0, std::ios::beg);
+
+		std::vector<uint8_t> result(fileSize);
+		inputFile.read((char*)result.data(), fileSize);
+		return result;
+	}
+
+	uint32_t VecU8Reader::GetDoubleWord() {
+		if (index + 3 >= data.size()) {
+			throw std::out_of_range("VecU8Reader: invalid vector read");
+		}
+		uint32_t result = GetU8VecDW(data, index);
+		index += 4;
+		return result;
+	}
+
+	uint64_t VecU8Reader::GetQuadWord() {
+		if (index + 7 >= data.size()) {
+			throw std::out_of_range("VecU8Reader: invalid vector read");
+		}
+		uint64_t result = GetU8VecQW(data, index);
+		index += 8;
+		return result;
+	}
+
+	uint8_t VecU8Reader::GetByte() {
+		if (index >= data.size()) {
+			throw std::out_of_range("VecU8Reader: invalid vector read");
+		}
+		uint8_t result = data[index];
+		index++;
+		return result;
+	}
 }

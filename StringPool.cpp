@@ -94,31 +94,27 @@ namespace PinInCpp {
 		return true;
 	}
 	UTF8StringPool UTF8StringPool::Deserialize(const std::vector<uint8_t>& data, size_t index) {
-		uint32_t ver = GetU8VecDW(data, index);
+		VecU8Reader reader(data, index);
+		uint32_t ver = reader.GetDoubleWord();
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("UTF8StringPool: Invalid binary file version");
 		}
 		UTF8StringPool result;
 		result.chars_offset.clear();//清除空余的0，方便后续进行压入操作
 
-		index += 4;
+		result.last_offset = reader.GetSizeTFromQW();
 
-		result.last_offset = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
-
-		size_t strsSize = static_cast<size_t>(GetU8VecQW(data, index));
-		index += 8;
+		size_t strsSize = reader.GetSizeTFromQW();
 		result.strs.reserve(strsSize);
 
-		result.strs.insert(result.strs.end(), data.begin() + index, data.begin() + index + strsSize);
-		index += strsSize;
+		result.strs.insert(result.strs.end(), data.begin() + reader.GetIndex(), data.begin() + reader.GetIndex() + strsSize);
+		reader.AddIndex(strsSize);
 
-		size_t offsetSize = static_cast<size_t>(GetU8VecQW(data, index));
+		size_t offsetSize = reader.GetSizeTFromQW();
 		result.chars_offset.reserve(offsetSize);
 
 		for (size_t i = 0; i < offsetSize; i++) {
-			index += 8;
-			result.chars_offset.push_back(static_cast<size_t>(GetU8VecQW(data, index)));//因为要确保与32/64位环境无关，不能直接插入
+			result.chars_offset.push_back(reader.GetSizeTFromQW());//因为要确保与32/64位环境无关，不能直接插入
 		}
 		return result;
 	}

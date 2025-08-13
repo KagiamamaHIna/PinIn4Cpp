@@ -1,6 +1,12 @@
 #pragma once
 #include <vector>
 #include <sstream>
+#include <fstream>
+#include <optional>
+#include <cstdint>
+#include <string>
+#include <stdexcept>
+#include <iostream>
 
 namespace PinInCpp {
 	void PushDWUint8(std::vector<uint8_t>& data, uint32_t number);
@@ -17,4 +23,32 @@ namespace PinInCpp {
 	//警告：太大的文件会严重拖累编译速度，甚至让你的代码分析器死机，数据量过大请谨慎选择此方案
 	//从我作者本人的视角来看，我非常不推荐使用这个，除非你的字典真的很小
 	std::string GenerateVecU8ToCPPcode(const std::vector<uint8_t>& srcData);
+
+	bool WriteBinFile(const std::string& path, const std::vector<uint8_t>& BinData);//写入二进制文件，返回的是 是否写入成功
+	std::optional<std::vector<uint8_t>> ReadBinFile(const std::string& path);//读取二进制文件
+
+	//负责观察一个u8向量的数据并读取
+	class VecU8Reader {
+	public:
+		VecU8Reader(const std::vector<uint8_t>& data, size_t index = 0) :data{ data }, index{ index } {}
+		uint32_t GetDoubleWord();
+		uint64_t GetQuadWord();
+		uint8_t GetByte();
+		size_t GetSizeTFromQW() {
+			return static_cast<size_t>(GetQuadWord());
+		}
+
+		const std::vector<uint8_t>& GetData()const noexcept {
+			return data;
+		}
+		size_t GetIndex()const noexcept {
+			return index;
+		}
+		void AddIndex(size_t num) {
+			index += num;
+		}
+	private:
+		const std::vector<uint8_t>& data;
+		size_t index;
+	};
 }

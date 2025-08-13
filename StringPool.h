@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <optional>
+#include <cstdint>
 
 namespace PinInCpp {
 	/*
@@ -42,6 +43,7 @@ namespace PinInCpp {
 		}
 		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//不过有可能抛出std::out_of_range，抛出这个代表读取时越界了，通常意味着结构错误
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		static UTF8StringPool Deserialize(const std::vector<uint8_t>& data, size_t index = 0);
 		static std::optional<UTF8StringPool> DeserializeFromFile(std::string_view path, size_t index = 0);

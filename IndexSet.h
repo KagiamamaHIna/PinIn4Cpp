@@ -8,8 +8,6 @@ namespace PinInCpp {
 	//平凡类型，非常高效
 	class IndexSet {
 	public:
-		IndexSet() = default;
-		~IndexSet() = default;
 		static IndexSet Init(uint32_t i = 0) noexcept {
 			IndexSet result = IndexSet();
 			result.value = i;

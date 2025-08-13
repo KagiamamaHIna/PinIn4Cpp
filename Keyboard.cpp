@@ -134,6 +134,17 @@ namespace PinInCpp {
 		}
 	}
 	Keyboard::Keyboard(const Keyboard& src) :duo{ src.duo }, sequence{ src.sequence }, cutter{ src.cutter } {
+		copy(src);
+	}
+	Keyboard& Keyboard::operator=(const Keyboard& src) {
+		if (this == &src) {
+			return *this;
+		}
+		copy(src);
+		return *this;
+	}
+
+	void Keyboard::copy(const Keyboard& src) {
 		pool.reserve(src.pool.size());//预分配合适大小，避免数据重分配造成视图失效
 		//重建视图
 		if (src.MapLocalFuzzy.has_value()) {

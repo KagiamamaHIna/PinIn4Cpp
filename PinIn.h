@@ -5,121 +5,20 @@
 #include <unordered_map>
 #include <set>
 #include <cmath>
+#include <cstdint>
+#include <memory>
+#include <cstring>
 
 #include "Keyboard.h"
 #include "IndexSet.h"
+#include "BinUtils.h"
+#include "StringUtils.h"
 
 namespace PinInCpp {
-	constexpr uint32_t BinDataVersion = 1;
-	inline bool WriteBinFile(const std::string& path, const std::vector<uint8_t>& BinData) {//写入二进制文件
-		std::ofstream outputFile(path, std::ios::binary | std::ios::trunc);
-		bool result = outputFile.is_open();
-		outputFile.write((const char*)BinData.data(), BinData.size());
-		outputFile.close();
-		return result;
-	}
-	inline std::optional<std::vector<uint8_t>> ReadBinFile(const std::string& path) {//读取二进制文件
-		std::ifstream inputFile(path, std::ios::binary | std::ios::out);
-		if (!inputFile.is_open()) {//未成功打开 
-			return std::nullopt;
-		}
-		inputFile.seekg(0, std::ios::end);//移动文件指针以获得文件大小
-		size_t fileSize = static_cast<size_t>(inputFile.tellg());
-		inputFile.seekg(0, std::ios::beg);
+	constexpr uint32_t BinDataVersion = 2;//二进制数据文件id
+	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);//空拼音id
 
-		std::vector<uint8_t> result(fileSize);
-		inputFile.read((char*)result.data(), fileSize);
-		return result;
-	}
-	//Unicode码转utf8字符
-	uint32_t UnicodeToUtf8(char32_t)noexcept;
-	//十六进制数字字符串转int
-	int HexStrToInt(const std::string&);
-	//将字符串转换为uint32数字表示（只转换前四个）
-	uint32_t FourCCToU32(std::string_view str) noexcept;
-	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
-	void U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
-	inline size_t getUTF8CharSize(const char c) noexcept {
-		if ((c & 0x80) == 0) { // 0xxxxxxx
-			return 1;
-		}
-		else if ((c & 0xE0) == 0xC0) { // 110xxxxx
-			return 2;
-		}
-		else if ((c & 0xF0) == 0xE0) { // 1110xxxx
-			return 3;
-		}
-		else if ((c & 0xF8) == 0xF0) { // 11110xxx
-			return 4;
-		}
-		else {//这是一个非法的UTF-8首字节
-			return 1; //作为错误恢复，把它当作一个单字节处理
-		}
-	}
-	template<typename StrType>
-	class UTF8StringTemplate {
-	public:
-		UTF8StringTemplate() {}
-		UTF8StringTemplate(std::string_view input) {
-			Init(input);
-		}
-		void reset(std::string_view input) {
-			str.clear();
-			Init(input);
-		}
-		void ShrinkToFit() {
-			str.shrink_to_fit();
-		}
-		std::string ToStream()const {
-			std::string result;
-			for (const auto& v : str) {
-				result += v;
-			}
-			return result;
-		}
-		StrType& operator[](size_t i) {
-			return str[i];
-		}
-		const StrType& operator[](size_t i)const {
-			return str[i];
-		}
-		StrType& at(size_t i) {
-			return str.at(i);
-		}
-		const StrType& at(size_t i)const {
-			return str.at(i);
-		}
-		size_t size()const noexcept {
-			return str.size();
-		}
-		auto begin() noexcept {
-			return str.begin();
-		}
-		auto end() noexcept {
-			return str.end();
-		}
-		const auto begin()const noexcept {
-			return str.begin();
-		}
-		const auto end()const noexcept {
-			return str.end();
-		}
-	private:
-		void Init(std::string_view input) {
-			size_t cursor = 0;
-			size_t end = input.size();
-			while (cursor < end) {
-				size_t charSize = getUTF8CharSize(input[cursor]);
-				str.emplace_back(input.substr(cursor, charSize));
-				cursor += charSize;
-			}
-		}
-		std::vector<StrType> str;
-	};
-	using Utf8String = UTF8StringTemplate<std::string>;
-	using Utf8StringView = UTF8StringTemplate<std::string_view>;
-
-	class PinyinFileNotOpen : public std::exception {
+	class PinyinFileNotOpenException : public std::exception {
 	public:
 		virtual const char* what() {
 			return "File not successfully opened";
@@ -127,15 +26,13 @@ namespace PinInCpp {
 	};
 	class BinaryVersionInvalidException : public std::exception {
 	public:
-		//不会持有任何资源，请传字符串字面量
 		BinaryVersionInvalidException(const char* str = "Invalid binary file version") :str{ str } {
 		}
 		virtual const char* what() {
-			return str;
+			return str.c_str();
 		}
-		const char* str;
+		std::string str;
 	};
-	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);
 
 	//文件解析策略为：跳过错误行
 	class PinIn {
@@ -148,10 +45,11 @@ namespace PinInCpp {
 
 		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为
+		//不过有可能抛出std::out_of_range，抛出这个代表读取时越界了，通常意味着结构错误
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//Keyboard本身是无法序列化的，手动传入你想要的，不传用默认的全拼
-		static PinIn Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0);
-		static std::optional<PinIn> DeserializeFromFile(std::string_view path, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0) {
+		static std::shared_ptr<PinIn> Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0);
+		static std::optional<std::shared_ptr<PinIn>> DeserializeFromFile(std::string_view path, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0) {
 			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
 			if (!data.has_value()) {
 				return std::nullopt;
@@ -185,10 +83,10 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string>> GetPinyinList(std::string_view str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(std::string_view str, bool hasTone = false)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
-		Character GetChar(std::string_view str) {//会始终构建一个Character，比较浪费性能
+		Character GetChar(std::string_view str)const {//会始终构建一个Character，比较浪费性能
 			return Character(*this, str, GetPinyinId(str));
 		}
-		Character GetChar(const uint32_t fourCC) {//同上
+		Character GetChar(const uint32_t fourCC)const {//同上
 			char buf[5];
 			U32FourCCToCharBuf(buf, fourCC);
 			return Character(*this, buf, GetPinyinId(fourCC));
@@ -197,28 +95,7 @@ namespace PinInCpp {
 		Character* GetCharCachePtr(const uint32_t fourCC);//同上
 
 		//字符缓存预热，可以用待选项/搜索字符串预热，避免缓存的多线程数据竞争问题，如果是单线程的则不用管
-		void PreCacheString(std::string_view str) {
-			if (!CharCache) {
-				return;
-			}
-			std::unordered_map<size_t, std::unique_ptr<Character>>& cache = CharCache.value();
-			size_t cursor = 0;
-			size_t end = str.size();
-			char buf[5];//缓冲区，避免堆分配
-			while (cursor < end) {
-				size_t charSize = getUTF8CharSize(str[cursor]);
-				for (size_t i = 0; i < charSize; i++) {//根据获取长度，深拷贝数据
-					buf[i] = str[cursor + i];
-				}
-				buf[charSize] = '\0';//加终止符
-
-				size_t id = GetPinyinId(buf);
-				if (id != NullPinyinId && !cache.count(id)) {
-					cache.insert_or_assign(id, std::unique_ptr<Character>(new Character(*this, buf, id)));
-				}
-				cursor += charSize;
-			}
-		}
+		void PreCacheString(std::string_view str);
 		//强制生成一个空拼音id的缓存，配合上面那个api即可实现线程安全
 		void PreNullPinyinIdCache() {
 			if (!CharCache || CharCache.value().count(NullPinyinId)) {//如果关闭了缓存或者NullPinyinId有值，则不执行
@@ -265,28 +142,28 @@ namespace PinInCpp {
 			return std::make_unique<Ticket>(*this, r);
 		}
 
-		const Keyboard& getkeyboard()const {
+		const Keyboard& getkeyboard()const noexcept {
 			return keyboard;
 		}
-		bool getfZh2Z()const {
+		bool getfZh2Z()const noexcept {
 			return fZh2Z;
 		}
-		bool getfSh2S()const {
+		bool getfSh2S()const noexcept {
 			return fSh2S;
 		}
-		bool getfCh2C()const {
+		bool getfCh2C()const noexcept {
 			return fCh2C;
 		}
-		bool getfAng2An()const {
+		bool getfAng2An()const noexcept {
 			return fAng2An;
 		}
-		bool getfIng2In()const {
+		bool getfIng2In()const noexcept {
 			return fIng2In;
 		}
-		bool getfEng2En()const {
+		bool getfEng2En()const noexcept {
 			return fEng2En;
 		}
-		bool getfU2V()const {
+		bool getfU2V()const noexcept {
 			return fU2V;
 		}
 		class Config {
@@ -449,12 +326,7 @@ namespace PinInCpp {
 			std::string_view getPinyinView(size_t i)const;
 			std::vector<std::string_view> getPinyinViewVec(size_t i, bool hasTone = false)const;//去除声调不去重，去重由公开接口自己去
 			bool empty()const noexcept {
-				if (strs == nullptr) {
-					return poolSize == 0;
-				}
-				else {
-					return strs->empty();
-				}
+				return strs == nullptr ? poolSize == 0 : strs->empty();
 			}
 			void Fixed() {//构造完成后固定，将原有向量析构掉，用更轻量的std::unique_ptr<char[]>取代，向量预分配开销去除
 				FixedStrs = std::unique_ptr<char[]>(new char[strs->size()]);
