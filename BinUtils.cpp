@@ -73,4 +73,23 @@ namespace PinInCpp {
 	std::vector<uint8_t> DeepCopyU8(const std::vector<uint8_t>& srcData, size_t index, size_t size) {
 		return std::vector<uint8_t>(srcData.begin() + index, srcData.begin() + index + size);
 	}
+
+	std::string GenerateVecU8ToCPPcode(const std::vector<uint8_t>& srcData) {
+		std::stringstream buf;
+		buf << std::hex;
+
+		buf << '{';
+
+		for (const uint16_t v : srcData) {//向上转型使得其内部可以正确的处理为16进制的字符串
+			buf << "0x";
+			buf << v;
+			buf << ',';
+		}
+
+		std::string result = buf.str();
+		result.pop_back();
+		result += "}";
+
+		return result;
+	}
 }
