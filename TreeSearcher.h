@@ -13,6 +13,7 @@
 #include "Keyboard.h"
 #include "ObjectPool.h"
 #include "BinUtils.h"
+#include "SVOArray.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -119,6 +120,10 @@ namespace PinInCpp {
 		template<typename value>
 		class ObjSet {//这是专门用于优化的类，本身功能并不多！
 		private:
+			static constexpr uint8_t SVONum = sizeof(std::vector<value>) / sizeof(value);//计算一个合适的长度
+			static constexpr bool isSVO = SVONum > 0;//计算是否可以无损SVO优化
+			using ObjVector = std::conditional_t<isSVO, SVOArray<value, SVONum>, std::vector<value>>;
+
 			class AbstractSet {//集合不承担查找，这个就很简单
 			public:
 				virtual ~AbstractSet() = default;
@@ -170,14 +175,15 @@ namespace PinInCpp {
 						result->insert(input_v);
 						return result.release();
 					}
-
-					size_t capacity = data.capacity();
-					if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
-						if (capacity == 0) {
-							data.reserve(1);
-						}
-						else {
-							data.reserve(capacity * 2);
+					if constexpr (!isSVO) {
+						size_t capacity = data.capacity();
+						if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
+							if (capacity == 0) {
+								data.reserve(1);
+							}
+							else {
+								data.reserve(capacity * 2);
+							}
 						}
 					}
 					data.emplace_back(input_v);
@@ -200,10 +206,12 @@ namespace PinInCpp {
 					}
 				}
 				void reserve(size_t _Newcapacity) {
-					data.reserve(_Newcapacity);
+					if constexpr (!isSVO) {
+						data.reserve(_Newcapacity);
+					}
 				}
 			private:
-				std::vector<value> data;
+				ObjVector data;
 			};
 			std::unique_ptr<AbstractSet> Container;
 		public:
@@ -219,7 +227,9 @@ namespace PinInCpp {
 				}
 				else {
 					std::unique_ptr<ArraySet> temp = std::make_unique<ArraySet>();
-					temp->reserve(size);
+					if constexpr (!isSVO) {
+						temp->reserve(size);
+					}
 					Container = std::move(temp);
 				}
 			}
@@ -281,7 +291,7 @@ namespace PinInCpp {
 
 				index += 8;
 				std::unique_ptr<NDense> result = std::make_unique<NDense>();
-				result->data.reserve(dataSize);
+				//result->data.reserve(dataSize);
 
 				for (size_t i = 0; i < dataSize; i++) {
 					result->data.emplace_back(static_cast<size_t>(GetU8VecQW(data, index)));
@@ -295,7 +305,7 @@ namespace PinInCpp {
 			}
 		private:
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
-			std::vector<size_t> data;
+			SVOArray<size_t, 4> data;
 		};
 		class NSlice;
 		class NAcc;
@@ -338,10 +348,17 @@ namespace PinInCpp {
 					v->Serialize(data);
 				}
 			}
+			template<bool GetFromPool = false>
 			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
 				size_t leavesSize = static_cast<size_t>(GetU8VecQW(data, index));
 				index += 8;
-				std::unique_ptr<NMapTemplate> result = std::make_unique<NMapTemplate>();
+				std::unique_ptr<NMapTemplate> result;
+				if constexpr (GetFromPool) {//给NAcc开个口，让他在反序列化的时候不需要重新反复申请新内存，而是复用已有的
+					result = p.NMapPool.NewObj();
+				}
+				else {
+					result = std::make_unique<NMapTemplate>();
+				}
 				result->leaves = ObjSet<size_t>(leavesSize);
 				for (size_t i = 0; i < leavesSize; i++) {
 					result->leaves.DeserializationInsert(static_cast<size_t>(GetU8VecQW(data, index)));
@@ -422,7 +439,11 @@ namespace PinInCpp {
 			}
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, const std::vector<uint8_t>& data, size_t& index) {
-				std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *NMap::Deserialize(p, data, index));
+				std::unique_ptr<NMap> temp = NMap::Deserialize<true>(p, data, index);
+				std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *temp);
+				temp->FreeToPool(p);//释放到池里面，方便下一次的对象复用
+				temp.release();//解除所有权，避免被delete了
+
 				return result;
 			}
 			//你不需要，只需要一个空函数即可

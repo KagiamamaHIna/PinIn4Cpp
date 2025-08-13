@@ -80,5 +80,8 @@
     <ClInclude Include="BinUtils.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
+    <ClInclude Include="SVOArray.h">
+      <Filter>头文件\utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

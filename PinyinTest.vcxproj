@@ -160,6 +160,7 @@
     <ClInclude Include="PinIn.h" />
     <ClInclude Include="PinyinFormat.h" />
     <ClInclude Include="StringPool.h" />
+    <ClInclude Include="SVOArray.h" />
     <ClInclude Include="TreeSearcher.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
