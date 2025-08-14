@@ -456,7 +456,7 @@ namespace PinInCpp {
 		IndexSet result = IndexSet::Init();
 
 		IndexSet::IndexSetIterObj it = idx.GetIterObj();
-		for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
+		for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 			IndexSet is = match(source, start + i, partial);
 			is.offset(i);
 			result.merge(is);

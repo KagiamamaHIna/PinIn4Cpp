@@ -16,7 +16,13 @@ namespace PinInCpp {
 		static_assert(!std::is_array_v<T>, "Cannot process c array");
 
 		ObjectPtrPool() = default;
-		ObjectPtrPool(const ObjectPtrPool&) = delete;
+
+		ObjectPtrPool(const ObjectPtrPool&) = delete;//禁止复制
+		ObjectPtrPool& operator=(const ObjectPtrPool&) = delete;
+
+		ObjectPtrPool(ObjectPtrPool&&)noexcept = default;//允许移动
+		ObjectPtrPool& operator=(ObjectPtrPool&)noexcept = default;
+
 		~ObjectPtrPool() {
 			ClearFreeList();
 		}
@@ -128,6 +134,8 @@ namespace PinInCpp {
 			TrueClearMemoryPool();
 		}
 		ObjectPool(const ObjectPool&) = delete;
+		ObjectPool& operator=(const ObjectPool&) = delete;
+
 		ObjectPool(ObjectPool&&) = delete;
 		ObjectPool& operator=(ObjectPool&&) = delete;
 

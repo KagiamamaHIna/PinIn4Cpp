@@ -183,7 +183,7 @@ namespace PinInCpp {
 					std::unordered_map<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
 					for (const auto& c : v) {
 						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
-						for (uint32_t j = it.Next(); j != IndexSetIterEnd; j = it.Next()) {
+						for (uint32_t j = it.Next(); j != it.end(); j = it.Next()) {
 							map[c]->get(p, result, offset + j);
 						}
 					}
@@ -320,7 +320,7 @@ namespace PinInCpp {
 		else {
 			uint32_t ch = p.strs.getcharFourCC(this->start + start);
 			IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
-			for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
+			for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 				get(p, ret, offset + i, start + 1);
 			}
 		}

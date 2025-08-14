@@ -51,6 +51,9 @@ namespace PinInCpp {
 				}
 				return IndexSetIterEnd;
 			}
+			constexpr uint32_t end()const noexcept {
+				return IndexSetIterEnd;
+			}
 			static IndexSetIterObj Init(uint32_t i)noexcept {
 				IndexSetIterObj result = IndexSetIterObj();
 				result.value = i;

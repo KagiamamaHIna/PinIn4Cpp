@@ -36,7 +36,13 @@ namespace PinInCpp {
 			:logic{ logic }, context(PinInShared), acc(*context) {
 			init();
 		}
-		virtual ~TreeSearcher() = default;
+		~TreeSearcher() = default;
+
+		//因为绑定着this指针，所以不能移动和拷贝
+		TreeSearcher(const TreeSearcher&) = delete;
+		TreeSearcher& operator=(const TreeSearcher&) = delete;
+		TreeSearcher(TreeSearcher&&) = delete;
+		TreeSearcher& operator=(TreeSearcher&&) = delete;
 
 		//32位环境和64位环境生成的文件格式应该是通用的，但是如果64位下数据量过大，32位环境下加载有潜在的溢出导致逻辑错误的风险
 		//你应该只传入对应类的Serialization方法生成的数据，传入一个不正确格式的很有可能会造成未定义行为等
@@ -56,11 +62,6 @@ namespace PinInCpp {
 		bool SerializeToFile(std::string_view path)const {
 			return WriteBinFile(std::string(path), Serialize());
 		}
-
-		//因为绑定着this指针，所以不能移动和拷贝
-		TreeSearcher(const TreeSearcher&) = delete;
-		TreeSearcher(TreeSearcher&&) = delete;
-		TreeSearcher& operator=(TreeSearcher&& src) = delete;
 
 		constexpr Logic GetLogic()const noexcept {
 			return logic;
@@ -529,7 +530,7 @@ namespace PinInCpp {
 			}
 			for (const auto& [c, n] : *children) {
 				IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
-				for (uint32_t i = it.Next(); i != IndexSetIterEnd; i = it.Next()) {
+				for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 					n->get(p, ret, offset + i);
 				}
 			}

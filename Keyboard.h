@@ -28,6 +28,10 @@ namespace PinInCpp {
 		Keyboard(const Keyboard& src);
 		Keyboard& operator=(const Keyboard& src);
 		//移动构造函数应该是安全的，因为向量也会被移动
+		Keyboard(Keyboard&&) = default;
+		Keyboard& operator=(Keyboard&&) noexcept = default;
+
+		~Keyboard() = default;
 
 		std::string_view keys(std::string_view s)const noexcept;
 		std::vector<std::string_view> GetFuzzyPhoneme(std::string_view s)const;
