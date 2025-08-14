@@ -150,6 +150,18 @@ namespace PinInCpp {
 		}
 	}
 
+	std::unique_ptr<TreeSearcher::NDense> TreeSearcher::NDense::Deserialize(VecU8Reader& reader) {
+		size_t dataSize = reader.GetSizeTFromQW();
+
+		std::unique_ptr<NDense> result = std::make_unique<NDense>();
+
+		for (size_t i = 0; i < dataSize; i++) {
+			result->data.emplace_back(reader.GetSizeTFromQW());
+		}
+
+		return result;
+	}
+
 	size_t TreeSearcher::NDense::match(const TreeSearcher& p)const {//这个函数内，是不会put的，可以实现零拷贝设计
 		for (size_t i = 0; ; i++) {
 			if (p.strs.end(data[0] + i)) {//空检查置前，避免额外的字符串构造和std::string比较。而且end实际上比较的是字节，所以速度会更快
@@ -203,6 +215,20 @@ namespace PinInCpp {
 		return this;
 	}
 
+	void TreeSearcher::NAcc::reload(TreeSearcher& p) {
+		index_node.clear();//释放所有音素
+		if (p.context->IsCharCacheEnabled()) {
+			for (const auto& [k, v] : *NodeMap.children) {
+				indexUseCache(p, k);
+			}
+		}
+		else {
+			for (const auto& [k, v] : *NodeMap.children) {
+				indexNotUseCache(p, k);
+			}
+		}
+	}
+
 	TreeSearcher::Node* TreeSearcher::NAcc::putRange(TreeSearcher& p, size_t start, size_t end) {
 		NodeMap.putRange(p, start, end);
 		if (p.context->IsCharCacheEnabled()) {
@@ -251,6 +277,15 @@ namespace PinInCpp {
 		NodeMap.Serialize(data);
 	}
 
+	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+		std::unique_ptr<NMap> temp = NMap::Deserialize<true>(p, reader);
+		std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *temp);
+		temp->FreeToPool(p);//释放到池里面，方便下一次的对象复用
+		temp.release();//解除所有权，避免被delete了
+
+		return result;
+	}
+
 	TreeSearcher::Node* TreeSearcher::NSlice::put(TreeSearcher& p, size_t keyword, size_t id) {
 		size_t length = end - start;
 		size_t match = p.acc.common(start, keyword, length);
@@ -292,6 +327,15 @@ namespace PinInCpp {
 		PushQWUint8(data, start);
 		PushQWUint8(data, end);
 		exit_node->Serialize(data);
+	}
+
+	std::unique_ptr<TreeSearcher::NSlice> TreeSearcher::NSlice::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+		size_t start = reader.GetSizeTFromQW();
+		size_t end = reader.GetSizeTFromQW();
+		std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
+		result->exit_node = Node::Deserialize(p, reader);
+
+		return result;
 	}
 
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {

@@ -51,7 +51,7 @@ namespace PinInCpp {
 				}
 				return IndexSetIterEnd;
 			}
-			constexpr uint32_t end()const noexcept {
+			static constexpr uint32_t end() noexcept {
 				return IndexSetIterEnd;
 			}
 			static IndexSetIterObj Init(uint32_t i)noexcept {

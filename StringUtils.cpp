@@ -1,8 +1,6 @@
 #include "StringUtils.h"
 
 namespace PinInCpp {
-	//函数定义
-//Unicode码转utf8字符
 	uint32_t UnicodeToUtf8(char32_t unicodeChar) noexcept {
 		uint32_t utf8 = 0;
 		if (unicodeChar <= 0x7F) {

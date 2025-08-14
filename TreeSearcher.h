@@ -162,35 +162,7 @@ namespace PinInCpp {
 			};
 			class ArraySet : public AbstractSet {
 			public:
-				virtual AbstractSet* insert(const value& input_v) {
-					for (const value& v : data) {
-						if (v == input_v) {
-							return this;//如果查到，有相等的，则为重复
-						}
-					}
-					//置前检查，避免潜在的不必要堆分配
-					if (data.size() + 1 > ContainerThreshold) {
-						std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
-						for (const value& v : data) {
-							result->insert(v);
-						}
-						result->insert(input_v);
-						return result.release();
-					}
-					if constexpr (!isSVO) {
-						size_t capacity = data.capacity();
-						if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
-							if (capacity == 0) {
-								data.reserve(1);
-							}
-							else {
-								data.reserve(capacity * 2);
-							}
-						}
-					}
-					data.emplace_back(input_v);
-					return this;
-				}
+				virtual AbstractSet* insert(const value& input_v);
 				virtual void DeserializationInsert(const value& input_v) {
 					data.emplace_back(input_v);
 				}
@@ -288,17 +260,7 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NDense> Deserialize(VecU8Reader& reader) {
-				size_t dataSize = reader.GetSizeTFromQW();
-
-				std::unique_ptr<NDense> result = std::make_unique<NDense>();
-
-				for (size_t i = 0; i < dataSize; i++) {
-					result->data.emplace_back(reader.GetSizeTFromQW());
-				}
-
-				return result;
-			}
+			static std::unique_ptr<NDense> Deserialize(VecU8Reader& reader);
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NDensePool.FreeToPool(this);
 			}
@@ -306,80 +268,55 @@ namespace PinInCpp {
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
 			SVOArray<size_t, 4> data;
 		};
-		class NSlice;
-		class NAcc;
 
-		template<bool CanUpgrade>//类策略模式，运行时比较开销放到编译时
-		class NMapTemplate : public Node {
+		class NSlice : public Node {//切片节点，有公共前缀，用NMap/NAcc管理
 		public:
-			virtual ~NMapTemplate() = default;
-			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
+			virtual ~NSlice() = default;
+			NSlice(TreeSearcher& p, size_t start, size_t end) :start{ start }, end{ end } {
+				exit_node = p.NMapPool.NewObj();
+			}
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
+				get(p, ret, offset, 0);
+			}
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
-				leaves.AddToSTLSet(ret);
-				if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
-					if (children == nullptr) {
-						return;
-					}
-				}
-				for (const auto& v : *children) {
-					v.second->get(p, ret);
-				}
+				exit_node->get(p, ret);
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			virtual void Serialize(std::vector<uint8_t>& data)const {
-				if constexpr (CanUpgrade) {
-					data.push_back(static_cast<uint8_t>(NodeType::NMapType));
-				}
-				PushQWUint8(data, leaves.size());
-				leaves.forEach([&](size_t i) {
-					PushQWUint8(data, i);
-				});
-				if constexpr (CanUpgrade) {
-					if (children == nullptr) {//没指针插入代表假的数字
-						PushQWUint8(data, 0);
-						return;
-					}
-				}
-				PushQWUint8(data, children->size());
-				for (const auto& [k, v] : *children) {
-					PushDWUint8(data, k);
-					v->Serialize(data);
-				}
-			}
-			template<bool GetFromPool = false>
-			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, VecU8Reader& reader) {
-				size_t leavesSize = reader.GetSizeTFromQW();
-				std::unique_ptr<NMapTemplate> result;
-				if constexpr (GetFromPool) {//给NAcc开个口，让他在反序列化的时候不需要重新反复申请新内存，而是复用已有的
-					result = p.NMapPool.NewObj();
-				}
-				else {
-					result = std::make_unique<NMapTemplate>();
-				}
-				result->leaves = ObjSet<size_t>(leavesSize);
-				for (size_t i = 0; i < leavesSize; i++) {
-					result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
-				}
-				size_t childrenSize = reader.GetSizeTFromQW();
-				if (childrenSize == 0) {
-					return result;
-				}
-				result->children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
-				for (size_t i = 0; i < childrenSize; i++) {
-					uint32_t fourCC = reader.GetDoubleWord();
-					result->children->insert_or_assign(fourCC, Node::Deserialize(p, reader));
-				}
-				return result;
-			}
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, VecU8Reader& reader);
 			virtual void FreeToPool(TreeSearcher& p) {
-				if constexpr (CanUpgrade) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
-					p.NMapPool.FreeToPool(this);
-				}
+				p.NSlicePool.FreeToPool(this);
 			}
 		private:
-			friend NSlice;
-			friend NAcc;
+			NSlice(size_t start, size_t end) :start{ start }, end{ end } {}
+			void cut(TreeSearcher& p, size_t offset);
+			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
+			std::unique_ptr<Node> exit_node = nullptr;
+			size_t start;
+			size_t end;
+		};
+
+		class NAcc;
+		template<bool CanUpgrade>//类策略模式，运行时比较开销放到编译时
+		class NMapTemplate : public Node {//分支节点，有可升级版本和不可升级版本
+		public:
+			virtual ~NMapTemplate() = default;
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset);
+			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret);
+			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
+			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
+
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			template<bool GetFromPool = false>
+			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, VecU8Reader& reader);
+
+			virtual void FreeToPool(TreeSearcher& p) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
+				if constexpr (CanUpgrade) p.NMapPool.FreeToPool(this);
+			}
+		private:
+			friend NSlice;//分支时需要调用私有接口进行指针操作
+			friend NAcc;//需要从可升级的节点中直接窃取成员
 			void init() {//如果是不可升级的版本，则是一个无用的init函数
 				if constexpr (CanUpgrade) {
 					if (children == nullptr) {
@@ -405,7 +342,7 @@ namespace PinInCpp {
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
 
-		class NAcc : public Node {//组合而非继承，不会升级的节点
+		class NAcc : public Node {//加速节点 组合而非继承，不会升级的节点
 		public:
 			virtual ~NAcc() = default;
 			NAcc(TreeSearcher& p, NMap& src) {
@@ -419,30 +356,12 @@ namespace PinInCpp {
 			}
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			void reload(TreeSearcher& p) {
-				index_node.clear();//释放所有音素
-				if (p.context->IsCharCacheEnabled()) {
-					for (const auto& [k, v] : *NodeMap.children) {
-						indexUseCache(p, k);
-					}
-				}
-				else {
-					for (const auto& [k, v] : *NodeMap.children) {
-						indexNotUseCache(p, k);
-					}
-				}
-			}
-			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, VecU8Reader& reader) {
-				std::unique_ptr<NMap> temp = NMap::Deserialize<true>(p, reader);
-				std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *temp);
-				temp->FreeToPool(p);//释放到池里面，方便下一次的对象复用
-				temp.release();//解除所有权，避免被delete了
 
-				return result;
-			}
+			void reload(TreeSearcher& p);
+			virtual void Serialize(std::vector<uint8_t>& data)const;
+			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, VecU8Reader& reader);
 			//你不需要，只需要一个空函数即可
-			virtual void FreeToPool(TreeSearcher& p) {}
+			virtual void FreeToPool(TreeSearcher&) {}
 		private:
 			void GetOwned(NMap& src) {
 				NodeMap.children = std::move(src.children);
@@ -455,48 +374,13 @@ namespace PinInCpp {
 			NMapOwned NodeMap;
 		};
 
-		class NSlice : public Node {
-		public:
-			virtual ~NSlice() = default;
-			NSlice(TreeSearcher& p, size_t start, size_t end) :start{ start }, end{ end } {
-				exit_node = p.NMapPool.NewObj();
-			}
-			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
-				get(p, ret, offset, 0);
-			}
-			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
-				exit_node->get(p, ret);
-			}
-			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
-			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
-			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, VecU8Reader& reader) {
-				size_t start = reader.GetSizeTFromQW();
-				size_t end = reader.GetSizeTFromQW();
-				std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
-				result->exit_node = Node::Deserialize(p, reader);
-
-				return result;
-			}
-			virtual void FreeToPool(TreeSearcher& p) {
-				p.NSlicePool.FreeToPool(this);
-			}
-		private:
-			NSlice(size_t start, size_t end) :start{ start }, end{ end } {}
-			void cut(TreeSearcher& p, size_t offset);
-			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
-			std::unique_ptr<Node> exit_node = nullptr;
-			size_t start;
-			size_t end;
-		};
-
 		//密集节点转换临界点 原始版本是128，因为还用一个元素代表了存储的元素列表，这里直接把字符串本身当作元素
 		//但是因为字符串id本身也需要记录，所以还是128
-		constexpr static int NDenseThreshold = 128;
+		constexpr static size_t NDenseThreshold = 128;
 		//表节点转换临界点
-		constexpr static int NMapThreshold = 32;
+		constexpr static size_t NMapThreshold = 32;
 		//ObjSet转换临界点
-		constexpr static int ContainerThreshold = 128;
+		constexpr static size_t ContainerThreshold = 128;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
 		UTF8StringPool strs;//应当继续贯彻零拷贝设计
@@ -511,7 +395,39 @@ namespace PinInCpp {
 		ObjectPtrPool<NMap> NMapPool;
 	};
 
-	/* 过长的模板实现 */
+	/* ObjSet 实现(避免前面的声明过长) */
+	template<typename value>
+	TreeSearcher::ObjSet<value>::AbstractSet* TreeSearcher::ObjSet<value>::ArraySet::insert(const value& input_v) {
+		for (const value& v : data) {
+			if (v == input_v) {
+				return this;//如果查到，有相等的，则为重复
+			}
+		}
+		//置前检查，避免潜在的不必要堆分配
+		if (data.size() + 1 > ContainerThreshold) {
+			std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
+			for (const value& v : data) {
+				result->insert(v);
+			}
+			result->insert(input_v);
+			return result.release();
+		}
+		if constexpr (!isSVO) {
+			size_t capacity = data.capacity();
+			if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
+				if (capacity == 0) {
+					data.reserve(1);
+				}
+				else {
+					data.reserve(capacity * 2);
+				}
+			}
+		}
+		data.emplace_back(input_v);
+		return this;
+	}
+
+	/* NMapTemplate 实现(避免前面的声明过长) */
 	template<bool CanUpgrade>
 	void TreeSearcher::NMapTemplate<CanUpgrade>::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 		if (p.acc.search().size() == offset) {
@@ -534,6 +450,19 @@ namespace PinInCpp {
 					n->get(p, ret, offset + i);
 				}
 			}
+		}
+	}
+
+	template<bool CanUpgrade>
+	void TreeSearcher::NMapTemplate<CanUpgrade>::get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
+		leaves.AddToSTLSet(ret);
+		if constexpr (CanUpgrade) {//可升级模式需要判断children的有效性，但是不可升级模式下本身是由children过大而引起的升级，所以不需要判断有效性
+			if (children == nullptr) {
+				return;
+			}
+		}
+		for (const auto& v : *children) {
+			v.second->get(p, ret);
 		}
 	}
 
@@ -570,6 +499,55 @@ namespace PinInCpp {
 		else {//编译时分支
 			return this;
 		}
+	}
+
+	template<bool CanUpgrade>
+	void TreeSearcher::NMapTemplate<CanUpgrade>::Serialize(std::vector<uint8_t>& data)const {
+		if constexpr (CanUpgrade) {
+			data.push_back(static_cast<uint8_t>(NodeType::NMapType));
+		}
+		PushQWUint8(data, leaves.size());
+		leaves.forEach([&](size_t i) {
+			PushQWUint8(data, i);
+		});
+		if constexpr (CanUpgrade) {
+			if (children == nullptr) {//没指针插入代表假的数字
+				PushQWUint8(data, 0);
+				return;
+			}
+		}
+		PushQWUint8(data, children->size());
+		for (const auto& [k, v] : *children) {
+			PushDWUint8(data, k);
+			v->Serialize(data);
+		}
+	}
+
+	template<bool CanUpgrade>
+	template<bool GetFromPool>
+	std::unique_ptr<TreeSearcher::NMapTemplate<CanUpgrade>> TreeSearcher::NMapTemplate<CanUpgrade>::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+		size_t leavesSize = reader.GetSizeTFromQW();
+		std::unique_ptr<NMapTemplate> result;
+		if constexpr (GetFromPool) {//给NAcc开个口，让他在反序列化的时候不需要重新反复申请新内存，而是复用已有的
+			result = p.NMapPool.NewObj();
+		}
+		else {
+			result = std::make_unique<NMapTemplate>();
+		}
+		result->leaves = ObjSet<size_t>(leavesSize);
+		for (size_t i = 0; i < leavesSize; i++) {
+			result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
+		}
+		size_t childrenSize = reader.GetSizeTFromQW();
+		if (childrenSize == 0) {
+			return result;
+		}
+		result->children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
+		for (size_t i = 0; i < childrenSize; i++) {
+			uint32_t fourCC = reader.GetDoubleWord();
+			result->children->insert_or_assign(fourCC, Node::Deserialize(p, reader));
+		}
+		return result;
 	}
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后

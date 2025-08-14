@@ -402,7 +402,7 @@ namespace PinInCpp {
 	}
 }
 namespace std {
-	template <>//特化一个这样的类
+	template <>//特化一个这样的类，用于Phoneme可以被hash
 	struct hash<PinInCpp::PinIn::Phoneme> {
 		std::size_t operator()(const PinInCpp::PinIn::Phoneme& p) const {
 			return std::hash<std::string_view>{}(p.GetSrc());
