@@ -1,7 +1,6 @@
 #include "TreeSearcher.h"
 
 namespace PinInCpp {
-
 	void TreeSearcher::put(std::string_view keyword) {
 		ticket->renew();
 		size_t pos = strs.put(keyword);
@@ -20,18 +19,6 @@ namespace PinInCpp {
 		result.reserve(ret.size());
 		for (const size_t id : ret) {//基本类型复制更高效
 			result.emplace_back(strs.getstr(id));
-		}
-		return result;
-	}
-
-	std::vector<std::string_view> TreeSearcher::ExecuteSearchView(std::string_view s) {
-		std::unordered_set<size_t> ret;
-		CommonSearch(s, ret);
-
-		std::vector<std::string_view> result;
-		result.reserve(ret.size());
-		for (const size_t id : ret) {//基本类型复制更高效
-			result.emplace_back(strs.getstr_view(id));
 		}
 		return result;
 	}
@@ -187,18 +174,18 @@ namespace PinInCpp {
 		}
 		else {
 			auto it = NodeMap.children->find(p.acc.searchU32FourCC(offset));
-			if (it != NodeMap.children->end()) {
-				it->second->get(p, result, offset + 1);
+			if (it != nullptr) {
+				it->get()->get(p, result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k.match(p.acc.search(), offset, true).empty()) {
-					std::unordered_map<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
-					for (const auto& c : v) {
+					AdaptiveMap<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
+					v.forEach([&](uint32_t c) {
 						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 						for (uint32_t j = it.Next(); j != it.end(); j = it.Next()) {
 							map[c]->get(p, result, offset + j);
 						}
-					}
+					});
 				}
 			}
 		}
@@ -218,14 +205,14 @@ namespace PinInCpp {
 	void TreeSearcher::NAcc::reload(TreeSearcher& p) {
 		index_node.clear();//释放所有音素
 		if (p.context->IsCharCacheEnabled()) {
-			for (const auto& [k, v] : *NodeMap.children) {
+			NodeMap.children->forEach([&](const auto& k, const auto& v) {
 				indexUseCache(p, k);
-			}
+			});
 		}
 		else {
-			for (const auto& [k, v] : *NodeMap.children) {
-				indexNotUseCache(p, k);
-			}
+			NodeMap.children->forEach([&](const auto& k, const auto& v) {
+				indexUseCache(p, k);
+			});
 		}
 	}
 
@@ -250,7 +237,7 @@ namespace PinInCpp {
 			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
-				index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
+				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去
 			}
 			else {//不为空
 				it->second.insert(c);
@@ -264,7 +251,7 @@ namespace PinInCpp {
 			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
-				index_node.insert_or_assign(ph, std::unordered_set<uint32_t>{c});//把汉字插进去
+				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去
 			}
 			else {//不为空
 				it->second.insert(c);

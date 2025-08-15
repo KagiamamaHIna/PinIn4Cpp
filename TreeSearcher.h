@@ -13,7 +13,7 @@
 #include "Keyboard.h"
 #include "ObjectPool.h"
 #include "BinUtils.h"
-#include "SVOArray.h"
+#include "AdaptiveContainers.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -69,15 +69,12 @@ namespace PinInCpp {
 		void put(std::string_view keyword);//插入待搜索项，内部无查重，大小写敏感
 		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
 		std::vector<std::string> ExecuteSearch(std::string_view s);//执行搜索
-		std::vector<std::string_view> ExecuteSearchView(std::string_view s);//执行搜索，但是返回的字符串为只读视图，注意，这些视图可能会在插入新数据后变成悬垂视图！
 		std::unordered_set<size_t> ExecuteSearchGetSet(std::string_view s);//执行搜索，但是返回的是内部的结果集id
 		std::string GetStrById(size_t id) {//配套使用。id请使用ExecuteSearchGetSet返回的合法的来源
 			return strs.getstr(id);
 		}
-		std::string_view GetStrViewById(size_t id)const noexcept {//注意，这些视图可能会在插入新数据后变成悬垂视图！
-			return strs.getstr_view(id);
-		}
-		//单位是字节
+
+		//单位是四字节
 		void StrPoolReserve(size_t _Newcapacity) {
 			strs.reserve(_Newcapacity);
 		}
@@ -119,113 +116,6 @@ namespace PinInCpp {
 			acc.search(s);
 			root->get(*this, ret, 0);
 		}
-		template<typename value>
-		class ObjSet {//这是专门用于优化的类，本身功能并不多！
-		private:
-			static constexpr uint8_t SVONum = sizeof(std::vector<value>) / sizeof(value);//计算一个合适的长度
-			static constexpr bool isSVO = SVONum > 0;//计算是否可以无损SVO优化
-			using ObjVector = std::conditional_t<isSVO, SVOArray<value, SVONum>, std::vector<value>>;
-
-			class AbstractSet {//集合不承担查找，这个就很简单
-			public:
-				virtual ~AbstractSet() = default;
-				virtual AbstractSet* insert(const value& input_v) = 0;
-				virtual void DeserializationInsert(const value& input_v) = 0;
-				virtual void AddToSTLSet(std::unordered_set<value>& input_v) = 0;//有点反客为主了
-				virtual size_t size()const noexcept = 0;
-				virtual void forEach(std::function<void(const value&)>& fn)const = 0;
-			};
-			class HashSet : public AbstractSet {
-			public:
-				virtual AbstractSet* insert(const value& input_v) {
-					data.insert(input_v);
-					return this;
-				}
-				virtual void DeserializationInsert(const value& input_v) {
-					data.insert(input_v);
-				}
-				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
-					for (const value& v : data) {
-						input_v.insert(v);
-					}
-				}
-				virtual size_t size()const noexcept {
-					return data.size();
-				}
-				virtual void forEach(std::function<void(const value&)>& fn)const {
-					for (const auto& v : data) {
-						fn(v);
-					}
-				}
-			private:
-				std::unordered_set<value> data;
-			};
-			class ArraySet : public AbstractSet {
-			public:
-				virtual AbstractSet* insert(const value& input_v);
-				virtual void DeserializationInsert(const value& input_v) {
-					data.emplace_back(input_v);
-				}
-				virtual void AddToSTLSet(std::unordered_set<value>& input_v) {
-					for (const value& v : data) {
-						input_v.insert(v);
-					}
-				}
-				virtual size_t size()const noexcept {
-					return data.size();
-				}
-				virtual void forEach(std::function<void(const value&)>& fn)const {
-					for (const auto& v : data) {
-						fn(v);
-					}
-				}
-				void reserve(size_t _Newcapacity) {
-					if constexpr (!isSVO) {
-						data.reserve(_Newcapacity);
-					}
-				}
-			private:
-				ObjVector data;
-			};
-			std::unique_ptr<AbstractSet> Container;
-		public:
-			ObjSet() :Container{ std::make_unique<ArraySet>() } {}
-			ObjSet(std::initializer_list<value> list) :Container{ std::make_unique<ArraySet>() } {
-				for (const value& v : list) {
-					insert(v);
-				}
-			}
-			ObjSet(size_t size) {
-				if (size > ContainerThreshold) {
-					Container = std::make_unique<HashSet>();
-				}
-				else {
-					std::unique_ptr<ArraySet> temp = std::make_unique<ArraySet>();
-					if constexpr (!isSVO) {
-						temp->reserve(size);
-					}
-					Container = std::move(temp);
-				}
-			}
-			void insert(const value& input_v) {
-				AbstractSet* set = Container->insert(input_v);
-				if (set != Container.get()) {
-					Container.reset(set);
-				}
-			}
-			void AddToSTLSet(std::unordered_set<value>& input_v) {
-				Container->AddToSTLSet(input_v);
-			}
-			size_t size()const noexcept {
-				return Container->size();
-			}
-			void forEach(std::function<void(const value&)> fn)const {
-				Container->forEach(fn);
-			}
-			void DeserializationInsert(const value& v) {
-				Container->DeserializationInsert(v);
-			}
-		};
 		enum class NodeType : uint8_t {
 			NDenseType, NSliceType, NMapType, NAccType
 		};
@@ -320,7 +210,7 @@ namespace PinInCpp {
 			void init() {//如果是不可升级的版本，则是一个无用的init函数
 				if constexpr (CanUpgrade) {
 					if (children == nullptr) {
-						children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
+						children = std::make_unique<AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
 					}
 				}
 			}
@@ -336,8 +226,8 @@ namespace PinInCpp {
 			void reset_children(TreeSearcher& p, const uint32_t ch, Node* n) {
 				p.NodeOwnershipReset(children->operator[](ch), n);
 			}
-			std::unique_ptr<std::unordered_map<uint32_t, std::unique_ptr<Node>>> children = nullptr;
-			ObjSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
+			std::unique_ptr<AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
+			AdaptiveSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
@@ -369,8 +259,7 @@ namespace PinInCpp {
 			}
 			void indexUseCache(TreeSearcher& p, const uint32_t c);
 			void indexNotUseCache(TreeSearcher& p, const uint32_t c);
-			//这个就不做升级优化了，通常都很多，做升级优化内存降下来不明显还引入了更多的运行时开销，有明显的性能下降
-			std::unordered_map<PinIn::Phoneme, std::unordered_set<uint32_t>> index_node;
+			std::unordered_map<PinIn::Phoneme, AdaptiveSet<uint32_t>> index_node;
 			NMapOwned NodeMap;
 		};
 
@@ -379,8 +268,6 @@ namespace PinInCpp {
 		constexpr static size_t NDenseThreshold = 128;
 		//表节点转换临界点
 		constexpr static size_t NMapThreshold = 32;
-		//ObjSet转换临界点
-		constexpr static size_t ContainerThreshold = 128;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
 		UTF8StringPool strs;//应当继续贯彻零拷贝设计
@@ -394,38 +281,6 @@ namespace PinInCpp {
 		ObjectPtrPool<NSlice> NSlicePool;
 		ObjectPtrPool<NMap> NMapPool;
 	};
-
-	/* ObjSet 实现(避免前面的声明过长) */
-	template<typename value>
-	TreeSearcher::ObjSet<value>::AbstractSet* TreeSearcher::ObjSet<value>::ArraySet::insert(const value& input_v) {
-		for (const value& v : data) {
-			if (v == input_v) {
-				return this;//如果查到，有相等的，则为重复
-			}
-		}
-		//置前检查，避免潜在的不必要堆分配
-		if (data.size() + 1 > ContainerThreshold) {
-			std::unique_ptr<HashSet> result = std::make_unique<HashSet>();
-			for (const value& v : data) {
-				result->insert(v);
-			}
-			result->insert(input_v);
-			return result.release();
-		}
-		if constexpr (!isSVO) {
-			size_t capacity = data.capacity();
-			if (data.size() + 1 > capacity) {//手动控制扩容因子，获取最高效的性能表现，和NDense同策略
-				if (capacity == 0) {
-					data.reserve(1);
-				}
-				else {
-					data.reserve(capacity * 2);
-				}
-			}
-		}
-		data.emplace_back(input_v);
-		return this;
-	}
 
 	/* NMapTemplate 实现(避免前面的声明过长) */
 	template<bool CanUpgrade>
@@ -444,12 +299,12 @@ namespace PinInCpp {
 					return;
 				}
 			}
-			for (const auto& [c, n] : *children) {
+			children->forEach([&](const auto& c, const auto& n) {
 				IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 				for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 					n->get(p, ret, offset + i);
 				}
-			}
+			});
 		}
 	}
 
@@ -461,9 +316,9 @@ namespace PinInCpp {
 				return;
 			}
 		}
-		for (const auto& v : *children) {
-			v.second->get(p, ret);
-		}
+		children->forEach([&](const auto& k, const auto& v) {
+			v->get(p, ret);
+		});
 	}
 
 	template<bool CanUpgrade>//避免循环依赖，模板实现滞后
@@ -478,11 +333,11 @@ namespace PinInCpp {
 			uint32_t ch = p.strs.getcharFourCC(keyword);
 			auto it = children->find(ch);//查找
 			Node* sub;
-			if (it == children->end()) {
+			if (it == nullptr) {
 				sub = put(ch, p.NDensePool.NewObj());
 			}
 			else {
-				sub = it->second.get();
+				sub = it->get();
 			}
 			Node* src = sub;
 			sub = sub->put(p, keyword + 1, id);
@@ -517,10 +372,10 @@ namespace PinInCpp {
 			}
 		}
 		PushQWUint8(data, children->size());
-		for (const auto& [k, v] : *children) {
+		children->forEach([&](const auto& k, const auto& v) {
 			PushDWUint8(data, k);
 			v->Serialize(data);
-		}
+		});
 	}
 
 	template<bool CanUpgrade>
@@ -534,7 +389,7 @@ namespace PinInCpp {
 		else {
 			result = std::make_unique<NMapTemplate>();
 		}
-		result->leaves = ObjSet<size_t>(leavesSize);
+		result->leaves = AdaptiveSet<size_t>(leavesSize);
 		for (size_t i = 0; i < leavesSize; i++) {
 			result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
 		}
@@ -542,7 +397,7 @@ namespace PinInCpp {
 		if (childrenSize == 0) {
 			return result;
 		}
-		result->children = std::make_unique<std::unordered_map<uint32_t, std::unique_ptr<Node>>>();
+		result->children = std::make_unique<AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
 		for (size_t i = 0; i < childrenSize; i++) {
 			uint32_t fourCC = reader.GetDoubleWord();
 			result->children->insert_or_assign(fourCC, Node::Deserialize(p, reader));
@@ -568,11 +423,11 @@ namespace PinInCpp {
 			uint32_t ch = p.strs.getcharFourCC(i);
 			auto it = children->find(ch);//查找
 			Node* sub;
-			if (it == children->end()) {
+			if (it == nullptr) {
 				sub = put(ch, p.NDensePool.NewObj());
 			}
 			else {
-				sub = it->second.get();
+				sub = it->get();
 			}
 			Node* src = sub;
 			sub = sub->put(p, i + 1, start);

@@ -25,11 +25,23 @@ static double GetTimeMS(high_time_point start, high_time_point end) {//微秒
 	return result.count() * 1000;
 }
 
+static void Pause() {
+#ifdef _WIN32
+	system("pause");
+#else
+	std::cout << "Press Enter to continue";
+	std::cin.get();
+#endif
+}
+
 constexpr int TreeLoopInsertCount = 1;
 constexpr int SearcherLoopCount = 1;
 
 int main() {
+#ifdef _WIN32
 	system("chcp 65001");//编码切换，windows平台的cmd命令
+#endif
+
 	std::fstream file("small.txt");//数据读取
 	std::string line;
 	std::vector<std::string> FileCache;
@@ -41,13 +53,13 @@ int main() {
 	//说起来这个数据源是原本的约三倍大小（
 	//不过格式方面不一样，所以不方便比较
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
-	system("pause");
+	Pause();
 	high_time_point now = GetTimePoint();
 	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
 	high_time_point end = GetTimePoint();
 	std::cout << GetTimeMS(now, end) << "ms\n";//计算获取耗时并打印，单位毫秒
 
-	system("pause");
+	Pause();
 	//pininptr->SetCharCache(true); //默认开启
 	PinInCpp::PinIn::Config cfg = pininptr->config();
 	cfg.fZh2Z = true;
@@ -87,10 +99,10 @@ int main() {
 		std::getline(std::cin, line);
 
 		double timeCount = 0;
-		std::vector<std::string_view> vec;
+		std::vector<std::string> vec;
 		for (int i = 0; i < SearcherLoopCount; i++) {
 			high_time_point now = GetTimePoint();
-			vec = tree->ExecuteSearchView(line);
+			vec = tree->ExecuteSearch(line);
 			high_time_point end = GetTimePoint();
 			timeCount += GetTimeMS(now, end);
 		}

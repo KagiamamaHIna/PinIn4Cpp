@@ -52,7 +52,7 @@
       <Filter>源文件\utils</Filter>
     </ClCompile>
     <ClCompile Include="StringUtils.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -83,7 +83,7 @@
     <ClInclude Include="BinUtils.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
-    <ClInclude Include="SVOArray.h">
+    <ClInclude Include="AdaptiveContainers.h">
       <Filter>头文件\utils</Filter>
     </ClInclude>
     <ClInclude Include="StringUtils.h">

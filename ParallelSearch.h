@@ -104,23 +104,20 @@ namespace PinInCpp {
 		std::vector<std::string> ExecuteSearch(std::string_view str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
 			CommonSearch(str);
 			std::vector<std::string> result;
+			size_t ResetSetSize = 0;
+			for (const auto& vec : ResultSet) {
+				ResetSetSize += vec.size();
+			}
+			result.reserve(ResetSetSize);
+
 			for (const auto& vec : ResultSet) {
 				for (const auto& str : vec) {
-					result.emplace_back(str);
+					result.emplace_back(str);//数据拷贝
 				}
 			}
 			return result;
 		}
-		std::vector<std::string_view> ExecuteSearchView(std::string_view str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数。返回的只读视图会在插入后可能变成悬垂视图
-			CommonSearch(str);
-			std::vector<std::string_view> result;
-			for (const auto& vec : ResultSet) {
-				for (const auto& str : vec) {
-					result.emplace_back(str);
-				}
-			}
-			return result;
-		}
+
 		//线程不安全，你应该在单线程内执行它
 		void put(std::string_view keyword) {
 			context->PreCacheString(keyword);//手动预热
@@ -136,7 +133,7 @@ namespace PinInCpp {
 			return TreeNum;
 		}
 
-		//单位是字节
+		//单位是四字节
 		void StrPoolReserve(size_t index, size_t _Newcapacity) {
 			TreePool.at(index)->StrPoolReserve(_Newcapacity);
 		}
@@ -184,7 +181,7 @@ namespace PinInCpp {
 							break;
 						}
 						// 2. 执行任务，并放入结果集数组
-						ResultSet[i] = TreePool[i]->ExecuteSearchView(searchStr);
+						ResultSet[i] = TreePool[i]->ExecuteSearch(searchStr);
 						// 3. 任务完成，到达屏障等待其他线程
 						barrier.arrive_and_wait();
 					}
@@ -207,7 +204,7 @@ namespace PinInCpp {
 		std::shared_ptr<PinIn> context;//共享状态
 		std::vector<std::thread> ThreadPool;//线程池
 		std::vector<std::unique_ptr<TreeSearcher>> TreePool;//树池
-		std::vector<std::vector<std::string_view>> ResultSet;//用一个数组管理应该插入的数据
+		std::vector<std::vector<std::string>> ResultSet;//用一个数组管理应该插入的数据
 		std::unique_ptr<PinIn::Ticket> ticket;
 		std::string searchStr;
 		const size_t TreeNum;
