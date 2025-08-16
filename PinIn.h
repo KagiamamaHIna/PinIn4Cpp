@@ -166,6 +166,9 @@ namespace PinInCpp {
 		bool getfU2V()const noexcept {
 			return fU2V;
 		}
+		bool getfFirstChar()const noexcept {
+			return fFirstChar;
+		}
 		class Config {
 		public://不提供函数式的链式调用接口了
 			Config(PinIn& ctx);

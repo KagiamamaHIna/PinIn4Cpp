@@ -80,6 +80,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -99,6 +100,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -114,6 +116,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +136,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -146,6 +150,7 @@
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="ObjectPool.h" />
     <ClCompile Include="PinIn.cpp" />
+    <ClCompile Include="PinInCAPI.cpp" />
     <ClCompile Include="PinyinFormat.cpp" />
     <ClCompile Include="PinyinTest.cpp" />
     <ClCompile Include="StringPool.cpp" />
@@ -159,6 +164,7 @@
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="ParallelSearch.h" />
     <ClInclude Include="PinIn.h" />
+    <ClInclude Include="PinInCAPI.h" />
     <ClInclude Include="PinyinFormat.h" />
     <ClInclude Include="StringPool.h" />
     <ClInclude Include="StringUtils.h" />

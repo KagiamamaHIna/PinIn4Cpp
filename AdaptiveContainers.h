@@ -99,7 +99,7 @@ namespace PinInCpp {
 				//如果抛出异常了，则后续什么都不做
 
 				T* Src = reinterpret_cast<T*>(data.shortData.data);
-				size_t cap = dataSize * 2;
+				constexpr size_t cap = __size * 2;
 				Chunk* newChunk = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * cap, HeapAlign));//申请缓冲区，假设移动构造不抛异常
 				for (size_t i = 0; i < __size; i++) {
 					new (reinterpret_cast<T*>(newChunk[i])) T(std::move(Src[i]));//调用移动构造函数移动资源
@@ -235,7 +235,7 @@ namespace PinInCpp {
 		DataUnion data;
 	};
 
-	template<typename value>
+	template<typename value, bool lazyLoad = false>
 	class AdaptiveSet {//自适应集合，小向量缓冲区->动态数组->哈希集合三级优化。特化组件，目前不考虑删除
 	private:
 		//AdaptiveSet转换临界点
@@ -334,9 +334,13 @@ namespace PinInCpp {
 		private:
 			ObjVector data;
 		};
-		std::unique_ptr<AbstractSet> Container;
+		std::unique_ptr<AbstractSet> Container = nullptr;
 	public:
-		AdaptiveSet() :Container{ std::make_unique<ArraySet>() } {}
+		AdaptiveSet() {
+			if constexpr (!lazyLoad) {
+				Container = std::make_unique<ArraySet>();
+			}
+		}
 		AdaptiveSet(std::initializer_list<value> list) :Container{ std::make_unique<ArraySet>() } {
 			for (const value& v : list) {
 				insert(v);
@@ -355,18 +359,38 @@ namespace PinInCpp {
 			}
 		}
 		void insert(const value& input_v) {
+			if constexpr (lazyLoad) {
+				if (Container == nullptr) {
+					Container = std::make_unique<ArraySet>();
+				}
+			}
 			AbstractSet* set = Container->insert(input_v);
 			if (set != Container.get()) {
 				Container.reset(set);
 			}
 		}
 		void AddToSTLSet(std::unordered_set<value>& input_v) {
+			if constexpr (lazyLoad) {
+				if (Container == nullptr) {
+					return;
+				}
+			}
 			Container->AddToSTLSet(input_v);
 		}
 		size_t size()const noexcept {
+			if constexpr (lazyLoad) {
+				if (Container == nullptr) {
+					return 0;
+				}
+			}
 			return Container->size();
 		}
 		void forEach(std::function<void(const value&)> fn)const {
+			if constexpr (lazyLoad) {
+				if (Container == nullptr) {
+					return;
+				}
+			}
 			Container->forEach(fn);
 		}
 		void DeserializationInsert(const value& v) {//反序列化时用的接口，用于快速恢复状态，内部不会进行升级检查

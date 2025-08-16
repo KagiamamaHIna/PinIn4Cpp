@@ -54,6 +54,9 @@
     <ClCompile Include="StringUtils.cpp">
       <Filter>源文件\utils</Filter>
     </ClCompile>
+    <ClCompile Include="PinInCAPI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Keyboard.h">
@@ -88,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="StringUtils.h">
       <Filter>头文件\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="PinInCAPI.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

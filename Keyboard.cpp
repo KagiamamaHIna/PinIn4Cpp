@@ -140,6 +140,10 @@ namespace PinInCpp {
 		if (this == &src) {
 			return *this;
 		}
+		duo = src.duo;
+		sequence = src.sequence;
+		cutter = src.cutter;
+
 		copy(src);
 		return *this;
 	}

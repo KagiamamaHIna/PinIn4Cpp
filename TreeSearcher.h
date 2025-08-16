@@ -74,6 +74,18 @@ namespace PinInCpp {
 			return strs.getstr(id);
 		}
 
+		/* For CAPI START*/
+		/* 暴露给CAPI用的，如果你是用C++开发，你不应该考虑这些公开接口 */
+		//获取字符串大小，不包含终止符
+		size_t GetStrSizeById(size_t id) {
+			return strs.getStrSize(id);
+		}
+		//根据提供的缓冲区写入字符串数据，如果数据因为缓冲区大小被截断了，那么返回的是-1。完整的插入了则是0
+		int PutToCharBufById(size_t id, char* buf, size_t bufSize) {
+			return strs.PutToCharBuf(id, buf, bufSize);
+		}
+		/* For CAPI END */
+
 		//单位是四字节
 		void StrPoolReserve(size_t _Newcapacity) {
 			strs.reserve(_Newcapacity);
@@ -156,7 +168,7 @@ namespace PinInCpp {
 			}
 		private:
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
-			SVOArray<size_t, 4> data;
+			SVOArray<size_t, 2> data;
 		};
 
 		class NSlice : public Node {//切片节点，有公共前缀，用NMap/NAcc管理
@@ -227,7 +239,7 @@ namespace PinInCpp {
 				p.NodeOwnershipReset(children->operator[](ch), n);
 			}
 			std::unique_ptr<AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
-			AdaptiveSet<size_t> leaves;//经常出现占用较少情况，适合做升级优化
+			AdaptiveSet<size_t, true> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
@@ -270,7 +282,7 @@ namespace PinInCpp {
 		constexpr static size_t NMapThreshold = 32;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
-		UTF8StringPool strs;//应当继续贯彻零拷贝设计
+		UTF8StringPool strs;
 		Accelerator acc;
 		const Logic logic;
 
@@ -389,7 +401,7 @@ namespace PinInCpp {
 		else {
 			result = std::make_unique<NMapTemplate>();
 		}
-		result->leaves = AdaptiveSet<size_t>(leavesSize);
+		result->leaves = AdaptiveSet<size_t, true>(leavesSize);
 		for (size_t i = 0; i < leavesSize; i++) {
 			result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
 		}

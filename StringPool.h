@@ -12,6 +12,7 @@ namespace PinInCpp {
 
 	目前设计支持只支持UTF8的可变长编码，这是一个特化的，不可编辑的字符串池
 	*/
+	class LazyString;
 	class UTF8StringPool {
 	public:
 		bool end(size_t i)const noexcept {
@@ -20,6 +21,8 @@ namespace PinInCpp {
 		size_t put(std::string_view s);//返回的是其插入完成后字符串首端索引
 		std::string getchar(size_t i)const;//获取指定字符
 		std::string getstr(size_t strStart)const;//输入首端索引构造完整字符串
+		size_t getStrSize(size_t strStart)const;
+		int PutToCharBuf(size_t strStart, char* buf, size_t bufSize);
 		//std::string_view getchar_view(size_t i)const noexcept;//获取指定字符的只读视图 持有时不要变动字符串池！
 		//std::string_view getstr_view(size_t strStart)const noexcept;//输入首端索引构造完整字符串的只读视图 持有时不要变动字符串池！
 		uint32_t getcharFourCC(size_t i)const noexcept {

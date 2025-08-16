@@ -58,7 +58,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	void U32FourCCToCharBuf(char buf[5], uint32_t c)noexcept {
+	size_t U32FourCCToCharBuf(char buf[5], uint32_t c)noexcept {
 		size_t size;
 		if (c <= 0xFF) {
 			size = 1;
@@ -80,5 +80,6 @@ namespace PinInCpp {
 			c >>= 8;
 		}
 		buf[0] |= c;
+		return size;
 	}
 }

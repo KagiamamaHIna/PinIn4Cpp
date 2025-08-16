@@ -11,8 +11,8 @@ namespace PinInCpp {
 	int HexStrToInt(const std::string&);
 	//将字符串转换为uint32数字表示（只转换前四个）
 	uint32_t FourCCToU32(std::string_view str) noexcept;
-	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流
-	void U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
+	//提供一个缓冲区，在缓冲区里面构建回单字符的字节流，返回当前字符大小(不包括终止符)
+	size_t U32FourCCToCharBuf(char buf[5], uint32_t c) noexcept;
 	inline size_t getUTF8CharSize(const char c) noexcept {
 		if ((c & 0x80) == 0) { // 0xxxxxxx
 			return 1;
