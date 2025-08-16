@@ -105,7 +105,7 @@ extern "C" {
 
 	//搜索树的搜索API
 	void PinInCpp_TreeSearcherPutString(PinInCpp_TreeSearcher tree, const char* str);//插入待搜索项
-	PinInCpp_SearchResult PinInCpp_TreeSearcherExecuteSearch(PinInCpp_TreeSearcher tree, const char* str);//获取结果列表，需要手动free ids成员
+	PinInCpp_SearchResult PinInCpp_TreeSearcherExecuteSearch(PinInCpp_TreeSearcher tree, const char* str);//获取结果列表，需要手动调用PinInCpp_SearchResultFree
 	size_t PinInCpp_TreeSearcherGetStrSizeById(PinInCpp_TreeSearcher tree, size_t id);//使用PinInCpp_SearchResult里的id
 	int PinInCpp_TreeSearcherPutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize);//根据提供的缓冲区填充字符串，如果数据因为缓冲区大小被截断了，那么返回的是-1。完整的插入了则是0
 

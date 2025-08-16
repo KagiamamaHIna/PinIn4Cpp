@@ -7,6 +7,10 @@
 static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSeracher_Keyboard keyboard) {
 	std::optional<PinInCpp::Keyboard> key;
 	switch (keyboard) {
+	case PinInCpp_QUANPIN: {
+		key = PinInCpp::Keyboard::QUANPIN;
+		break;
+	}
 	case PinInCpp_DAQIAN: {
 		key = PinInCpp::Keyboard::DAQIAN;
 		break;
