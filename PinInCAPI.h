@@ -5,14 +5,17 @@
 //那这个CAPI可能会以一个起点来讲很合适
 //所以暂时不考虑写ParallelSearch到CAPI中，也就是CAPI中的只能单线程，CAPI的版本也不支持 从内存反序列化/序列化 是直接交互文件api的，主要是避免麻烦
 
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 #include <stddef.h>
 
-	struct PinInCpp_PinIn_NULL {};
+	struct PinInCpp_PinIn_NULL { int unused; };
 	typedef struct PinInCpp_PinIn_NULL* PinInCpp_PinIn;//PinInCpp_PinIn == std::shared_ptr<PinInCpp::PinIn> *
 	//需要在C++层面共享所有权，所以是套的智能指针，但是一定要记得回收这个智能指针，不然会内存泄漏
 
-	struct PinInCpp_TreeSearcher_NULL {};
+	struct PinInCpp_TreeSearcher_NULL { int unused; };
 	typedef struct PinInCpp_TreeSearcher_NULL* PinInCpp_TreeSearcher;//PinInCpp_TreeSearcher == PinInCpp::TreeSearcher * 
 	//因为不需要在C++层面共享所有权的，所以没封装
 
@@ -29,12 +32,14 @@ extern "C" {
 		PinInCpp_PINYINPP,		//拼音加加双拼方案
 		PinInCpp_ZIGUANG,		//紫光双拼方案
 	};
+	typedef enum PinInCpp_TreeSeracher_Keyboard PinInCpp_TreeSeracher_Keyboard;
 
 	enum PinInCpp_TreeSeracher_Logic {
 		PinInCpp_BEGIN,
 		PinInCpp_CONTAIN,
 		PinInCpp_EQUAL,
 	};
+	typedef enum PinInCpp_TreeSeracher_Logic PinInCpp_TreeSeracher_Logic;
 
 	enum PinInCpp_DeserializeError {
 		PinInCpp_DeserNormal,
@@ -42,6 +47,8 @@ extern "C" {
 		PinInCpp_DeserOutOfRange,
 		PinInCpp_DeserBadAlloc
 	};
+	typedef enum PinInCpp_DeserializeError PinInCpp_DeserializeError;
+
 	struct PinInCpp_Config {
 		PinInCpp_TreeSeracher_Keyboard keyboard;//返回的时候默认 PinInCpp_NULLKeyboard 因为我也没办法确定Keyboard是谁
 		char fZh2Z;//把他们当成bool用(
@@ -53,12 +60,14 @@ extern "C" {
 		char fU2V;
 		char fFirstChar;
 	};
+	typedef struct PinInCpp_Config PinInCpp_Config;
 
 	//ids成员用free回收
 	struct PinInCpp_SearchResult {
 		size_t* ids;
 		size_t size;
 	};
+	typedef struct PinInCpp_SearchResult PinInCpp_SearchResult;
 
 	//依赖字典文件路径初始化。获取资源时需要检查空指针
 	PinInCpp_PinIn PinInCpp_PinInNew(const char* path);
@@ -104,4 +113,6 @@ extern "C" {
 	void PinInCpp_TreeSearcherRefresh(PinInCpp_TreeSearcher tree);//手动尝试刷新
 	void PinInCpp_TreeSearcherClearFreeList(PinInCpp_TreeSearcher tree);
 	void PinInCpp_TreeSearcherShrinkToFit(PinInCpp_TreeSearcher tree);
+#ifdef __cplusplus
 }
+#endif
