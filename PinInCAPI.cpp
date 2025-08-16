@@ -47,6 +47,10 @@ static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSerach
 	return key;
 }
 
+void PinInCpp_SearchResultFree(PinInCpp_SearchResult result) {
+	free(result.ids);
+}
+
 PinInCpp_PinIn PinInCpp_PinInNew(const char* path) {
 	PinInCpp::PinIn* rawPtr;
 	try {
@@ -244,15 +248,21 @@ PinInCpp_SearchResult PinInCpp_TreeSearcherExecuteSearch(PinInCpp_TreeSearcher t
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	std::unordered_set<size_t> resultSet = t->ExecuteSearchGetSet(str);
 
-	size_t* resultBuf = (size_t*)malloc(sizeof(size_t) * resultSet.size());
 	PinInCpp_SearchResult result;
+	size_t ResultSize = resultSet.size();
+
+	result.size = ResultSize;
+	if (ResultSize == 0) {//没数据那么就不用申请缓冲区
+		result.ids = NULL;
+		return result;
+	}
+
+	size_t* resultBuf = (size_t*)malloc(sizeof(size_t) * ResultSize);
 	if (resultBuf == NULL) {
 		result.ids = NULL;
-		result.size = 0;
 		return result;
 	}
 	result.ids = resultBuf;
-	result.size = resultSet.size();
 
 	for (const size_t item : resultSet) {
 		*resultBuf = item;

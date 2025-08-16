@@ -62,12 +62,13 @@ extern "C" {
 	};
 	typedef struct PinInCpp_Config PinInCpp_Config;
 
-	//ids成员用free回收
+	//用PinInCpp_SearchResultFree回收内存
 	struct PinInCpp_SearchResult {
 		size_t* ids;
 		size_t size;
 	};
 	typedef struct PinInCpp_SearchResult PinInCpp_SearchResult;
+	void PinInCpp_SearchResultFree(PinInCpp_SearchResult result);
 
 	//依赖字典文件路径初始化。获取资源时需要检查空指针
 	PinInCpp_PinIn PinInCpp_PinInNew(const char* path);
