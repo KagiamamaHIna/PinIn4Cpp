@@ -111,7 +111,7 @@ namespace PinInCpp {
 			if (enable && !CharCache.has_value()) {//如果启用且没有值的时候
 				CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();
 			}
-			else {//未启用的时候清空
+			else if (!enable) {//未启用的时候清空
 				CharCache.reset();
 			}
 		}
