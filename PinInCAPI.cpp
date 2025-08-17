@@ -1,5 +1,3 @@
-//#define PinIn4CppCAPI enables this file
-
 #include "PinInCAPI.h"
 #include "TreeSearcher.h"
 #include <malloc.h>
