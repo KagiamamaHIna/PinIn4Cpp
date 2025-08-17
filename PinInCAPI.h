@@ -1,5 +1,12 @@
 #pragma once
 
+//这个PinInCppExportAPI宏决定是否导出到dll中，可以自行覆盖
+#ifdef PinInCppExportAPI
+#define PinInCppExportCAPIToDll __declspec(dllexport)
+#else
+#define PinInCppExportCAPIToDll 
+#endif
+
 //CAPI的版本主要是提供一套基础的接口，能完成基本的搜索任务为前提的，更复杂的为何不考虑用C++构建呢？
 //如果你想快速为其他语言提供一套单线程的搜索API（其实也是这个库的核心任务）
 //那这个CAPI可能会以一个起点来讲很合适
@@ -69,52 +76,52 @@ extern "C" {
 		size_t size;
 	};
 	typedef struct PinInCpp_SearchResult PinInCpp_SearchResult;
-	void PinInCpp_SearchResult_Free(PinInCpp_SearchResult result);
+	PinInCppExportCAPIToDll void PinInCpp_SearchResult_Free(PinInCpp_SearchResult result);
 
 	//依赖字典文件路径初始化。获取资源时需要检查空指针
-	PinInCpp_PinIn PinInCpp_PinIn_New(const char* path);
-	void PinInCpp_PinIn_Free(PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll PinInCpp_PinIn PinInCpp_PinIn_New(const char* path);
+	PinInCppExportCAPIToDll void PinInCpp_PinIn_Free(PinInCpp_PinIn pinin);
 
 	//依赖序列化文件初始化，第三个参数承担返回值的工作
-	PinInCpp_DeserializeError PinInCpp_PinIn_Deserialize(const char* path, PinInCpp_TreeSeracher_Keyboard keyboard, PinInCpp_PinIn* pinin);
-	int PinInCpp_PinIn_Serialize(PinInCpp_PinIn pinin, const char* path);//返回值为真则写入成功
+	PinInCppExportCAPIToDll PinInCpp_DeserializeError PinInCpp_PinIn_Deserialize(const char* path, PinInCpp_TreeSeracher_Keyboard keyboard, PinInCpp_PinIn* pinin);
+	PinInCppExportCAPIToDll int PinInCpp_PinIn_Serialize(PinInCpp_PinIn pinin, const char* path);//返回值为真则写入成功
 
 	//检查有效性
-	int PinInCpp_PinIn_Empty(PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll int PinInCpp_PinIn_Empty(PinInCpp_PinIn pinin);
 
 	//配置接口
-	PinInCpp_Config PinInCpp_PinIn_GetConfig(PinInCpp_PinIn pinin);
-	void PinInCpp_PinIn_ConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg);
+	PinInCppExportCAPIToDll PinInCpp_Config PinInCpp_PinIn_GetConfig(PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll void PinInCpp_PinIn_ConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg);
 
 	//PinIn缓存控制接口
-	void PinInCpp_PinIn_PreCacheString(PinInCpp_PinIn pinin, const char* str);
-	void PinInCpp_PinIn_PreNullPinyinIdCache(PinInCpp_PinIn pinin);
-	int PinInCpp_PinIn_IsCharCacheEnabled(PinInCpp_PinIn pinin);
-	void PinInCpp_PinIn_SetCharCache(PinInCpp_PinIn pinin, int enable);
+	PinInCppExportCAPIToDll void PinInCpp_PinIn_PreCacheString(PinInCpp_PinIn pinin, const char* str);
+	PinInCppExportCAPIToDll void PinInCpp_PinIn_PreNullPinyinIdCache(PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll int PinInCpp_PinIn_IsCharCacheEnabled(PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll void PinInCpp_PinIn_SetCharCache(PinInCpp_PinIn pinin, int enable);
 
 	//获取资源时需要检查空指针
-	PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPath(PinInCpp_TreeSeracher_Logic logic, const char* path);
-	PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPinIn(PinInCpp_TreeSeracher_Logic logic, PinInCpp_PinIn pinin);
-	void PinInCpp_TreeSearcher_Free(PinInCpp_TreeSearcher pinin);
+	PinInCppExportCAPIToDll PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPath(PinInCpp_TreeSeracher_Logic logic, const char* path);
+	PinInCppExportCAPIToDll PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPinIn(PinInCpp_TreeSeracher_Logic logic, PinInCpp_PinIn pinin);
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_Free(PinInCpp_TreeSearcher pinin);
 
 	//依赖序列化文件初始化，第三个参数承担返回值的工作
-	PinInCpp_DeserializeError PinInCpp_TreeSearcher_Deserialize(const char* path, PinInCpp_PinIn pinin, PinInCpp_TreeSearcher* tree);
-	int PinInCpp_TreeSearcher_Serialize(PinInCpp_TreeSearcher tree, const char* path);//返回值为真则写入成功
+	PinInCppExportCAPIToDll PinInCpp_DeserializeError PinInCpp_TreeSearcher_Deserialize(const char* path, PinInCpp_PinIn pinin, PinInCpp_TreeSearcher* tree);
+	PinInCppExportCAPIToDll int PinInCpp_TreeSearcher_Serialize(PinInCpp_TreeSearcher tree, const char* path);//返回值为真则写入成功
 
 	//需要检查空指针，从搜索树上获取PinIn
-	PinInCpp_PinIn PinInCpp_TreeSearcher_GetPinIn(PinInCpp_TreeSearcher tree);
+	PinInCppExportCAPIToDll PinInCpp_PinIn PinInCpp_TreeSearcher_GetPinIn(PinInCpp_TreeSearcher tree);
 
 	//搜索树的搜索API
-	void PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str);//插入待搜索项
-	PinInCpp_SearchResult PinInCpp_TreeSearcher_ExecuteSearch(PinInCpp_TreeSearcher tree, const char* str);//获取结果列表，需要手动调用PinInCpp_SearchResultFree
-	size_t PinInCpp_TreeSearcher_GetStrSizeById(PinInCpp_TreeSearcher tree, size_t id);//使用PinInCpp_SearchResult里的id
-	int PinInCpp_TreeSearcher_PutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize);//根据提供的缓冲区填充字符串，如果数据因为缓冲区大小被截断了，那么返回的是-1。完整的插入了则是0
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str);//插入待搜索项
+	PinInCppExportCAPIToDll PinInCpp_SearchResult PinInCpp_TreeSearcher_ExecuteSearch(PinInCpp_TreeSearcher tree, const char* str);//获取结果列表，需要手动调用PinInCpp_SearchResultFree
+	PinInCppExportCAPIToDll size_t PinInCpp_TreeSearcher_GetStrSizeById(PinInCpp_TreeSearcher tree, size_t id);//使用PinInCpp_SearchResult里的id
+	PinInCppExportCAPIToDll int PinInCpp_TreeSearcher_PutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize);//根据提供的缓冲区填充字符串，如果数据因为缓冲区大小被截断了，那么返回的是-1。完整的插入了则是0
 
 	//搜索树的其他控制接口
-	void PinInCpp_TreeSearcher_StrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity);
-	void PinInCpp_TreeSearcher_Refresh(PinInCpp_TreeSearcher tree);//手动尝试刷新
-	void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree);
-	void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree);
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_StrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity);
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_Refresh(PinInCpp_TreeSearcher tree);//手动尝试刷新
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree);
+	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree);
 #ifdef __cplusplus
 }
 #endif

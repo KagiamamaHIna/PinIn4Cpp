@@ -116,7 +116,7 @@ namespace PinInCpp {
 			}
 		}
 
-		bool empty()const noexcept {//返回有效性，真即有效，假即无效
+		bool empty()const noexcept {//返回是否为空，真即无效，假即无效
 			return pool.empty();
 		}
 		bool HasPinyin(std::string_view str)const noexcept;
