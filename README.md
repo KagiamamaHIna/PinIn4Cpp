@@ -16,6 +16,7 @@
 - 只实现了TreeSearcher
 - 提供了新的ParallelSearch类，内置线程池机制的并行化树搜索，在数据量很大时可以提供更好的即时搜索性能
 - 提供了PinIn类、TreeSearcher类、ParallelSearch类的序列化和反序列化接口，以提供快速加载已有结构的功能
+- 提供了[C API](PinInCAPI.h)，通过C API可以轻松的被支持FFI的语言调用，或者是用C语言使用这个库
 
 搜索方面应该和原版无异
 
