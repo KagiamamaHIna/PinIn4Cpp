@@ -67,15 +67,15 @@ PinInCpp_PinIn PinInCpp_PinIn_New(const char* path) {
 		return NULL;
 	}
 
-	void* result;
+	std::shared_ptr<PinInCpp::PinIn>* result;
 	try {
-		result = (void*)new std::shared_ptr<PinInCpp::PinIn>(rawPtr);
+		result = new std::shared_ptr<PinInCpp::PinIn>();
 	}
-	catch (...) {
-		delete rawPtr;//如果抛出异常了，那么析构掉数据
+	catch (std::bad_alloc&) {
+		delete rawPtr;//如果抛出bad_alloc异常了，那么析构掉数据
 		return NULL;
 	}
-
+	result->reset(rawPtr);
 	return (PinInCpp_PinIn)result;
 }
 
@@ -286,7 +286,6 @@ int PinInCpp_TreeSearcher_PutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, ch
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	return t->PutToCharBufById(id, buf, bufSize);
 }
-
 
 void PinInCpp_TreeSearcher_StrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
