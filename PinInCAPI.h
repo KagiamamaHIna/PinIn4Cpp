@@ -1,6 +1,6 @@
 #pragma once
 
-//这个PinInCppExportAPI宏决定是否导出到dll中，可以自行覆盖
+//这个PinInCppExportAPI宏决定是否导出到dll中
 #ifdef PinInCppExportAPI
 #define PinInCppExportCAPIToDll __declspec(dllexport)
 #else
