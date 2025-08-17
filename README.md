@@ -52,7 +52,9 @@ __前缀匹配__
 #include "TreeSearcher.h"
 
 int main() {
-	system("chcp 65001");//这是仅windows平台的测试，这个用于切换cmd的代码页，让其可以显示utf8字符串
+#ifdef _WIN32
+	system("chcp 65001");//这个用于切换cmd的代码页，让windows环境下可以显示utf8字符串
+#endif
 
 	PinInCpp::TreeSearcher TreeA(PinInCpp::Logic::CONTAIN, "pinyin.txt");//路径是拼音字典的路径
 	std::shared_ptr<PinInCpp::PinIn> pinin = TreeA.GetPinInShared();//返回其共享所有权的智能指针
@@ -60,15 +62,14 @@ int main() {
 	PinInCpp::TreeSearcher TreeB(PinInCpp::Logic::BEGIN, pinin);//通过传递智能指针，现在A和B树的拼音上下文是共享的
 
 	TreeA.put("测试文本");
-	for (const auto& v : TreeA.ExecuteSearchView("wenben")) {
-		//View后缀为只读视图版本，性能更高，但是使用时不要改变树的状态，如ExecuteSearchView和put都有可能改变，这时候视图有失效风险
+	for (const auto& v : TreeA.ExecuteSearch("wenben")) {
 		std::cout << v << std::endl;
 	}
 	PinInCpp::PinIn::Config cfg = pinin->config();//更改PinIn类的配置
 	cfg.fFirstChar = true;//新增的首字母模糊
 	cfg.commit();
 
-	for (const auto& v : TreeA.ExecuteSearchView("wb")) {
+	for (const auto& v : TreeA.ExecuteSearch("wb")) {
 		std::cout << v << std::endl;
 	}
 }
