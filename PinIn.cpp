@@ -390,7 +390,11 @@ namespace PinInCpp {
 		}
 
 		if (CharCache.has_value()) {
-			PushQWUint8(result, CharCache.value().size());
+			size_t CacheSize = CharCache.value().size();
+			if (CharCache.value().count(NullPinyinId)) {//万恶的差一错误
+				CacheSize--;
+			}
+			PushQWUint8(result, CacheSize);
 			for (const auto& v : CharCache.value()) {
 				if (v.second->id == NullPinyinId) {
 					continue;

@@ -15,7 +15,7 @@
 #include "StringUtils.h"
 
 namespace PinInCpp {
-	constexpr uint32_t BinDataVersion = 3;//二进制数据文件id
+	constexpr uint32_t BinDataVersion = 4;//二进制数据文件id
 	static constexpr size_t NullPinyinId = static_cast<size_t>(-1);//空拼音id
 
 	class PinyinFileNotOpenException : public std::exception {
