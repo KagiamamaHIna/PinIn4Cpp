@@ -12,7 +12,6 @@ namespace PinInCpp {
 
 	目前设计支持只支持UTF8的可变长编码，这是一个特化的，不可编辑的字符串池
 	*/
-	class LazyString;
 	class UTF8StringPool {
 	public:
 		bool end(size_t i)const noexcept {
