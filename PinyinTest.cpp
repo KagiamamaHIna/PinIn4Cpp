@@ -99,23 +99,16 @@ int main() {
 		std::getline(std::cin, line);
 
 		double timeCount = 0;
-		std::unordered_set<size_t> vec;
+		std::vector<std::string> vec;
 		for (int i = 0; i < SearcherLoopCount; i++) {
 			high_time_point now = GetTimePoint();
-			vec = tree->ExecuteSearchGetSet(line);
+			vec = tree->ExecuteSearch(line);
 			high_time_point end = GetTimePoint();
 			timeCount += GetTimeMS(now, end);
 		}
 
 		for (const auto& v : vec) {
-			size_t size = tree->GetStrSizeById(v) + 1;
-			char* buf = (char*)malloc(size);
-			if (buf == nullptr) {
-				continue;
-			}
-			tree->PutToCharBufById(v, buf, size);
-			std::cout << buf << '\n';
-			free(buf);
+			std::cout << v << '\n';
 		}
 		std::cout << timeCount / (double)SearcherLoopCount << "ms\n";//计算获取耗时并打印，单位毫秒
 	}

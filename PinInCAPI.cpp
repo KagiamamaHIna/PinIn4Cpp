@@ -51,11 +51,11 @@ static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSerach
 	return key;
 }
 
-void PinInCpp_SearchResultFree(PinInCpp_SearchResult result) {
+void PinInCpp_SearchResult_Free(PinInCpp_SearchResult result) {
 	free(result.ids);
 }
 
-PinInCpp_PinIn PinInCpp_PinInNew(const char* path) {
+PinInCpp_PinIn PinInCpp_PinIn_New(const char* path) {
 	PinInCpp::PinIn* rawPtr;
 	try {
 		rawPtr = new PinInCpp::PinIn(path);
@@ -79,7 +79,7 @@ PinInCpp_PinIn PinInCpp_PinInNew(const char* path) {
 	return (PinInCpp_PinIn)result;
 }
 
-PinInCpp_DeserializeError PinInCpp_PinInDeserialize(const char* path, PinInCpp_TreeSeracher_Keyboard keyboard, PinInCpp_PinIn* pinin) {
+PinInCpp_DeserializeError PinInCpp_PinIn_Deserialize(const char* path, PinInCpp_TreeSeracher_Keyboard keyboard, PinInCpp_PinIn* pinin) {
 	std::optional<std::shared_ptr<PinInCpp::PinIn>> result;
 	try {
 		result = PinInCpp::PinIn::DeserializeFromFile(path, GetKeyboardFromEnum(keyboard));
@@ -94,6 +94,10 @@ PinInCpp_DeserializeError PinInCpp_PinInDeserialize(const char* path, PinInCpp_T
 		return PinInCpp_DeserBadAlloc;
 	}
 
+	if (!result.has_value()) {//不含有值
+		return PinInCpp_FileNotOpen;
+	}
+
 	try {
 		//覆写指针
 		*pinin = (PinInCpp_PinIn)new std::shared_ptr<PinInCpp::PinIn>(std::move(result.value()));//直接移动智能指针即可
@@ -105,22 +109,22 @@ PinInCpp_DeserializeError PinInCpp_PinInDeserialize(const char* path, PinInCpp_T
 	return PinInCpp_DeserNormal;
 }
 
-int PinInCpp_PinInSerialize(PinInCpp_PinIn pinin, const char* path) {
+int PinInCpp_PinIn_Serialize(PinInCpp_PinIn pinin, const char* path) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	return p->get()->SerializeToFile(path);
 }
 
-void PinInCpp_PinInFree(PinInCpp_PinIn pinin) {
+void PinInCpp_PinIn_Free(PinInCpp_PinIn pinin) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	delete p;
 }
 
-int PinInCpp_PinInEmpty(PinInCpp_PinIn pinin) {
+int PinInCpp_PinIn_Empty(PinInCpp_PinIn pinin) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	return p->get()->empty();
 }
 
-PinInCpp_Config PinInCpp_PinInGetConfig(PinInCpp_PinIn pinin) {
+PinInCpp_Config PinInCpp_PinIn_GetConfig(PinInCpp_PinIn pinin) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	PinInCpp_Config result;
 
@@ -137,7 +141,7 @@ PinInCpp_Config PinInCpp_PinInGetConfig(PinInCpp_PinIn pinin) {
 	return result;
 }
 
-void PinInCpp_PinInConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg) {
+void PinInCpp_PinIn_ConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	PinInCpp::PinIn::Config result = p->get()->config();
 	std::optional<PinInCpp::Keyboard> keyboard = GetKeyboardFromEnum(cfg.keyboard);
@@ -156,30 +160,29 @@ void PinInCpp_PinInConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg) {
 	result.commit();
 }
 
-void PinInCpp_PinInPreCacheString(PinInCpp_PinIn pinin, const char* str) {
+void PinInCpp_PinIn_PreCacheString(PinInCpp_PinIn pinin, const char* str) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	p->get()->PreCacheString(str);
 }
 
-void PinInCpp_PinInPreNullPinyinIdCache(PinInCpp_PinIn pinin) {
+void PinInCpp_PinIn_PreNullPinyinIdCache(PinInCpp_PinIn pinin) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	p->get()->PreNullPinyinIdCache();
 }
 
-int PinInCpp_PinInIsCharCacheEnabled(PinInCpp_PinIn pinin) {
+int PinInCpp_PinIn_IsCharCacheEnabled(PinInCpp_PinIn pinin) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	return p->get()->IsCharCacheEnabled();
 }
 
-void PinInCpp_PinInSetCharCache(PinInCpp_PinIn pinin, int enable) {
+void PinInCpp_PinIn_SetCharCache(PinInCpp_PinIn pinin, int enable) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	p->get()->SetCharCache(enable);
 }
 
-PinInCpp_TreeSearcher PinInCpp_TreeSearcherNewPath(PinInCpp_TreeSeracher_Logic logic, const char* path) {
-	PinInCpp::TreeSearcher* rawPtr;
+PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPath(PinInCpp_TreeSeracher_Logic logic, const char* path) {
 	try {
-		rawPtr = new PinInCpp::TreeSearcher(static_cast<PinInCpp::Logic>(logic), path);
+		return (PinInCpp_TreeSearcher)new PinInCpp::TreeSearcher(static_cast<PinInCpp::Logic>(logic), path);
 	}
 	catch (std::bad_alloc&) {
 		return NULL;//使用c宏代表空指针
@@ -187,28 +190,23 @@ PinInCpp_TreeSearcher PinInCpp_TreeSearcherNewPath(PinInCpp_TreeSeracher_Logic l
 	catch (PinInCpp::BinaryVersionInvalidException&) {
 		return NULL;
 	}
-
-	return (PinInCpp_TreeSearcher)rawPtr;
 }
 
-PinInCpp_TreeSearcher PinInCpp_TreeSearcherNewPinIn(PinInCpp_TreeSeracher_Logic logic, PinInCpp_PinIn data) {
-	PinInCpp::TreeSearcher* rawPtr;
+PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPinIn(PinInCpp_TreeSeracher_Logic logic, PinInCpp_PinIn data) {
 	try {
-		rawPtr = new PinInCpp::TreeSearcher(static_cast<PinInCpp::Logic>(logic), *(std::shared_ptr<PinInCpp::PinIn>*)data);
+		return (PinInCpp_TreeSearcher)new PinInCpp::TreeSearcher(static_cast<PinInCpp::Logic>(logic), *(std::shared_ptr<PinInCpp::PinIn>*)data);
 	}
 	catch (std::bad_alloc&) {
 		return NULL;//使用c宏代表空指针
 	}
-
-	return (PinInCpp_TreeSearcher)rawPtr;
 }
 
-void PinInCpp_TreeSearcherFree(PinInCpp_TreeSearcher tree) {
+void PinInCpp_TreeSearcher_Free(PinInCpp_TreeSearcher tree) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	delete t;
 }
 
-PinInCpp_DeserializeError PinInCpp_TreeSearcherDeserialize(const char* path, PinInCpp_PinIn pinin, PinInCpp_TreeSearcher* tree) {
+PinInCpp_DeserializeError PinInCpp_TreeSearcher_Deserialize(const char* path, PinInCpp_PinIn pinin, PinInCpp_TreeSearcher* tree) {
 	std::shared_ptr<PinInCpp::PinIn>* p = (std::shared_ptr<PinInCpp::PinIn>*)pinin;
 	std::optional<std::unique_ptr<PinInCpp::TreeSearcher>> result;
 	try {
@@ -223,22 +221,25 @@ PinInCpp_DeserializeError PinInCpp_TreeSearcherDeserialize(const char* path, Pin
 	catch (std::bad_alloc&) {
 		return PinInCpp_DeserBadAlloc;
 	}
+	if (!result.has_value()) {//不含有值
+		return PinInCpp_FileNotOpen;
+	}
 
 	*tree = (PinInCpp_TreeSearcher)result.value().release();
 	return PinInCpp_DeserNormal;
 }
 
-int PinInCpp_TreeSearcherSerialize(PinInCpp_TreeSearcher tree, const char* path) {
+int PinInCpp_TreeSearcher_Serialize(PinInCpp_TreeSearcher tree, const char* path) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	return t->SerializeToFile(path);
 }
 
-void PinInCpp_TreeSearcherPutString(PinInCpp_TreeSearcher tree, const char* str) {
+void PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	t->put(str);
 }
 
-PinInCpp_PinIn PinInCpp_TreeSearcherGetPinIn(PinInCpp_TreeSearcher tree) {
+PinInCpp_PinIn PinInCpp_TreeSearcher_GetPinIn(PinInCpp_TreeSearcher tree) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	try {
 		return (PinInCpp_PinIn)new std::shared_ptr<PinInCpp::PinIn>(t->GetPinInShared());
@@ -248,7 +249,7 @@ PinInCpp_PinIn PinInCpp_TreeSearcherGetPinIn(PinInCpp_TreeSearcher tree) {
 	}
 }
 
-PinInCpp_SearchResult PinInCpp_TreeSearcherExecuteSearch(PinInCpp_TreeSearcher tree, const char* str) {
+PinInCpp_SearchResult PinInCpp_TreeSearcher_ExecuteSearch(PinInCpp_TreeSearcher tree, const char* str) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	std::unordered_set<size_t> resultSet = t->ExecuteSearchGetSet(str);
 
@@ -276,33 +277,33 @@ PinInCpp_SearchResult PinInCpp_TreeSearcherExecuteSearch(PinInCpp_TreeSearcher t
 	return result;
 }
 
-size_t PinInCpp_TreeSearcherGetStrSizeById(PinInCpp_TreeSearcher tree, size_t id) {
+size_t PinInCpp_TreeSearcher_GetStrSizeById(PinInCpp_TreeSearcher tree, size_t id) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	return t->GetStrSizeById(id);
 }
 
-int PinInCpp_TreeSearcherPutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize) {
+int PinInCpp_TreeSearcher_PutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	return t->PutToCharBufById(id, buf, bufSize);
 }
 
 
-void PinInCpp_TreeSearcherStrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity) {
+void PinInCpp_TreeSearcher_StrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	t->StrPoolReserve(_Newcapacity);
 }
 
-void PinInCpp_TreeSearcherRefresh(PinInCpp_TreeSearcher tree) {
+void PinInCpp_TreeSearcher_Refresh(PinInCpp_TreeSearcher tree) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	t->refresh();
 }
 
-void PinInCpp_TreeSearcherClearFreeList(PinInCpp_TreeSearcher tree) {
+void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	t->ClearFreeList();
 }
 
-void PinInCpp_TreeSearcherShrinkToFit(PinInCpp_TreeSearcher tree) {
+void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
 	t->ShrinkToFit();
 }
