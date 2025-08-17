@@ -1,10 +1,20 @@
 #pragma once
 
-//这个PinInCppExportAPI宏决定是否导出到dll中
+//这个PinInCppExportAPI宏决定是否导出到动态链接库中，或许如果你有需要可以自行替换
+
+#if defined(_WIN32) || defined(__CYGWIN__)
 #ifdef PinInCppExportAPI
 #define PinInCppExportCAPIToDll __declspec(dllexport)
 #else
-#define PinInCppExportCAPIToDll 
+#define PinInCppExportCAPIToDll
+#endif
+#else
+  //处理 GCC/Clang 等类 Unix 平台
+#if __GNUC__ >= 4
+#define PinInCppExportCAPIToDll __attribute__ ((visibility ("default")))
+#else
+#define PinInCppExportCAPIToDll
+#endif
 #endif
 
 //CAPI的版本主要是提供一套基础的接口，能完成基本的搜索任务为前提的，更复杂的为何不考虑用C++构建呢？
