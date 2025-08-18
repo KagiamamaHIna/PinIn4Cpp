@@ -6,7 +6,7 @@ namespace PinInCpp {
 		IndexSet ret = data.get(p.id);
 		if (ret == IndexSet::NONE) {
 			ret = p.match(searchStr, offset, partial);
-			data.set(ret, static_cast<uint32_t>(p.id));
+			data.set(ret, p.id);
 		}
 
 		return ret;
@@ -17,15 +17,15 @@ namespace PinInCpp {
 		if (c == nullptr) {
 			PinIn::Character c = ctx.GetChar(ch);
 			IndexSet ret = u32strVec[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
-			for (const PinIn::Pinyin& p : c.GetPinyins()) {
-				ret.merge(get(p, offset));
+			for (const PinIn::Pinyin* p : c.GetPinyins()) {
+				ret.merge(get(*p, offset));
 			}
 			return ret;
 		}
 		else {
 			IndexSet ret = u32strVec[offset] == ch ? IndexSet::ONE : IndexSet::NONE;
-			for (const PinIn::Pinyin& p : c->GetPinyins()) {
-				ret.merge(get(p, offset));
+			for (const PinIn::Pinyin* p : c->GetPinyins()) {
+				ret.merge(get(*p, offset));
 			}
 			return ret;
 		}

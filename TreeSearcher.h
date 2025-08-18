@@ -271,7 +271,7 @@ namespace PinInCpp {
 			}
 			void indexUseCache(TreeSearcher& p, const uint32_t c);
 			void indexNotUseCache(TreeSearcher& p, const uint32_t c);
-			std::unordered_map<PinIn::Phoneme, AdaptiveSet<uint32_t>> index_node;
+			std::unordered_map<PinIn::Phoneme*, AdaptiveSet<uint32_t>> index_node;
 			NMapOwned NodeMap;
 		};
 

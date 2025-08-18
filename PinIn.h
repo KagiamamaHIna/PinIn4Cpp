@@ -83,10 +83,10 @@ namespace PinInCpp {
 		std::vector<std::vector<std::string>> GetPinyinList(std::string_view str, bool hasTone = false)const;//处理多汉字的拼音
 		std::vector<std::vector<std::string_view>> GetPinyinViewList(std::string_view str, bool hasTone = false)const;//只读版接口，视图的数据生命周期跟随PinIn对象
 
-		Character GetChar(std::string_view str)const {//会始终构建一个Character，比较浪费性能
+		Character GetChar(std::string_view str) {//会始终构建一个Character，比较浪费性能
 			return Character(*this, str, GetPinyinId(str));
 		}
-		Character GetChar(const uint32_t fourCC)const {//同上
+		Character GetChar(const uint32_t fourCC) {//同上
 			char buf[5];
 			U32FourCCToCharBuf(buf, fourCC);
 			return Character(*this, buf, GetPinyinId(fourCC));
@@ -237,37 +237,37 @@ namespace PinInCpp {
 		private:
 			friend Pinyin;//由Pinyin类执行构建
 			void reload();//本质上只需要代表好它的对象即可，本质上应该禁用，因为切换时音素本身也有可能会被切换，这时候视图可能是危险的，要确保重载行为在框架内是合理的
-			explicit Phoneme(const PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
+			explicit Phoneme(PinIn& ctx, std::string_view src) :ctx{ ctx }, src{ src } {//私有构造函数，因为只读视图之类的原因，用一个编译期检查的设计避免他被不小心构造
 				reload();
 			}
 			void reloadNoMap();//无Local表的纯逻辑处理
 			void reloadHasMap();//有Local表的逻辑查表混合处理
 
-			const PinIn& ctx;//直接绑定拼音上下文，方便reload
+			PinIn& ctx;//直接绑定拼音上下文，方便reload
 			const std::string_view src;
 			std::vector<std::string_view> strs;//真正用于处理的数据
 		};
 		class Pinyin : public Element {
 		public:
 			virtual ~Pinyin() = default;
-			const std::vector<Phoneme>& GetPhonemes()const {//只读接口
+			const std::vector<Phoneme*>& GetPhonemes()const {//只读接口 返回的是观察者指针 如果PinIn重载了/PinIn被销毁了就会变成悬垂指针
 				return phonemes;
 			}
 			virtual std::string ToString()const {
 				return std::string(ctx.pool.getPinyinView(id));
 			}
-			void reload();
+			void reload(std::string_view src);
 			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
-			const size_t id;//原始设计也是不变的，轻量级id设计，可用此id直接重载数据，不直接持有拼音字符串视图
+			const size_t id;//原始设计也是不变的，轻量级id设计，无法通过id反向查询
 		private:
 			friend Character;//由Character类执行构建
-			Pinyin(const PinIn& p, size_t id) :ctx{ p }, id{ id } {
-				reload();
+			Pinyin(PinIn& p, size_t id, std::string_view src) :ctx{ p }, id{ id } {
+				reload(src);
 			}
-			const PinIn& ctx;
+			PinIn& ctx;
 			bool duo = false;
 			bool sequence = false;
-			std::vector<Phoneme> phonemes;
+			std::vector<Phoneme*> phonemes;
 		};
 		class Character : public Element {
 		public:
@@ -281,22 +281,20 @@ namespace PinInCpp {
 			const std::string& get()const noexcept {
 				return ch;
 			}
-			const std::vector<Pinyin>& GetPinyins()const noexcept {
+			const std::vector<Pinyin*>& GetPinyins()const noexcept {//返回的是观察者指针 如果PinIn重载了/PinIn被销毁了就会变成悬垂指针
 				return pinyin;
 			}
-			void reload() {
-				for (auto& p : pinyin) {
-					p.reload();
-				}
-			}
+			void reload();//reload可重新恢复拼音和音素的有效性
 			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
-			Character(const PinIn& p, std::string_view ch, const size_t id);
-			const PinIn& ctx;
+			Character(PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
+				reload();
+			}
+			PinIn& ctx;
 			const std::string ch;//需要持有一个字符串，因为这个是依赖输入源的，不是拼音数据
-			std::vector<Pinyin> pinyin;
+			std::vector<Pinyin*> pinyin;//观察者
 		};
 	private:
 		PinIn() = default;//私有的，用于给反序列化接口生成一个空的PinIn对象
@@ -353,6 +351,9 @@ namespace PinInCpp {
 		};
 		CharPool pool;
 		std::unordered_map<uint32_t, size_t> data;//用数字size_t是指代内部拼音数字id，可以用pool提供的方法提供向量，用uint32_t代表utf8编码的字符，开销更小，无堆分配
+		size_t PinyinTotals = 0;
+		std::unordered_map<std::string_view, std::unique_ptr<Pinyin>> pinyins;//数据唯一性缓存
+		std::unordered_map<std::string_view, std::unique_ptr<Phoneme>> phonemes;//数据唯一性缓存
 		std::optional<std::unordered_map<size_t, std::unique_ptr<Character>>> CharCache = std::unordered_map<size_t, std::unique_ptr<Character>>();//默认开启
 
 		template<typename T>//不需要音调需要处理
@@ -399,16 +400,5 @@ namespace PinInCpp {
 	inline bool PinInDataPack(std::string_view dataPath, std::string_view binPath) {
 		return PinIn(dataPath).SerializeToFile(binPath);
 	}
+}
 
-	inline bool operator==(const PinIn::Phoneme& a, const PinIn::Phoneme& b)noexcept {
-		return a.GetSrc() == b.GetSrc();
-	}
-}
-namespace std {
-	template <>//特化一个这样的类，用于Phoneme可以被hash
-	struct hash<PinInCpp::PinIn::Phoneme> {
-		std::size_t operator()(const PinInCpp::PinIn::Phoneme& p) const {
-			return std::hash<std::string_view>{}(p.GetSrc());
-		}
-	};
-}

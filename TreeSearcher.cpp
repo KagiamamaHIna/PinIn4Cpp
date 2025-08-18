@@ -178,7 +178,7 @@ namespace PinInCpp {
 				it->get()->get(p, result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
-				if (!k.match(p.acc.search(), offset, true).empty()) {
+				if (!k->match(p.acc.search(), offset, true).empty()) {
 					AdaptiveMap<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
 					v.forEach([&](uint32_t c) {
 						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
@@ -234,7 +234,7 @@ namespace PinInCpp {
 	void TreeSearcher::NAcc::indexUseCache(TreeSearcher& p, const uint32_t c) {
 		PinIn::Character* ch = p.context->GetCharCachePtr(c);
 		for (const auto& py : ch->GetPinyins()) {
-			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
+			PinIn::Phoneme* ph = py->GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
 				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去
@@ -248,7 +248,7 @@ namespace PinInCpp {
 	void TreeSearcher::NAcc::indexNotUseCache(TreeSearcher& p, const uint32_t c) {
 		PinIn::Character ch = p.context->GetChar(c);
 		for (const auto& py : ch.GetPinyins()) {
-			const PinIn::Phoneme& ph = py.GetPhonemes()[0];
+			PinIn::Phoneme* ph = py->GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
 				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去

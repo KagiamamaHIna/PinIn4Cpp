@@ -1,6 +1,5 @@
 #pragma once
-#include <functional>
-#include <unordered_map>
+#include <vector>
 #include <iostream>
 namespace PinInCpp {
 	constexpr static uint32_t IndexSetIterEnd = static_cast<uint32_t>(-1);
@@ -71,21 +70,37 @@ namespace PinInCpp {
 
 		class Storage {
 		public:
-			void set(const IndexSet is, uint32_t index) {//同merge方法注释
-				data.insert_or_assign(index, is.value + 1);
+			Storage() {
+				data.push_back(0);
+			}
+			void set(const IndexSet is, size_t index) {//同merge方法注释
+				size_t currentSize = data.size();
+				if (index >= currentSize) {
+					size_t size = index;
+					size |= size >> 1;
+					size |= size >> 2;
+					size |= size >> 4;
+					size |= size >> 8;
+					size |= size >> 16;
+					data.resize(size + 1);
+				}
+				data[index] = is.value + 1;
 			}
 			IndexSet get(size_t index) {
-				auto it = data.find(index);
-				if (it == data.end() || it->second == 0) {
+				if (index >= data.size()) {
+					return IndexSet::Init();
+				}
+				uint32_t result = data[index];
+				if (result == 0) {
 					return IndexSet::Init();//空IndexSet也可以代表空元素，而且因为只有uint32_t成员，根本不耗性能
 				}
-				return IndexSet::Init(it->second - 1);
+				return IndexSet::Init(result - 1);
 			}
 			void clear()noexcept {//仅删除键值对，不进行析构对象
 				data.clear();
 			}
 		private:
-			std::unordered_map<size_t, uint32_t> data;
+			std::vector<uint32_t> data;
 		};
 	private:
 		uint32_t value;

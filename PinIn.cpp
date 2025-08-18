@@ -166,7 +166,7 @@ namespace PinInCpp {
 			return {};
 		}
 		if (hasTone) {
-			return pool.getPinyinViewVec(id);
+			return pool.getPinyinViewVec(id, true);
 		}
 		else {
 			return DeleteTone<std::string_view>(this, id);
@@ -302,6 +302,9 @@ namespace PinInCpp {
 		ctx.fU2V = fU2V;
 		ctx.fFirstChar = fFirstChar;
 
+		ctx.PinyinTotals = 0;
+		ctx.phonemes.clear();
+		ctx.pinyins.clear();
 		if (ctx.CharCache) {
 			for (const auto& v : ctx.CharCache.value()) {
 				v.second->reload();
@@ -601,13 +604,19 @@ namespace PinInCpp {
 		}
 	}
 
-	void PinIn::Pinyin::reload() {
-		std::string_view str = ctx.pool.getPinyinView(id);//临时获取视图
+	void PinIn::Pinyin::reload(std::string_view str) {
 		duo = ctx.keyboard.duo;
 		sequence = ctx.keyboard.sequence;
 		phonemes.clear();//清空
-		for (const auto& str : ctx.keyboard.split(str)) {
-			phonemes.emplace_back(Phoneme(ctx, str));//构建音素后缓存进去
+		for (const auto& SrcPh : ctx.keyboard.split(str)) {
+			auto it = ctx.phonemes.find(SrcPh);
+			if (it != ctx.phonemes.end()) {
+				phonemes.emplace_back(it->second.get());
+			}
+			else {
+				Phoneme* ph = ctx.phonemes.insert_or_assign(SrcPh, std::unique_ptr<Phoneme>(new Phoneme(ctx, SrcPh))).first->second.get();//构建音素后缓存进去
+				phonemes.emplace_back(ph);
+			}
 		}
 	}
 
@@ -617,45 +626,52 @@ namespace PinInCpp {
 			// in shuangpin we require initial and final both present,
 			// the phoneme, which is tone here, is optional
 			ret = IndexSet::ZERO;
-			ret = phonemes[0].match(str, ret, start, partial);
-			ret = phonemes[1].match(str, ret, start, partial);
-			ret.merge(phonemes[2].match(str, ret, start, partial));
+			ret = phonemes[0]->match(str, ret, start, partial);
+			ret = phonemes[1]->match(str, ret, start, partial);
+			ret.merge(phonemes[2]->match(str, ret, start, partial));
 		}
 		else {
 			// in other keyboards, match of precedent phoneme
 			// is compulsory to match subsequent phonemes
 			// for example, zhong1, z+h+ong+1 cannot match zong or zh1
 			IndexSet active = IndexSet::ZERO;
-			for (const Phoneme& phoneme : phonemes) {
-				active = phoneme.match(str, active, start, partial);
+			for (const Phoneme* phoneme : phonemes) {
+				active = phoneme->match(str, active, start, partial);
 				if (active.empty()) break;
 				ret.merge(active);
 			}
 		}
 		//内部音素都是ASCII范围内的，所以本质上就是在比较ASCII，直接取字符丢进去比较就行
 		//UTF8的ASCII字符和原始的ASCII字符一致，我们检查一下大小可以作为快路径跳出，如果不符合要求的话
-		if (sequence && str[start].size() == 1 && phonemes[0].matchSequence(str[start][0])) {
+		if (sequence && str[start].size() == 1 && phonemes[0]->matchSequence(str[start][0])) {
 			ret.set(1);
 		}
 
 		return ret;
 	}
 
-	PinIn::Character::Character(const PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
+	void PinIn::Character::reload() {
 		if (id == NullPinyinId) {
 			return;//无效拼音数据
 		}
-		size_t currentId = id;
-		for (const auto& str : p.GetPinyinViewById(id, true)) {//split需要处理带声调的版本
-			pinyin.emplace_back(Pinyin(ctx, currentId));
-			currentId += str.size() + 2;//因为有个分隔符和声调，所以要+2要跳过直到下一个字符串起始
+		pinyin.clear();
+		for (const auto& str : ctx.GetPinyinViewById(id, true)) {//split需要处理带声调的版本
+			auto it = ctx.pinyins.find(str);
+			if (it != ctx.pinyins.end()) {
+				pinyin.emplace_back(it->second.get());
+			}
+			else {
+				Pinyin* newData = ctx.pinyins.insert_or_assign(str, std::unique_ptr<Pinyin>(new Pinyin(ctx, ctx.PinyinTotals, str))).first->second.get();
+				ctx.PinyinTotals++;
+				pinyin.emplace_back(newData);
+			}
 		}
 	}
 
 	IndexSet PinIn::Character::match(const Utf8StringView& u8str, size_t start, bool partial)const noexcept {
 		IndexSet ret = u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE;
 		for (const auto& p : pinyin) {
-			ret.merge(p.match(u8str, start, partial));
+			ret.merge(p->match(u8str, start, partial));
 		}
 		return ret;
 	}
