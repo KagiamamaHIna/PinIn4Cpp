@@ -211,7 +211,7 @@ namespace PinInCpp {
 		}
 		else {
 			NodeMap.children->forEach([&](const auto& k, const auto& v) {
-				indexUseCache(p, k);
+				indexNotUseCache(p, k);
 			});
 		}
 	}
