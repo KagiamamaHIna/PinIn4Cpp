@@ -66,7 +66,7 @@ namespace PinInCpp {
 		constexpr Logic GetLogic()const noexcept {
 			return logic;
 		}
-		void put(std::string_view keyword);//插入待搜索项，内部无查重，大小写敏感
+		size_t put(std::string_view keyword);//插入待搜索项，内部无查重，大小写敏感 返回的size_t为内部的id，可以通过GetStrById重新获得对应字符串，可以利用这个建立映射关系
 		//不要传入空字符串执行搜索，这是最坏情况，最浪费性能！
 		std::vector<std::string> ExecuteSearch(std::string_view s);//执行搜索
 		std::unordered_set<size_t> ExecuteSearchGetSet(std::string_view s);//执行搜索，但是返回的是内部的结果集id

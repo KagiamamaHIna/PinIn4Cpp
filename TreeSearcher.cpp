@@ -1,7 +1,7 @@
 #include "TreeSearcher.h"
 
 namespace PinInCpp {
-	void TreeSearcher::put(std::string_view keyword) {
+	size_t TreeSearcher::put(std::string_view keyword) {
 		ticket->renew();
 		size_t pos = strs.put(keyword);
 		size_t end = logic == Logic::CONTAIN ? strs.getLastOffset() - 1 : pos + 1;
@@ -9,6 +9,7 @@ namespace PinInCpp {
 		if (root.get() != result) {
 			NodeOwnershipReset(root, result);
 		}
+		return pos;
 	}
 
 	std::vector<std::string> TreeSearcher::ExecuteSearch(std::string_view s) {

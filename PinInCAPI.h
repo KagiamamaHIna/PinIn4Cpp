@@ -126,7 +126,7 @@ extern "C" {
 	PinInCppExportCAPIToDll PinInCpp_PinIn PinInCpp_TreeSearcher_GetPinIn(PinInCpp_TreeSearcher tree);
 
 	//搜索树的搜索API
-	PinInCppExportCAPIToDll void PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str);//插入待搜索项
+	PinInCppExportCAPIToDll size_t PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str);//插入待搜索项
 	PinInCppExportCAPIToDll PinInCpp_SearchResult PinInCpp_TreeSearcher_ExecuteSearch(PinInCpp_TreeSearcher tree, const char* str);//获取结果列表，需要手动调用PinInCpp_SearchResultFree
 	PinInCppExportCAPIToDll size_t PinInCpp_TreeSearcher_GetStrSizeById(PinInCpp_TreeSearcher tree, size_t id);//使用PinInCpp_SearchResult里的id
 	PinInCppExportCAPIToDll int PinInCpp_TreeSearcher_PutToCharBuf(PinInCpp_TreeSearcher tree, size_t id, char* buf, size_t bufSize);//根据提供的缓冲区填充字符串，如果数据因为缓冲区大小被截断了，那么返回的是-1。完整的插入了则是0

@@ -232,9 +232,9 @@ int PinInCpp_TreeSearcher_Serialize(PinInCpp_TreeSearcher tree, const char* path
 	return t->SerializeToFile(path);
 }
 
-void PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str) {
+size_t PinInCpp_TreeSearcher_PutString(PinInCpp_TreeSearcher tree, const char* str) {
 	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
-	t->put(str);
+	return t->put(str);
 }
 
 PinInCpp_PinIn PinInCpp_TreeSearcher_GetPinIn(PinInCpp_TreeSearcher tree) {
