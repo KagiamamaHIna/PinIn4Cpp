@@ -221,6 +221,12 @@ PinInLua.DeserError = {
 ---@field pinin PinIn
 local ConfigFuncs = {}
 
+---@param keyboard PinIn.Keyboard
+---@return PinIn.Config self
+function ConfigFuncs:SetKeyboard(keyboard)
+    self.keyboard = keyboard
+    return self
+end
 ---@param enable boolean
 ---@return PinIn.Config self
 function ConfigFuncs:SetfZh2Z(enable)
