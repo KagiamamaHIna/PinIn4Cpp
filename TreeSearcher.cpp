@@ -329,12 +329,12 @@ namespace PinInCpp {
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
 		std::unique_ptr<NMap> insert = p.NMapPool.NewObj();//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
-			insert->put(p.strs.getcharFourCC(offset), std::move(exit_node));
+			insert->putNode(p.strs.getcharFourCC(offset), std::move(exit_node));
 		}
 		else {
 			std::unique_ptr<NSlice> half = p.NSlicePool.NewObj(p, offset + 1, end);
 			half->exit_node = std::move(exit_node);
-			insert->put(p.strs.getcharFourCC(offset), std::move(half));
+			insert->putNode(p.strs.getcharFourCC(offset), std::move(half));
 		}
 		exit_node = std::move(insert);
 		end = offset;

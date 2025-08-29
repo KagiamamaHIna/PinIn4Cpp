@@ -226,17 +226,11 @@ namespace PinInCpp {
 					}
 				}
 			}
-			Node* put(const uint32_t ch, std::unique_ptr<Node> n) {
+			void putNode(const uint32_t ch, std::unique_ptr<Node> n) {
 				if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 					init();
 				}
-				//它本质上是什么？所有权转移，那么前后指针，实际上是不变的
-				Node* result = n.get();
 				children->insert_or_assign(ch, std::move(n));
-				return result;
-			}
-			void reset_children(TreeSearcher& p, const uint32_t ch, Node* n) {
-				p.NodeOwnershipReset(children->operator[](ch), n);
 			}
 			std::unique_ptr<AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
 			AdaptiveSet<size_t, true> leaves;//经常出现占用较少情况，适合做升级优化
@@ -344,17 +338,21 @@ namespace PinInCpp {
 			}
 			uint32_t ch = p.strs.getcharFourCC(keyword);
 			auto it = children->find(ch);//查找
-			Node* sub;
 			if (it == nullptr) {
-				sub = put(ch, p.NDensePool.NewObj());
+				std::unique_ptr<NDense> ndense = p.NDensePool.NewObj();
+				Node* result = ndense->put(p, keyword + 1, id);//无虚函数调用开销
+				std::unique_ptr<Node> NewPtr = std::move(ndense);
+				if (result != NewPtr.get()) {
+					p.NodeOwnershipReset(NewPtr, result);
+				}
+				children->insert_or_assign(ch, std::move(NewPtr));
 			}
 			else {
-				sub = it->get();
-			}
-			Node* src = sub;
-			sub = sub->put(p, keyword + 1, id);
-			if (src != sub) {
-				reset_children(p, ch, sub);
+				std::unique_ptr<Node>& SmartSrc = *it;
+				Node* result = SmartSrc->put(p, keyword + 1, id);
+				if (result != SmartSrc.get()) {
+					p.NodeOwnershipReset(SmartSrc, result);
+				}
 			}
 		}
 		if constexpr (CanUpgrade) {
@@ -434,17 +432,21 @@ namespace PinInCpp {
 		for (size_t i = start; i < end; i++) {
 			uint32_t ch = p.strs.getcharFourCC(i);
 			auto it = children->find(ch);//查找
-			Node* sub;
 			if (it == nullptr) {
-				sub = put(ch, p.NDensePool.NewObj());
+				std::unique_ptr<NDense> ndense = p.NDensePool.NewObj();
+				Node* result = ndense->put(p, i + 1, start);//无虚函数调用开销
+				std::unique_ptr<Node> NewPtr = std::move(ndense);
+				if (result != NewPtr.get()) {
+					p.NodeOwnershipReset(NewPtr, result);
+				}
+				children->insert_or_assign(ch, std::move(NewPtr));
 			}
 			else {
-				sub = it->get();
-			}
-			Node* src = sub;
-			sub = sub->put(p, i + 1, start);
-			if (src != sub) {
-				reset_children(p, ch, sub);
+				std::unique_ptr<Node>& SmartSrc = *it;
+				Node* result = SmartSrc->put(p, i + 1, start);
+				if (result != SmartSrc.get()) {
+					p.NodeOwnershipReset(SmartSrc, result);
+				}
 			}
 		}
 		if constexpr (CanUpgrade) {

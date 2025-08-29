@@ -12,10 +12,10 @@
 
 namespace PinInCpp {
 	//一个特化组件，实现一个通用的SVO容器有点太麻烦了，不考虑删除，但是支持清空
-	template<typename T, uint8_t __size>
+	template<typename T, uint8_t SVOsize>
 	class SVOArray {
 	public:
-		static_assert(__size, "small vector size cannot be 0");
+		static_assert(SVOsize, "small vector size cannot be 0");
 
 		SVOArray() {
 			data.shortData = {};
@@ -55,13 +55,13 @@ namespace PinInCpp {
 			return dataSize;
 		}
 		T& operator[](size_t key)noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return *reinterpret_cast<T*>(data.longData.data[key]);
 			}
 			return *reinterpret_cast<T*>(data.shortData.data[key]);
 		}
 		const T& operator[](size_t key)const noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return *reinterpret_cast<const T*>(data.longData.data[key]);
 			}
 			return *reinterpret_cast<const T*>(data.shortData.data[key]);
@@ -71,7 +71,7 @@ namespace PinInCpp {
 			if (key >= dataSize) {
 				throw std::out_of_range("invalid vector subscript");
 			}
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return *reinterpret_cast<T*>(data.longData.data[key]);
 			}
 			return *reinterpret_cast<T*>(data.shortData.data[key]);
@@ -80,7 +80,7 @@ namespace PinInCpp {
 			if (key >= dataSize) {
 				throw std::out_of_range("invalid vector subscript");
 			}
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return *reinterpret_cast<const T*>(data.longData.data[key]);
 			}
 			return *reinterpret_cast<const T*>(data.shortData.data[key]);
@@ -88,24 +88,24 @@ namespace PinInCpp {
 
 		template<typename... _Types>
 		void emplace_back(_Types&&..._Args) {
-			if (dataSize < __size) {//小向量情况
+			if (dataSize < SVOsize) {//小向量情况
 				T* newElem = reinterpret_cast<T*>(data.shortData.data[dataSize]);
 				new (newElem) T(std::forward<_Types>(_Args)...);
 				dataSize++;
 			}
-			else if (dataSize == __size) {//转换为大向量情况
+			else if (dataSize == SVOsize) {//转换为大向量情况
 				//要考虑扩容因子
 				T temp(std::forward<_Types>(_Args)...);//构造一个栈上临时对象
 				//如果抛出异常了，则后续什么都不做
 
 				T* Src = reinterpret_cast<T*>(data.shortData.data);
-				constexpr size_t cap = __size * 2;
+				constexpr size_t cap = SVOsize * 2;
 				Chunk* newChunk = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * cap, HeapAlign));//申请缓冲区，假设移动构造不抛异常
-				for (size_t i = 0; i < __size; i++) {
+				for (size_t i = 0; i < SVOsize; i++) {
 					new (reinterpret_cast<T*>(newChunk[i])) T(std::move(Src[i]));//调用移动构造函数移动资源
 					Src[i].~T();//析构掉数据
 				}
-				new (reinterpret_cast<T*>(newChunk[__size])) T(std::move(temp));//移动临时对象
+				new (reinterpret_cast<T*>(newChunk[SVOsize])) T(std::move(temp));//移动临时对象
 				dataSize++;
 				data.longData.cap = cap;
 				data.longData.data = newChunk;
@@ -128,32 +128,32 @@ namespace PinInCpp {
 			}
 		}
 		const T* begin()const noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return reinterpret_cast<const T*>(data.longData.data);
 			}
 			return reinterpret_cast<const T*>(data.shortData.data);
 		}
 		T* begin()noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return reinterpret_cast<T*>(data.longData.data);
 			}
 			return reinterpret_cast<T*>(data.shortData.data);
 		}
 		const T* end()const noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return reinterpret_cast<const T*>(data.longData.data + dataSize);
 			}
 			return reinterpret_cast<const T*>(data.shortData.data + dataSize);
 		}
 		T* end()noexcept {
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				return reinterpret_cast<T*>(data.longData.data + dataSize);
 			}
 			return reinterpret_cast<T*>(data.shortData.data + dataSize);
 		}
 	private:
 		void TrueClear() {
-			if (dataSize > __size) {//只有大于的情况才代表变成大向量了
+			if (dataSize > SVOsize) {//只有大于的情况才代表变成大向量了
 				for (size_t i = 0; i < dataSize; i++) {
 					reinterpret_cast<T*>(data.longData.data[i])->~T();
 				}
@@ -170,7 +170,7 @@ namespace PinInCpp {
 			T* TargetElem;
 
 			dataSize = src.dataSize;
-			if (dataSize > __size) {
+			if (dataSize > SVOsize) {
 				data.longData.cap = src.data.longData.cap;
 				data.longData.data = reinterpret_cast<Chunk*>(::operator new (sizeof(Chunk) * data.longData.cap, HeapAlign));
 				SrcElem = reinterpret_cast<const T*>(src.data.longData.data);
@@ -193,7 +193,7 @@ namespace PinInCpp {
 				for (size_t j = 0; j < i; j++) {
 					TargetElem[j].~T();
 				}
-				if (dataSize > __size) {
+				if (dataSize > SVOsize) {
 					::operator delete (data.longData.data, HeapAlign);
 				}
 				throw;
@@ -201,7 +201,7 @@ namespace PinInCpp {
 		}
 		void move(SVOArray&& src)noexcept {
 			dataSize = src.dataSize;
-			if (dataSize > __size) {//大向量指针转移
+			if (dataSize > SVOsize) {//大向量指针转移
 				data.longData.cap = src.data.longData.cap;
 				data.longData.data = src.data.longData.data;
 			}
@@ -219,7 +219,7 @@ namespace PinInCpp {
 		}
 		using Chunk = std::byte[sizeof(T)];
 		struct ShortUnit {
-			alignas(T) Chunk data[__size];
+			alignas(T) Chunk data[SVOsize];
 		};
 		struct LongUnit {
 			size_t cap;

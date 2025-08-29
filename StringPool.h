@@ -48,7 +48,7 @@ namespace PinInCpp {
 		static std::optional<UTF8StringPool> DeserializeFromFile(std::string_view path, size_t index = 0);
 		std::vector<uint8_t> Serialize()const;
 		//返回真代表写入成功
-		bool SerializationToFile(std::string_view path)const;
+		bool SerializeToFile(std::string_view path)const;
 	private:
 		//看上去很蠢，把可变长编码的字符串当作一个固定的uint32_t存储了，实际上这样子比老办法的索引要更加的优秀
 		//因为TreeSearcher依赖O1的字符串随机访问，老办法的索引需要先获取字符长度，才能去按字节读取数据

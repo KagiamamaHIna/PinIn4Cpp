@@ -138,7 +138,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	bool UTF8StringPool::SerializationToFile(std::string_view path)const {
+	bool UTF8StringPool::SerializeToFile(std::string_view path)const {
 		return WriteBinFile(std::string(path), Serialize());
 	}
 }
