@@ -17,6 +17,7 @@
 - 提供了新的ParallelSearch类，内置线程池机制的并行化树搜索，在数据量很大时可以提供更好的即时搜索性能
 - 提供了PinIn类、TreeSearcher类、ParallelSearch类的序列化和反序列化接口，以提供快速加载已有结构的功能
 - 提供了[C API](PinInCAPI.h)，通过C API可以轻松的被支持FFI的语言调用，或者是用C语言使用这个库
+- - C API的使用有一个LuaJIT FFI的[示例](FFIExample/PinInLua.lua)，这个示例是一个完整的Lua封装并且带有EmmyLua风格的类型注解
 
 搜索方面应该和原版无异
 
