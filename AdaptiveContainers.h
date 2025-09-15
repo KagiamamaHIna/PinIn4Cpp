@@ -435,8 +435,8 @@ namespace PinInCpp {
 				return data.size();
 			}
 			virtual void forEach(std::function<void(const k&, const v&)>& fn)const {
-				for (const auto& [k, v] : data) {
-					fn(k, v);
+				for (const auto& [key, value] : data) {
+					fn(key, value);
 				}
 			}
 			virtual v* find(const k& key) {
@@ -508,8 +508,8 @@ namespace PinInCpp {
 				return data.size();
 			}
 			virtual void forEach(std::function<void(const k&, const v&)>& fn)const {
-				for (const auto& [k, v] : data) {
-					fn(k, v);
+				for (const auto& [key, value] : data) {
+					fn(key, value);
 				}
 			}
 			virtual v* find(const k& key) {
