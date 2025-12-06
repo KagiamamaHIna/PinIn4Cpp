@@ -86,7 +86,7 @@ int main() {
 	}
 }
 ```
-更多细节请查看[example/PinyinTest.cpp](PinyinTest.cpp)。
+更多细节请查看[PinyinTest.cpp](example/PinyinTest.cpp)。
 
 ## 致谢
 [PinIn](https://github.com/Towdium/PinIn)库的开发者，有你们的代码才有的这个项目！
