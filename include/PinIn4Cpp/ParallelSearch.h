@@ -4,7 +4,7 @@
 #include <mutex>
 #include <exception>
 
-#include "TreeSearcher.h"
+#include "PinIn4Cpp/TreeSearcher.h"
 
 namespace PinInCpp {
 	class ParallelSearchTreeNumException : public std::exception {

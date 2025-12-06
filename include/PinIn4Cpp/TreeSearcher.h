@@ -8,12 +8,13 @@
 #include <array>
 
 #include "PinIn.h"
-#include "StringPool.h"
-#include "Accelerator.h"
 #include "Keyboard.h"
-#include "ObjectPool.h"
-#include "BinUtils.h"
-#include "AdaptiveContainers.h"
+
+#include "PinIn4Cpp/detail/StringPool.h"
+#include "PinIn4Cpp/detail/Accelerator.h"
+#include "PinIn4Cpp/detail/ObjectPool.h"
+#include "PinIn4Cpp/detail/BinUtils.h"
+#include "PinIn4Cpp/detail/AdaptiveContainers.h"
 
 namespace PinInCpp {
 	enum class Logic : uint8_t {//不需要很多状态的枚举类
@@ -51,7 +52,7 @@ namespace PinInCpp {
 		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
 		static std::unique_ptr<TreeSearcher> Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0);
 		static std::optional<std::unique_ptr<TreeSearcher>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
-			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			std::optional<std::vector<uint8_t>> data = detail::ReadBinFile(std::string(path));
 			if (!data.has_value()) {
 				return std::nullopt;
 			}
@@ -60,7 +61,7 @@ namespace PinInCpp {
 		std::vector<uint8_t> Serialize()const;
 		//返回真代表写入成功
 		bool SerializeToFile(std::string_view path)const {
-			return WriteBinFile(std::string(path), Serialize());
+			return detail::WriteBinFile(std::string(path), Serialize());
 		}
 
 		constexpr Logic GetLogic()const noexcept {
@@ -145,7 +146,7 @@ namespace PinInCpp {
 
 			//将自身载入对象池
 			virtual void FreeToPool(TreeSearcher& p) = 0;
-			static std::unique_ptr<Node> Deserialize(TreeSearcher& p, VecU8Reader& reader);
+			static std::unique_ptr<Node> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 		};
 		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
 		void NodeOwnershipReset(std::unique_ptr<Node>& smartPtrObj, Node* newPtr) {
@@ -162,13 +163,13 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NDense> Deserialize(VecU8Reader& reader);
+			static std::unique_ptr<NDense> Deserialize(detail::VecU8Reader& reader);
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NDensePool.FreeToPool(this);
 			}
 		private:
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
-			SVOArray<size_t, 2> data;
+			detail::SVOArray<size_t, 2> data;
 		};
 
 		class NSlice : public Node {//切片节点，有公共前缀，用NMap/NAcc管理
@@ -186,7 +187,7 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, VecU8Reader& reader);
+			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 			virtual void FreeToPool(TreeSearcher& p) {
 				p.NSlicePool.FreeToPool(this);
 			}
@@ -211,7 +212,7 @@ namespace PinInCpp {
 
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			template<bool GetFromPool = false>
-			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, VecU8Reader& reader);
+			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 
 			virtual void FreeToPool(TreeSearcher& p) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
 				if constexpr (CanUpgrade) p.NMapPool.FreeToPool(this);
@@ -222,7 +223,7 @@ namespace PinInCpp {
 			void init() {//如果是不可升级的版本，则是一个无用的init函数
 				if constexpr (CanUpgrade) {
 					if (children == nullptr) {
-						children = std::make_unique<AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
+						children = std::make_unique<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
 					}
 				}
 			}
@@ -232,8 +233,8 @@ namespace PinInCpp {
 				}
 				children->insert_or_assign(ch, std::move(n));
 			}
-			std::unique_ptr<AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
-			AdaptiveSet<size_t, true> leaves;//经常出现占用较少情况，适合做升级优化
+			std::unique_ptr<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
+			detail::AdaptiveSet<size_t, true> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
 		using NMapOwned = NMapTemplate<false>;//不会自动升级的版本，给NAcc类用的，升级过程中自动窃取了其成员，所以用了模板元编程技术去掉懒加载模式
@@ -255,7 +256,7 @@ namespace PinInCpp {
 
 			void reload(TreeSearcher& p);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, VecU8Reader& reader);
+			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 			//你不需要，只需要一个空函数即可
 			virtual void FreeToPool(TreeSearcher&) {}
 		private:
@@ -265,7 +266,7 @@ namespace PinInCpp {
 			}
 			void indexUseCache(TreeSearcher& p, const uint32_t c);
 			void indexNotUseCache(TreeSearcher& p, const uint32_t c);
-			std::unordered_map<PinIn::Phoneme*, AdaptiveSet<uint32_t>> index_node;
+			std::unordered_map<PinIn::Phoneme*, detail::AdaptiveSet<uint32_t>> index_node;
 			NMapOwned NodeMap;
 		};
 
@@ -276,16 +277,16 @@ namespace PinInCpp {
 		constexpr static size_t NMapThreshold = 32;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		std::unique_ptr<PinIn::Ticket> ticket;
-		UTF8StringPool strs;
-		Accelerator acc;
+		detail::UTF8StringPool strs;
+		detail::Accelerator acc;
 		const Logic logic;
 
 		std::unique_ptr<Node> root = nullptr;
 		std::deque<NAcc*> naccs;//观察者，不持有数据
 
-		ObjectPtrPool<NDense> NDensePool;
-		ObjectPtrPool<NSlice> NSlicePool;
-		ObjectPtrPool<NMap> NMapPool;
+		detail::ObjectPtrPool<NDense> NDensePool;
+		detail::ObjectPtrPool<NSlice> NSlicePool;
+		detail::ObjectPtrPool<NMap> NMapPool;
 	};
 
 	/* NMapTemplate 实现(避免前面的声明过长) */
@@ -306,7 +307,7 @@ namespace PinInCpp {
 				}
 			}
 			children->forEach([&](const auto& c, const auto& n) {
-				IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
+				detail::IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 				for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 					n->get(p, ret, offset + i);
 				}
@@ -322,7 +323,7 @@ namespace PinInCpp {
 				return;
 			}
 		}
-		children->forEach([&](const auto& k, const auto& v) {
+		children->forEach([&](const auto&, const auto& v) {
 			v->get(p, ret);
 		});
 	}
@@ -371,26 +372,26 @@ namespace PinInCpp {
 		if constexpr (CanUpgrade) {
 			data.push_back(static_cast<uint8_t>(NodeType::NMapType));
 		}
-		PushQWUint8(data, leaves.size());
+		detail::PushQWUint8(data, leaves.size());
 		leaves.forEach([&](size_t i) {
-			PushQWUint8(data, i);
+			detail::PushQWUint8(data, i);
 		});
 		if constexpr (CanUpgrade) {
 			if (children == nullptr) {//没指针插入代表假的数字
-				PushQWUint8(data, 0);
+				detail::PushQWUint8(data, 0);
 				return;
 			}
 		}
-		PushQWUint8(data, children->size());
+		detail::PushQWUint8(data, children->size());
 		children->forEach([&](const auto& k, const auto& v) {
-			PushDWUint8(data, k);
+			detail::PushDWUint8(data, k);
 			v->Serialize(data);
 		});
 	}
 
 	template<bool CanUpgrade>
 	template<bool GetFromPool>
-	std::unique_ptr<TreeSearcher::NMapTemplate<CanUpgrade>> TreeSearcher::NMapTemplate<CanUpgrade>::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+	std::unique_ptr<TreeSearcher::NMapTemplate<CanUpgrade>> TreeSearcher::NMapTemplate<CanUpgrade>::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		size_t leavesSize = reader.GetSizeTFromQW();
 		std::unique_ptr<NMapTemplate> result;
 		if constexpr (GetFromPool) {//给NAcc开个口，让他在反序列化的时候不需要重新反复申请新内存，而是复用已有的
@@ -399,7 +400,7 @@ namespace PinInCpp {
 		else {
 			result = std::make_unique<NMapTemplate>();
 		}
-		result->leaves = AdaptiveSet<size_t, true>(leavesSize);
+		result->leaves = detail::AdaptiveSet<size_t, true>(leavesSize);
 		for (size_t i = 0; i < leavesSize; i++) {
 			result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
 		}
@@ -407,7 +408,7 @@ namespace PinInCpp {
 		if (childrenSize == 0) {
 			return result;
 		}
-		result->children = std::make_unique<AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
+		result->children = std::make_unique<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
 		for (size_t i = 0; i < childrenSize; i++) {
 			uint32_t fourCC = reader.GetDoubleWord();
 			result->children->insert_or_assign(fourCC, Node::Deserialize(p, reader));

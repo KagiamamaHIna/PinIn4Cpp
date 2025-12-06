@@ -1,4 +1,4 @@
-#include "TreeSearcher.h"
+#include "PinIn4Cpp/TreeSearcher.h"
 
 namespace PinInCpp {
 	size_t TreeSearcher::put(std::string_view keyword) {
@@ -30,7 +30,7 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		NodeType type = static_cast<NodeType>(reader.GetByte());
 
 		std::unique_ptr<Node> result;
@@ -71,7 +71,7 @@ namespace PinInCpp {
 		}
 	}
 
-	void TreeSearcher::NDense::get(TreeSearcher& p, std::unordered_set<size_t>& ret) {
+	void TreeSearcher::NDense::get(TreeSearcher&, std::unordered_set<size_t>& ret) {
 		for (size_t i = 1; i < data.size(); i += 2) {
 			ret.insert(data[i]);
 		}
@@ -132,13 +132,13 @@ namespace PinInCpp {
 
 	void TreeSearcher::NDense::Serialize(std::vector<uint8_t>& data)const {
 		data.push_back(static_cast<uint8_t>(NodeType::NDenseType));
-		PushQWUint8(data, this->data.size());
+		detail::PushQWUint8(data, this->data.size());
 		for (const auto& v : this->data) {
-			PushQWUint8(data, v);
+			detail::PushQWUint8(data, v);
 		}
 	}
 
-	std::unique_ptr<TreeSearcher::NDense> TreeSearcher::NDense::Deserialize(VecU8Reader& reader) {
+	std::unique_ptr<TreeSearcher::NDense> TreeSearcher::NDense::Deserialize(detail::VecU8Reader& reader) {
 		size_t dataSize = reader.GetSizeTFromQW();
 
 		std::unique_ptr<NDense> result = std::make_unique<NDense>();
@@ -180,9 +180,9 @@ namespace PinInCpp {
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k->match(p.acc.search(), offset, true).empty()) {
-					AdaptiveMap<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
+					detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
 					v.forEach([&](uint32_t c) {
-						IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
+						detail::IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 						for (uint32_t j = it.Next(); j != it.end(); j = it.Next()) {
 							map[c]->get(p, result, offset + j);
 						}
@@ -206,12 +206,12 @@ namespace PinInCpp {
 	void TreeSearcher::NAcc::reload(TreeSearcher& p) {
 		index_node.clear();//释放所有音素
 		if (p.context->IsCharCacheEnabled()) {
-			NodeMap.children->forEach([&](const auto& k, const auto& v) {
+			NodeMap.children->forEach([&](const auto& k, const auto&) {
 				indexUseCache(p, k);
 			});
 		}
 		else {
-			NodeMap.children->forEach([&](const auto& k, const auto& v) {
+			NodeMap.children->forEach([&](const auto& k, const auto&) {
 				indexNotUseCache(p, k);
 			});
 		}
@@ -238,7 +238,7 @@ namespace PinInCpp {
 			PinIn::Phoneme* ph = py->GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
-				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去
+				index_node.insert_or_assign(ph, detail::AdaptiveSet<uint32_t>{c});//把汉字插进去
 			}
 			else {//不为空
 				it->second.insert(c);
@@ -252,7 +252,7 @@ namespace PinInCpp {
 			PinIn::Phoneme* ph = py->GetPhonemes()[0];
 			auto it = index_node.find(ph);
 			if (it == index_node.end()) {//对应的是字符集合为空
-				index_node.insert_or_assign(ph, AdaptiveSet<uint32_t>{c});//把汉字插进去
+				index_node.insert_or_assign(ph, detail::AdaptiveSet<uint32_t>{c});//把汉字插进去
 			}
 			else {//不为空
 				it->second.insert(c);
@@ -265,7 +265,7 @@ namespace PinInCpp {
 		NodeMap.Serialize(data);
 	}
 
-	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		std::unique_ptr<NMap> temp = NMap::Deserialize<true>(p, reader);
 		std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *temp);
 		temp->FreeToPool(p);//释放到池里面，方便下一次的对象复用
@@ -312,12 +312,12 @@ namespace PinInCpp {
 
 	void TreeSearcher::NSlice::Serialize(std::vector<uint8_t>& data)const {
 		data.push_back(static_cast<uint8_t>(NodeType::NSliceType));
-		PushQWUint8(data, start);
-		PushQWUint8(data, end);
+		detail::PushQWUint8(data, start);
+		detail::PushQWUint8(data, end);
 		exit_node->Serialize(data);
 	}
 
-	std::unique_ptr<TreeSearcher::NSlice> TreeSearcher::NSlice::Deserialize(TreeSearcher& p, VecU8Reader& reader) {
+	std::unique_ptr<TreeSearcher::NSlice> TreeSearcher::NSlice::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		size_t start = reader.GetSizeTFromQW();
 		size_t end = reader.GetSizeTFromQW();
 		std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
@@ -351,7 +351,7 @@ namespace PinInCpp {
 		}
 		else {
 			uint32_t ch = p.strs.getcharFourCC(this->start + start);
-			IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
+			detail::IndexSet::IndexSetIterObj it = p.acc.get(ch, offset).GetIterObj();
 			for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
 				get(p, ret, offset + i, start + 1);
 			}
@@ -359,7 +359,7 @@ namespace PinInCpp {
 	}
 
 	std::unique_ptr<TreeSearcher> TreeSearcher::Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index) {
-		VecU8Reader reader(data, index);
+		detail::VecU8Reader reader(data, index);
 
 		uint32_t ver = reader.GetDoubleWord();
 		if (ver != BinDataVersion) {
@@ -371,7 +371,7 @@ namespace PinInCpp {
 
 		size_t StrPoolSize = reader.GetSizeTFromQW();
 
-		result->strs = UTF8StringPool::Deserialize(reader.GetData(), reader.GetIndex());
+		result->strs = detail::UTF8StringPool::Deserialize(reader.GetData(), reader.GetIndex());
 		reader.AddIndex(StrPoolSize);
 
 		result->root = Node::Deserialize(*result, reader);
@@ -380,11 +380,11 @@ namespace PinInCpp {
 
 	std::vector<uint8_t> TreeSearcher::Serialize()const {
 		std::vector<uint8_t> result;
-		PushDWUint8(result, BinDataVersion);
+		detail::PushDWUint8(result, BinDataVersion);
 		result.push_back(static_cast<uint8_t>(logic));
 
 		std::vector<uint8_t> StrPoolData = strs.Serialize();//字符串池数据
-		PushQWUint8(result, StrPoolData.size());
+		detail::PushQWUint8(result, StrPoolData.size());
 		result.insert(result.end(), StrPoolData.begin(), StrPoolData.end());
 
 		root->Serialize(result);

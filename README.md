@@ -1,5 +1,5 @@
 # PinIn for C++
-一个用于解决各类汉语拼音匹配问题的 C++ 库，本质上是Java [PinIn](https://github.com/Towdium/PinIn) 项目的C++移植和改造，使用标准C++编写，无第三方依赖，需配置项目为C++20编译
+一个用于解决各类汉语拼音匹配问题的 C++ 库，本质上是Java [PinIn](https://github.com/Towdium/PinIn) 项目的C++移植和改造，使用标准C++编写，无第三方依赖，需配置项目为C++20编译，支持CMake
 
 搜索实现方面，目前只移植了TreeSearcher，其他的没计划也不会移植
 
@@ -47,10 +47,21 @@ __前缀匹配__
 内存测试使用Visual Studio 2022的堆分析得出的
 
 ## 示例
+你可以轻松使用CMake将本项目导入到你的CMake项目中。
+```cmake
+if(MSVC) # MSVC一定要设置为utf-8编译，因为原始代码有utf8字符，而MSVC默认是随系统的会导致问题
+    add_compile_options(/utf-8)
+endif()
+
+add_subdirectory(PinIn4Cpp) # 应为本项目的CMakeLists.txt所在的文件夹路径（就是源代码）
+target_link_libraries(YourProject PRIVATE PinIn4Cpp::PinIn4Cpp) # YourProject是你的项目，请自行更改
+```
+本项目使用标准C++编写且无依赖，即使不想依赖CMake也可以自行选择其他方式编译，但是需要处理PinInCAPI.h的导出宏。
+
 下面的代码简单的展示了本项目的基础使用方式:
 ```cpp
 #include <iostream>
-#include "TreeSearcher.h"
+#include "PinIn4Cpp/TreeSearcher.h"
 
 int main() {
 #ifdef _WIN32
@@ -75,9 +86,7 @@ int main() {
 	}
 }
 ```
-更多细节请查看[PinyinTest.cpp](PinyinTest.cpp)。
-
-你可以很简单的包括到你的C++项目中，因为他使用标准C++编写且无依赖，只需要注意拿C++20编译即可。
+更多细节请查看[example/PinyinTest.cpp](PinyinTest.cpp)。
 
 ## 致谢
 [PinIn](https://github.com/Towdium/PinIn)库的开发者，有你们的代码才有的这个项目！

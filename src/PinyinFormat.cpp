@@ -1,4 +1,4 @@
-#include "PinyinFormat.h"
+#include "PinIn4Cpp/PinyinFormat.h"
 
 namespace PinInCpp {
 	static inline const std::set<std::string> OFFSET = {

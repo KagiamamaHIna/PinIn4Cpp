@@ -1,6 +1,6 @@
-#include "PinIn.h"
+#include "PinIn4Cpp/PinIn.h"
 
-#include "BinUtils.h"
+#include "PinIn4Cpp/detail/BinUtils.h"
 
 namespace PinInCpp {
 	std::vector<std::string> PinIn::CharPool::getPinyinVec(size_t i)const {//根据理论上的正确格式来讲，应当是用','字符分隔拼音，然后用'\0'作为拼音数据末尾
@@ -53,7 +53,7 @@ namespace PinInCpp {
 		return result;
 	}
 
-	void PinIn::LineParser(const Utf8StringView& utf8str) {
+	void PinIn::LineParser(const detail::Utf8StringView& utf8str) {
 		size_t i = 0;
 		size_t size = utf8str.size();
 		while (i + 1 < size && utf8str[i] != "#") {//#为注释，当i+1<size 即i已经到末尾字符的时候，还没检查到U+的结构即非法字符串，退出这一次循环
@@ -71,7 +71,7 @@ namespace PinInCpp {
 			if (i >= size) {
 				break;
 			}
-			int KeyInt = HexStrToInt(key);
+			int KeyInt = detail::HexStrToInt(key);
 			if (KeyInt == -1) {//如果捕获到异常
 				break;
 			}
@@ -105,7 +105,7 @@ namespace PinInCpp {
 			if (pinyinId != NullPinyinId) {
 				pool.putChar(currentTone + '0');//+48就是对应ASCII字符 追加到末尾，这是最后一个的
 				pool.putEnd();//结尾分隔
-				data.insert_or_assign(UnicodeToUtf8(KeyInt), pinyinId);//设置
+				data.insert_or_assign(detail::UnicodeToUtf8(KeyInt), pinyinId);//设置
 			}
 			break;//退出这次循环，读取下一行
 		}
@@ -120,7 +120,7 @@ namespace PinInCpp {
 		}
 		//开始读取
 		std::string str;
-		Utf8StringView utf8str;
+		detail::Utf8StringView utf8str;
 		while (std::getline(fs, str)) {
 			utf8str.reset(str);
 			LineParser(utf8str);
@@ -132,7 +132,7 @@ namespace PinInCpp {
 		//开始读取
 		std::string_view str;
 		size_t last_cursor = 0;
-		Utf8StringView utf8str;
+		detail::Utf8StringView utf8str;
 		for (size_t i = 0; i < input_data.size(); i++) {
 			if (input_data[i] == '\n') {//按行解析
 				utf8str.reset(std::string_view(input_data.data() + last_cursor, i - last_cursor));
@@ -146,7 +146,7 @@ namespace PinInCpp {
 	}
 
 	bool PinIn::HasPinyin(std::string_view str)const noexcept {
-		return static_cast<bool>(data.count(FourCCToU32(str)));
+		return static_cast<bool>(data.count(detail::FourCCToU32(str)));
 	}
 
 	std::vector<std::string> PinIn::GetPinyinById(const size_t id, bool hasTone)const {
@@ -174,7 +174,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string> PinIn::GetPinyin(std::string_view str, bool hasTone)const {
-		auto it = data.find(FourCCToU32(str));
+		auto it = data.find(detail::FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string>{std::string(str)};
 		}
@@ -185,7 +185,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::string_view> PinIn::GetPinyinView(std::string_view str, bool hasTone)const {
-		auto it = data.find(FourCCToU32(str));
+		auto it = data.find(detail::FourCCToU32(str));
 		if (it == data.end()) {//没数据返回由输入字符串组成的向量
 			return std::vector<std::string_view>{str};
 		}
@@ -196,7 +196,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::vector<std::string>> PinIn::GetPinyinList(std::string_view str, bool hasTone)const {
-		Utf8StringView utf8v(str);
+		detail::Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
@@ -206,7 +206,7 @@ namespace PinInCpp {
 	}
 
 	std::vector<std::vector<std::string_view>> PinIn::GetPinyinViewList(std::string_view str, bool hasTone)const {
-		Utf8StringView utf8v(str);
+		detail::Utf8StringView utf8v(str);
 		std::vector<std::vector<std::string_view>> result;
 		result.reserve(utf8v.size());
 		for (size_t i = 0; i < utf8v.size(); i++) {
@@ -242,7 +242,7 @@ namespace PinInCpp {
 			auto it = cache.find(id);
 			if (it == cache.end()) {//缓存不存在时
 				char buf[5];
-				U32FourCCToCharBuf(buf, fourCC);
+				detail::U32FourCCToCharBuf(buf, fourCC);
 				std::unique_ptr<Character> ptr = std::unique_ptr<Character>(new Character(*this, buf, id));
 				Character* result = ptr.get();
 				cache.insert_or_assign(id, std::move(ptr));
@@ -266,7 +266,7 @@ namespace PinInCpp {
 		size_t end = str.size();
 		char buf[5];//缓冲区，避免堆分配
 		while (cursor < end) {
-			size_t charSize = getUTF8CharSize(str[cursor]);
+			size_t charSize = detail::getUTF8CharSize(str[cursor]);
 			for (size_t i = 0; i < charSize; i++) {//根据获取长度，深拷贝数据
 				buf[i] = str[cursor + i];
 			}
@@ -315,7 +315,7 @@ namespace PinInCpp {
 	}
 
 	std::shared_ptr<PinIn> PinIn::Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard, size_t index) {
-		VecU8Reader reader(data, index);
+		detail::VecU8Reader reader(data, index);
 		uint32_t ver = reader.GetDoubleWord();
 		if (ver != BinDataVersion) {
 			throw BinaryVersionInvalidException("PinIn: Invalid binary file version");
@@ -368,7 +368,7 @@ namespace PinInCpp {
 
 	std::vector<uint8_t> PinIn::Serialize()const {
 		std::vector<uint8_t> result;
-		PushDWUint8(result, BinDataVersion);
+		detail::PushDWUint8(result, BinDataVersion);
 
 		result.push_back(fZh2Z);
 		result.push_back(fSh2S);
@@ -380,16 +380,16 @@ namespace PinInCpp {
 		result.push_back(fFirstChar);
 		result.push_back(CharCache.has_value());//插入是否开启缓存的数据
 
-		PushQWUint8(result, pool.size());//字符数组数据
+		detail::PushQWUint8(result, pool.size());//字符数组数据
 		if (empty()) {
 			return result;
 		}
 		result.insert(result.end(), pool.data(), pool.data() + pool.size());
 
-		PushQWUint8(result, data.size());//关联表数据
+		detail::PushQWUint8(result, data.size());//关联表数据
 		for (const auto& [k, v] : data) {
-			PushDWUint8(result, k);
-			PushQWUint8(result, v);
+			detail::PushDWUint8(result, k);
+			detail::PushQWUint8(result, v);
 		}
 
 		if (CharCache.has_value()) {
@@ -397,12 +397,12 @@ namespace PinInCpp {
 			if (CharCache.value().count(NullPinyinId)) {//万恶的差一错误
 				CacheSize--;
 			}
-			PushQWUint8(result, CacheSize);
+			detail::PushQWUint8(result, CacheSize);
 			for (const auto& v : CharCache.value()) {
 				if (v.second->id == NullPinyinId) {
 					continue;
 				}
-				PushDWUint8(result, FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
+				detail::PushDWUint8(result, detail::FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
 			}
 		}
 		return result;
@@ -415,19 +415,19 @@ namespace PinInCpp {
 			if (CharCache.value().count(NullPinyinId)) {//万恶的差一错误
 				CacheSize--;
 			}
-			PushQWUint8(result, CacheSize);
+			detail::PushQWUint8(result, CacheSize);
 			for (const auto& v : CharCache.value()) {
 				if (v.second->id == NullPinyinId) {
 					continue;
 				}
-				PushDWUint8(result, FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
+				detail::PushDWUint8(result, detail::FourCCToU32(v.second->ch));//用FourCC方便序列化时重建数据
 			}
 		}
 		return result;
 	}
 
 	void PinIn::PreCacheDeserialize(const std::vector<uint8_t>& data, size_t index) {
-		VecU8Reader reader(data, index);
+		detail::VecU8Reader reader(data, index);
 		PreNullPinyinIdCache();//不管怎么样，插入这个都是好的
 		size_t cacheSize = reader.GetSizeTFromQW();
 
@@ -437,7 +437,7 @@ namespace PinInCpp {
 		}
 	}
 
-	inline static size_t StrCmp(const Utf8StringView& a, const Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
+	inline static size_t StrCmp(const detail::Utf8StringView& a, const detail::Utf8StringView& b, size_t aStart) {//实际上只有一个函数在用，为了它改造一下也没啥问题
 		size_t len = std::min(a.size() - aStart, b.size());
 		for (size_t i = 0; i < len; i++) {
 			if (a[i + aStart] != b[i]) {
@@ -456,23 +456,23 @@ namespace PinInCpp {
 		return false;
 	}
 
-	IndexSet PinIn::Phoneme::match(const Utf8StringView& source, IndexSet idx, size_t start, bool partial)const noexcept {
+	detail::IndexSet PinIn::Phoneme::match(const detail::Utf8StringView& source, detail::IndexSet idx, size_t start, bool partial)const noexcept {
 		if (empty()) {
 			return idx;
 		}
-		IndexSet result = IndexSet::Init();
+		detail::IndexSet result = detail::IndexSet::Init();
 
-		IndexSet::IndexSetIterObj it = idx.GetIterObj();
+		detail::IndexSet::IndexSetIterObj it = idx.GetIterObj();
 		for (uint32_t i = it.Next(); i != it.end(); i = it.Next()) {
-			IndexSet is = match(source, start + i, partial);
+			detail::IndexSet is = match(source, start + i, partial);
 			is.offset(i);
 			result.merge(is);
 		}
 		return result;
 	}
 
-	IndexSet PinIn::Phoneme::match(const Utf8StringView& source, size_t start, bool partial)const noexcept {
-		IndexSet result = IndexSet::Init();
+	detail::IndexSet PinIn::Phoneme::match(const detail::Utf8StringView& source, size_t start, bool partial)const noexcept {
+		detail::IndexSet result = detail::IndexSet::Init();
 		if (empty()) {
 			return result;
 		}
@@ -620,12 +620,12 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Pinyin::match(const Utf8StringView& str, size_t start, bool partial)const noexcept {
-		IndexSet ret = IndexSet::Init();
+	detail::IndexSet PinIn::Pinyin::match(const detail::Utf8StringView& str, size_t start, bool partial)const noexcept {
+		detail::IndexSet ret = detail::IndexSet::Init();
 		if (duo) {
 			// in shuangpin we require initial and final both present,
 			// the phoneme, which is tone here, is optional
-			ret = IndexSet::ZERO;
+			ret = detail::IndexSet::ZERO;
 			ret = phonemes[0]->match(str, ret, start, partial);
 			ret = phonemes[1]->match(str, ret, start, partial);
 			ret.merge(phonemes[2]->match(str, ret, start, partial));
@@ -634,7 +634,7 @@ namespace PinInCpp {
 			// in other keyboards, match of precedent phoneme
 			// is compulsory to match subsequent phonemes
 			// for example, zhong1, z+h+ong+1 cannot match zong or zh1
-			IndexSet active = IndexSet::ZERO;
+			detail::IndexSet active = detail::IndexSet::ZERO;
 			for (const Phoneme* phoneme : phonemes) {
 				active = phoneme->match(str, active, start, partial);
 				if (active.empty()) break;
@@ -668,8 +668,8 @@ namespace PinInCpp {
 		}
 	}
 
-	IndexSet PinIn::Character::match(const Utf8StringView& u8str, size_t start, bool partial)const noexcept {
-		IndexSet ret = u8str[start] == ch ? IndexSet::ONE : IndexSet::NONE;
+	detail::IndexSet PinIn::Character::match(const detail::Utf8StringView& u8str, size_t start, bool partial)const noexcept {
+		detail::IndexSet ret = u8str[start] == ch ? detail::IndexSet::ONE : detail::IndexSet::NONE;
 		for (const auto& p : pinyin) {
 			ret.merge(p->match(u8str, start, partial));
 		}

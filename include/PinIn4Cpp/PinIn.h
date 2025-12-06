@@ -10,9 +10,10 @@
 #include <cstring>
 
 #include "Keyboard.h"
-#include "IndexSet.h"
-#include "BinUtils.h"
-#include "StringUtils.h"
+
+#include "PinIn4Cpp/detail/IndexSet.h"
+#include "PinIn4Cpp/detail/BinUtils.h"
+#include "PinIn4Cpp/detail/StringUtils.h"
 
 namespace PinInCpp {
 	constexpr uint32_t BinDataVersion = 4;//二进制数据文件id
@@ -50,7 +51,7 @@ namespace PinInCpp {
 		//Keyboard本身是无法序列化的，手动传入你想要的，不传用默认的全拼
 		static std::shared_ptr<PinIn> Deserialize(const std::vector<uint8_t>& data, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0);
 		static std::optional<std::shared_ptr<PinIn>> DeserializeFromFile(std::string_view path, const std::optional<Keyboard>& keyboard = std::nullopt, size_t index = 0) {
-			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			std::optional<std::vector<uint8_t>> data = detail::ReadBinFile(std::string(path));
 			if (!data.has_value()) {
 				return std::nullopt;
 			}
@@ -59,7 +60,7 @@ namespace PinInCpp {
 		std::vector<uint8_t> Serialize()const;
 		//返回真代表写入成功
 		bool SerializeToFile(std::string_view path)const {
-			return WriteBinFile(std::string(path), Serialize());
+			return detail::WriteBinFile(std::string(path), Serialize());
 		}
 
 		std::vector<uint8_t> PreCacheSerialize()const;
@@ -72,7 +73,7 @@ namespace PinInCpp {
 		}
 		//返回的是汉字拼音id，不是单拼音的拼音id
 		size_t GetPinyinId(std::string_view hanzi)const {
-			return GetPinyinId(FourCCToU32(hanzi));
+			return GetPinyinId(detail::FourCCToU32(hanzi));
 		}
 		std::vector<std::string> GetPinyinById(const size_t id, bool hasTone)const;//你不应该传入非法的id，可能会造成未定义行为，GetPinyinId返回的都是合法的
 		std::vector<std::string_view> GetPinyinViewById(const size_t id, bool hasTone)const;//只读版接口，视图的数据生命周期跟随PinIn对象
@@ -88,7 +89,7 @@ namespace PinInCpp {
 		}
 		Character GetChar(const uint32_t fourCC) {//同上
 			char buf[5];
-			U32FourCCToCharBuf(buf, fourCC);
+			detail::U32FourCCToCharBuf(buf, fourCC);
 			return Character(*this, buf, GetPinyinId(fourCC));
 		}
 		Character* GetCharCachePtr(std::string_view str);//缓存关闭时返回空指针，开启时返回有效数据，注意，无效的字符串在缓存存储后再次返回都是第一个访问时的无效的字符串
@@ -195,7 +196,7 @@ namespace PinInCpp {
 		class Element {//基类，确保这些成分都像原始的设计一样，可以被转换为这个基本的类
 		public:
 			virtual ~Element() = default;
-			virtual IndexSet match(const Utf8StringView& source, size_t start, bool partial)const = 0;
+			virtual detail::IndexSet match(const detail::Utf8StringView& source, size_t start, bool partial)const = 0;
 			virtual std::string ToString()const = 0;
 		};
 		class Pinyin;
@@ -226,8 +227,8 @@ namespace PinInCpp {
 				return strs.empty();
 			}
 			bool matchSequence(const char c)const noexcept;
-			IndexSet match(const Utf8StringView& source, IndexSet idx, size_t start, bool partial)const noexcept;
-			IndexSet match(const Utf8StringView& source, size_t start, bool partial)const noexcept;
+			detail::IndexSet match(const detail::Utf8StringView& source, detail::IndexSet idx, size_t start, bool partial)const noexcept;
+			detail::IndexSet match(const detail::Utf8StringView& source, size_t start, bool partial)const noexcept;
 			const std::vector<std::string_view>& GetAtoms()const noexcept {//获取这个音素的最小成分(原子)，即它表达了什么音素
 				return strs;
 			}
@@ -257,7 +258,7 @@ namespace PinInCpp {
 				return std::string(ctx.pool.getPinyinView(id));
 			}
 			void reload(std::string_view src);
-			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
+			detail::IndexSet match(const detail::Utf8StringView& str, size_t start, bool partial)const noexcept;
 			const size_t id;//原始设计也是不变的，轻量级id设计，无法通过id反向查询
 		private:
 			friend Character;//由Character类执行构建
@@ -285,7 +286,7 @@ namespace PinInCpp {
 				return pinyin;
 			}
 			void reload();//reload可重新恢复拼音和音素的有效性
-			IndexSet match(const Utf8StringView& str, size_t start, bool partial)const noexcept;
+			detail::IndexSet match(const detail::Utf8StringView& str, size_t start, bool partial)const noexcept;
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
@@ -299,7 +300,7 @@ namespace PinInCpp {
 	private:
 		PinIn() = default;//私有的，用于给反序列化接口生成一个空的PinIn对象
 
-		void LineParser(const Utf8StringView&);
+		void LineParser(const detail::Utf8StringView&);
 		//不是StringPoolBase的派生类，是用于Pinyin的内存空间优化的类
 		class CharPool {//字符每一个拼音都是唯一的，不需要查重，也不需要删改
 		public:

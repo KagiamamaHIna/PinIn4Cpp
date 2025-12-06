@@ -12,7 +12,7 @@
 #include <chrono>
 #include <array>
 
-#include "TreeSearcher.h"
+#include "PinIn4Cpp/TreeSearcher.h"
 
 using high_time_point = std::chrono::high_resolution_clock::time_point;
 
@@ -42,7 +42,7 @@ int main() {
 	system("chcp 65001");//编码切换，windows平台的cmd命令
 #endif
 
-	std::fstream file("small.txt");//数据读取
+	std::fstream file("../../../../test_data/small.txt");//数据读取
 	std::string line;
 	std::vector<std::string> FileCache;
 	while (std::getline(file, line)) {
@@ -55,7 +55,7 @@ int main() {
 	//TreeSearcher的第二个参数除了智能指针，其实都是PinIn类的构造参数
 	Pause();
 	high_time_point now = GetTimePoint();
-	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("pinyin.txt");
+	std::shared_ptr<PinInCpp::PinIn> pininptr = std::make_shared<PinInCpp::PinIn>("../../../../test_data/pinyin.txt");
 	high_time_point end = GetTimePoint();
 	std::cout << GetTimeMS(now, end) << "ms\n";//计算获取耗时并打印，单位毫秒
 
