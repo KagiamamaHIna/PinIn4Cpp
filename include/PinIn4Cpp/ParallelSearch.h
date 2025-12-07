@@ -9,7 +9,7 @@
 namespace PinInCpp {
 	class ParallelSearchTreeNumException : public std::exception {
 	public:
-		virtual const char* what() {
+		const char* what()const noexcept override {
 			return "tree number cannot be 0";
 		}
 	};

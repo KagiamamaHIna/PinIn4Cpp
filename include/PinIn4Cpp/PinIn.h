@@ -21,7 +21,7 @@ namespace PinInCpp {
 
 	class PinyinFileNotOpenException : public std::exception {
 	public:
-		virtual const char* what() {
+		const char* what()const noexcept override {
 			return "File not successfully opened";
 		}
 	};
@@ -29,7 +29,7 @@ namespace PinInCpp {
 	public:
 		BinaryVersionInvalidException(const char* str = "Invalid binary file version") :str{ str } {
 		}
-		virtual const char* what() {
+		const char* what()const noexcept override {
 			return str.c_str();
 		}
 		std::string str;
