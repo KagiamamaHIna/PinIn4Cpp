@@ -48,6 +48,7 @@ __前缀匹配__
 
 ## 示例
 你可以轻松使用CMake将本项目导入到你的CMake项目中。
+### 方案1：
 ```cmake
 if(MSVC) # MSVC一定要设置为utf-8编译，因为原始代码有utf8字符，而MSVC默认是随系统的会导致问题
     add_compile_options(/utf-8)
@@ -56,8 +57,22 @@ endif()
 add_subdirectory(PinIn4Cpp) # 应为本项目的CMakeLists.txt所在的文件夹路径（就是源代码）
 target_link_libraries(YourProject PRIVATE PinIn4Cpp::PinIn4Cpp) # YourProject是你的项目，请自行更改
 ```
-本项目使用标准C++编写且无依赖，即使不想依赖CMake也可以自行选择其他方式编译，但是需要处理PinInCAPI.h的导出宏。
+### 方案2
+```cmake
+if(MSVC) # MSVC一定要设置为utf-8编译，因为原始代码有utf8字符，而MSVC默认是随系统的会导致问题
+    add_compile_options(/utf-8)
+endif()
 
+# 对本项目使用cmake CMakeLists.txt
+# 然后用："cmake --build . --config Release" 之类的指令build
+# 然后用这样的语句install："cmake --install . --config Release"
+# 可以手动通过cmake . -DBUILD_SHARED_LIBS=ON/OFF 来开关是否编译动态库
+# 就可以像这样子去使用了
+find_package(PinIn4Cpp)
+target_link_libraries(YourProject PRIVATE PinIn4Cpp::PinIn4Cpp)
+```
+本项目使用标准C++编写且无依赖，即使不想依赖CMake也可以自行选择其他方式编译，但是需要处理PinInCAPI.h的导出宏。
+### 使用展示
 下面的代码简单的展示了本项目的基础使用方式:
 ```cpp
 #include <iostream>
