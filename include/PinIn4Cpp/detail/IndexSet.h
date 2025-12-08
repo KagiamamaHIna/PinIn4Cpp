@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include <iostream>
+#include <cstdint>
+
 namespace PinInCpp {
 	namespace detail {
 		constexpr static uint32_t IndexSetIterEnd = static_cast<uint32_t>(-1);
