@@ -191,6 +191,9 @@ PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPath(PinInCpp_TreeSeracher_Logic 
 	catch (PinInCpp::BinaryVersionInvalidException&) {
 		return NULL;
 	}
+	catch (PinInCpp::PinyinFileNotOpenException&) {
+		return NULL;
+	}
 }
 
 PinInCpp_TreeSearcher PinInCpp_TreeSearcher_NewPinIn(PinInCpp_TreeSeracher_Logic logic, PinInCpp_PinIn data) {
