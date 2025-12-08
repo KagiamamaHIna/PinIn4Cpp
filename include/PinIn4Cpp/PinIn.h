@@ -135,8 +135,8 @@ namespace PinInCpp {
 				}
 			}
 		private:
-			const PinIn& ctx;//绑定的拼音上下文
 			const std::function<void()> runnable;//任务
+			const PinIn& ctx;//绑定的拼音上下文
 			int modification;
 		};
 		std::unique_ptr<Ticket> ticket(const std::function<void()>& r)const {//转移所有权，让你能持有这个对象
@@ -262,7 +262,7 @@ namespace PinInCpp {
 			const size_t id;//原始设计也是不变的，轻量级id设计，无法通过id反向查询
 		private:
 			friend Character;//由Character类执行构建
-			Pinyin(PinIn& p, size_t id, std::string_view src) :ctx{ p }, id{ id } {
+			Pinyin(PinIn& p, size_t id, std::string_view src) :id{ id }, ctx{ p } {
 				reload(src);
 			}
 			PinIn& ctx;
@@ -290,7 +290,7 @@ namespace PinInCpp {
 			const size_t id;//代表这个字符的一个主拼音id
 		private:
 			friend PinIn;//由PinIn类执行构建
-			Character(PinIn& p, std::string_view ch, const size_t id) :ctx{ p }, id{ id }, ch{ ch } {
+			Character(PinIn& p, std::string_view ch, const size_t id) :id{ id }, ctx{ p }, ch{ ch } {
 				reload();
 			}
 			PinIn& ctx;

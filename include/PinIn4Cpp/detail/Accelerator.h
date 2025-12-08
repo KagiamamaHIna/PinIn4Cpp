@@ -11,7 +11,7 @@ namespace PinInCpp {
 			const Utf8StringView& search() {
 				return searchStr;
 			}
-			const uint32_t searchU32FourCC(size_t i) {
+			uint32_t searchU32FourCC(size_t i) {
 				return u32strVec[i];
 			}
 			void search(std::string_view s) {

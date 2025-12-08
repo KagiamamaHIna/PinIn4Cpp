@@ -45,6 +45,9 @@ static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSerach
 		key = PinInCpp::Keyboard::ZIGUANG;
 		break;
 	}
+	case PinInCpp_NULLKeyboard:{
+		break;
+	}
 	}
 	return key;
 }

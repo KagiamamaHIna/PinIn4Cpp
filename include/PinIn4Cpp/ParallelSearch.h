@@ -1,8 +1,9 @@
 #pragma once
 #include <thread>
-#include <barrier>
 #include <mutex>
 #include <exception>
+#include <atomic>
+#include <barrier>
 
 #include "PinIn4Cpp/TreeSearcher.h"
 
@@ -45,7 +46,7 @@ namespace PinInCpp {
 		//抛出BinaryVersionInvalidException代表版本号错误，不可使用
 		//请自行构建一个合适的PinIn类实例，PinIn类本身也可以序列化+反序列化
 		static std::unique_ptr<ParallelSearch> Deserialize(const std::vector<uint8_t>& data, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
-			VecU8Reader reader(data, index);
+			detail::VecU8Reader reader(data, index);
 			uint32_t ver = reader.GetDoubleWord();
 			if (ver != BinDataVersion) {
 				throw BinaryVersionInvalidException("ParallelSearch: Invalid binary file version");
@@ -67,7 +68,7 @@ namespace PinInCpp {
 			return result;
 		}
 		static std::optional<std::unique_ptr<ParallelSearch>> DeserializeFromFile(std::string_view path, std::shared_ptr<PinIn> PinInShared, size_t index = 0) {
-			std::optional<std::vector<uint8_t>> data = ReadBinFile(std::string(path));
+			std::optional<std::vector<uint8_t>> data = detail::ReadBinFile(std::string(path));
 			if (!data.has_value()) {
 				return std::nullopt;
 			}
@@ -75,14 +76,14 @@ namespace PinInCpp {
 		}
 		std::vector<uint8_t> Serialize()const {
 			std::vector<uint8_t> result;
-			PushDWUint8(result, BinDataVersion);
+			detail::PushDWUint8(result, BinDataVersion);
 			result.push_back(static_cast<uint8_t>(TreePool[0]->GetLogic()));
-			PushQWUint8(result, NextIndex);
-			PushQWUint8(result, TreeNum);
+			detail::PushQWUint8(result, NextIndex);
+			detail::PushQWUint8(result, TreeNum);
 
 			for (const auto& v : TreePool) {
 				std::vector<uint8_t> temp = v->Serialize();
-				PushQWUint8(result, temp.size());
+				detail::PushQWUint8(result, temp.size());
 				result.insert(result.end(), temp.begin(), temp.end());
 			}
 
@@ -93,7 +94,7 @@ namespace PinInCpp {
 		}
 		//返回真代表写入成功
 		bool SerializeToFile(std::string_view path)const {
-			return WriteBinFile(std::string(path), Serialize());
+			return detail::WriteBinFile(std::string(path), Serialize());
 		}
 
 		ParallelSearch(const ParallelSearch&) = delete;

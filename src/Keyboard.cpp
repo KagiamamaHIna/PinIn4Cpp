@@ -99,7 +99,7 @@ namespace PinInCpp {
 		}
 	}
 	Keyboard::Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence)
-		:cutter{ cutter }, duo{ duo }, sequence{ sequence } {
+		:duo{ duo }, sequence{ sequence }, cutter{ cutter } {
 		//在插入完成数据之前，构建视图都是不安全的行为，因为容器可能会随时扩容
 		//所以需要缓存数据，在插入完成后再根据数据构建视图
 		std::vector<InsertStrData> MapLocalData;

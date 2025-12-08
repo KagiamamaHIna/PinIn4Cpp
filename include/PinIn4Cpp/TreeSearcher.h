@@ -275,11 +275,12 @@ namespace PinInCpp {
 		constexpr static size_t NDenseThreshold = 128;
 		//表节点转换临界点
 		constexpr static size_t NMapThreshold = 32;
+		const Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
+		detail::Accelerator acc;
+		
 		std::unique_ptr<PinIn::Ticket> ticket;
 		detail::UTF8StringPool strs;
-		detail::Accelerator acc;
-		const Logic logic;
 
 		std::unique_ptr<Node> root = nullptr;
 		std::deque<NAcc*> naccs;//观察者，不持有数据

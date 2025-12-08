@@ -280,7 +280,7 @@ namespace PinInCpp {
 		}
 	}
 
-	PinIn::Config::Config(PinIn& ctx) :ctx{ ctx }, keyboard{ ctx.keyboard } {
+	PinIn::Config::Config(PinIn& ctx) : keyboard{ ctx.keyboard } ,ctx{ ctx }{
 		//剩下构造一些浅拷贝也无影响的
 		fZh2Z = ctx.fZh2Z;
 		fSh2S = ctx.fSh2S;
@@ -570,7 +570,7 @@ namespace PinInCpp {
 			StrSet.insert("z");
 		}
 		//将匹配逻辑内聚
-		if (ctx.fU2V && src[0] == 'v'//简单的检查字符串可以避免内部查表
+		if ((ctx.fU2V && src[0] == 'v')//简单的检查字符串可以避免内部查表
 			|| (ctx.fAng2An && src.ends_with("ang"))
 			|| (ctx.fEng2En && src.ends_with("eng"))
 			|| (ctx.fIng2In && src.ends_with("ing"))

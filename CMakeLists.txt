@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 include(GenerateExportHeader)
 
-project(PinIn4Cpp VERSION 1.4.2)
+project(PinIn4Cpp VERSION 1.4.4)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # MSVC编码选项
 if(MSVC)
     add_compile_options(/utf-8)
+# else()
+#     add_compile_options(-Wall)
+#     add_compile_options(-Wextra)
+#     add_compile_options(-pedantic)
+#     add_compile_options(-Wuninitialized)
+#     add_compile_options(-Wstrict-aliasing)
 endif()
 
 file(GLOB_RECURSE PinIn4CppSrc
