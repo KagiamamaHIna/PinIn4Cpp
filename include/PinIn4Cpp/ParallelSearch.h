@@ -99,8 +99,8 @@ namespace PinInCpp {
 
 		ParallelSearch(const ParallelSearch&) = delete;
 		ParallelSearch& operator=(const ParallelSearch&) = delete;
-		ParallelSearch(ParallelSearch&&) = delete;
-		ParallelSearch& operator=(ParallelSearch&&) = delete;
+		ParallelSearch(ParallelSearch&&)noexcept = delete;
+		ParallelSearch& operator=(ParallelSearch&&)noexcept = delete;
 
 		std::vector<std::string> ExecuteSearch(std::string_view str) {//只需要一个线程执行这个函数即可并发搜索，不要用多个线程执行此函数
 			CommonSearch(str);

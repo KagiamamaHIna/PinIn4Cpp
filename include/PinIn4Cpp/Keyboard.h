@@ -11,8 +11,9 @@
 */
 
 namespace PinInCpp {
-	bool hasInitial(std::string_view s);//本质上就是一个处理函数，直接放这里也没啥
-
+	namespace detail {
+		bool hasInitial(std::string_view s);//本质上就是一个处理函数，直接放这里也没啥
+	}
 	using OptionalStrMap = std::optional<std::map<std::string, std::string>>;
 
 	class Keyboard;
@@ -28,7 +29,7 @@ namespace PinInCpp {
 		Keyboard(const Keyboard& src);
 		Keyboard& operator=(const Keyboard& src);
 		//移动构造函数应该是安全的，因为向量也会被移动
-		Keyboard(Keyboard&&) = default;
+		Keyboard(Keyboard&&) noexcept = default;
 		Keyboard& operator=(Keyboard&&) noexcept = default;
 
 		~Keyboard() = default;

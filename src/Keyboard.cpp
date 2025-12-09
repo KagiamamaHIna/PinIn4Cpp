@@ -1,21 +1,23 @@
 #include "PinIn4Cpp/Keyboard.h"
 
 namespace PinInCpp {
-	bool hasInitial(std::string_view s) {//判断是否有声母
-		if (s.empty()) {
-			return false;
-		}
-		//检查第一个字符
-		switch (s.front()) {
-		case 'a':
-		case 'e':
-		case 'i':
-		case 'o':
-		case 'u':
-		case 'v': //'v' 代表 'ü'
-			return false; //如果是元音开头，说明没有（辅音）声母
-		default:
-			return true;  //其他所有情况（辅音开头），说明有声母
+	namespace detail {
+		bool hasInitial(std::string_view s) {//判断是否有声母
+			if (s.empty()) {
+				return false;
+			}
+			//检查第一个字符
+			switch (s.front()) {
+			case 'a':
+			case 'e':
+			case 'i':
+			case 'o':
+			case 'u':
+			case 'v': //'v' 代表 'ü'
+				return false; //如果是元音开头，说明没有（辅音）声母
+			default:
+				return true;  //其他所有情况（辅音开头），说明有声母
+			}
 		}
 	}
 
@@ -226,7 +228,7 @@ namespace PinInCpp {
 	std::vector<std::string_view> Keyboard::Standard(std::string_view s) {
 		std::vector<std::string_view> result;
 		size_t cursor = 0;
-		if (hasInitial(s)) {
+		if (detail::hasInitial(s)) {
 			cursor = s.size() >= 2 && s[1] == 'h' ? 2 : 1;//原始代码会把2字符的给判断错误，这里写大于等于才是正确的
 			result.emplace_back(s.substr(0, cursor));
 		}

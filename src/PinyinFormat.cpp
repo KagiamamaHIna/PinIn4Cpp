@@ -66,7 +66,7 @@ namespace PinInCpp {
 
 			std::vector<std::string> split;
 			size_t len = temp.size();
-			if (!hasInitial(temp)) {
+			if (!detail::hasInitial(temp)) {
 				split = { "", temp.substr(0, len - 1), temp.substr(len - 1) };
 			}
 			else {
@@ -96,7 +96,7 @@ namespace PinInCpp {
 			std::string finale;
 			std::string temp;
 			size_t len = result.size();
-			if (!hasInitial(result)) {
+			if (!detail::hasInitial(result)) {
 				finale = result.substr(0, len - 1);
 			}
 			else {
