@@ -142,6 +142,7 @@ namespace PinInCpp {
 				head = src.head;
 				src.data = nullptr;
 				src.head = nullptr;
+				return *this
 			}
 
 			~SlabAllocator() {
