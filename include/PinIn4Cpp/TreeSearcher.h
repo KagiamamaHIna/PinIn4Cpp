@@ -88,8 +88,8 @@ namespace PinInCpp {
 		/* For CAPI END */
 
 		//单位是四字节
-		void StrPoolReserve(size_t _Newcapacity) {
-			strs.reserve(_Newcapacity);
+		void StrPoolReserve(size_t Newcapacity) {
+			strs.reserve(Newcapacity);
 		}
 
 		void refresh() {//手动尝试刷新
@@ -105,9 +105,9 @@ namespace PinInCpp {
 			return context;
 		}
 		void ClearFreeList() {//手动清理对象池
-			NDensePool.ClearFreeList();
+			/*NDensePool.ClearFreeList();
 			NSlicePool.ClearFreeList();
-			NMapPool.ClearFreeList();
+			NMapPool.ClearFreeList();*/
 		}
 		void ShrinkToFit() {//调用的是std::vector<char>::shrink_to_fit
 			strs.ShrinkToFit();
@@ -115,7 +115,7 @@ namespace PinInCpp {
 		}
 	private:
 		void init() {
-			root = std::make_unique<NDense>();
+			root = detail::SlabUniqueObj<Node>(NDensePool.NewObj());
 			acc.setProvider(&strs);
 			ticket = context->ticket([this]() {
 				for (const auto& i : this->naccs) {
@@ -145,13 +145,29 @@ namespace PinInCpp {
 			virtual void Serialize(std::vector<uint8_t>& data)const = 0;
 
 			//将自身载入对象池
-			virtual void FreeToPool(TreeSearcher& p) = 0;
-			static std::unique_ptr<Node> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
+			virtual NodeType GetNodeType()const = 0;
+			static detail::SlabUniqueObj<Node> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 		};
 		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
-		void NodeOwnershipReset(std::unique_ptr<Node>& smartPtrObj, Node* newPtr) {
-			smartPtrObj->FreeToPool(*this);//记录
-			smartPtrObj.release();//不要了，已经被标记在对象池中待清除/复用了，所以这时候要release他释放其所有权
+		void NodeOwnershipReset(detail::SlabUniqueObj<Node>& smartPtrObj, Node* newPtr) {
+			switch (smartPtrObj->GetNodeType()) {
+			case NodeType::NDenseType: {
+				NDensePool.FreeObj(static_cast<NDense*>(smartPtrObj.release()));
+				break;
+			}
+			case NodeType::NSliceType: {
+				NSlicePool.FreeObj(static_cast<NSlice*>(smartPtrObj.release()));
+				break;
+			}
+			case NodeType::NMapType: {
+				NMapPool.FreeObj(static_cast<NMap*>(smartPtrObj.release()));
+				break;
+			}
+			case NodeType::NAccType: {
+				NAccPool.FreeObj(static_cast<NAcc*>(smartPtrObj.release()));
+				break;
+			}
+			}
 			smartPtrObj.reset(newPtr);
 		}
 
@@ -163,9 +179,9 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NDense> Deserialize(detail::VecU8Reader& reader);
-			virtual void FreeToPool(TreeSearcher& p) {
-				p.NDensePool.FreeToPool(this);
+			static detail::SlabUniqueObj<NDense> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
+			virtual NodeType GetNodeType()const {
+				return NodeType::NDenseType;
 			}
 		private:
 			size_t match(const TreeSearcher& p)const;//寻找最长公共前缀 长度
@@ -176,7 +192,7 @@ namespace PinInCpp {
 		public:
 			virtual ~NSlice() = default;
 			NSlice(TreeSearcher& p, size_t start, size_t end) :start{ start }, end{ end } {
-				exit_node = p.NMapPool.NewObj();
+				exit_node = detail::SlabUniqueObj<Node>(p.NMapPool.NewObj());
 			}
 			virtual void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 				get(p, ret, offset, 0);
@@ -187,15 +203,15 @@ namespace PinInCpp {
 			virtual Node* put(TreeSearcher& p, size_t keyword, size_t id);
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NSlice> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
-			virtual void FreeToPool(TreeSearcher& p) {
-				p.NSlicePool.FreeToPool(this);
+			static detail::SlabUniqueObj<NSlice> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
+			virtual NodeType GetNodeType()const {
+				return NodeType::NSliceType;
 			}
-		private:
 			NSlice(size_t start, size_t end) :start{ start }, end{ end } {}
+		private:
 			void cut(TreeSearcher& p, size_t offset);
 			void get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset, size_t start);
-			std::unique_ptr<Node> exit_node = nullptr;
+			detail::SlabUniqueObj<Node> exit_node = nullptr;
 			size_t start;
 			size_t end;
 		};
@@ -211,11 +227,10 @@ namespace PinInCpp {
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			template<bool GetFromPool = false>
-			static std::unique_ptr<NMapTemplate> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
+			static detail::SlabUniqueObj<NMapTemplate> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 
-			virtual void FreeToPool(TreeSearcher& p) {//NMapOwned和NAcc一样，因为不会升级所以也不会被析构，除非树本身的生命周期结束
-				if constexpr (CanUpgrade) p.NMapPool.FreeToPool(this);
+			virtual NodeType GetNodeType()const {
+				return NodeType::NMapType;
 			}
 		private:
 			friend NSlice;//分支时需要调用私有接口进行指针操作
@@ -223,17 +238,17 @@ namespace PinInCpp {
 			void init() {//如果是不可升级的版本，则是一个无用的init函数
 				if constexpr (CanUpgrade) {
 					if (children == nullptr) {
-						children = std::make_unique<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
+						children = std::make_unique<detail::AdaptiveMap<uint32_t, detail::SlabUniqueObj<Node>>>();
 					}
 				}
 			}
-			void putNode(const uint32_t ch, std::unique_ptr<Node> n) {
+			void putNode(const uint32_t ch, detail::SlabUniqueObj<Node> n) {
 				if constexpr (CanUpgrade) {//可升级模式需要懒加载代码，不可升级模式会有构造方移动原始数据，始终安全
 					init();
 				}
 				children->insert_or_assign(ch, std::move(n));
 			}
-			std::unique_ptr<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>> children = nullptr;
+			std::unique_ptr<detail::AdaptiveMap<uint32_t, detail::SlabUniqueObj<Node>>> children = nullptr;
 			detail::AdaptiveSet<size_t, true> leaves;//经常出现占用较少情况，适合做升级优化
 		};
 		using NMap = NMapTemplate<true>;//会自动升级的版本
@@ -256,9 +271,11 @@ namespace PinInCpp {
 
 			void reload(TreeSearcher& p);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
-			static std::unique_ptr<NAcc> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
+			static detail::SlabUniqueObj<NAcc> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 			//你不需要，只需要一个空函数即可
-			virtual void FreeToPool(TreeSearcher&) {}
+			virtual NodeType GetNodeType()const {
+				return NodeType::NAccType;
+			}
 		private:
 			void GetOwned(NMap& src) {
 				NodeMap.children = std::move(src.children);
@@ -270,6 +287,11 @@ namespace PinInCpp {
 			NMapOwned NodeMap;
 		};
 
+		detail::SlabAllocator<NDense, 2048> NDensePool;
+		detail::SlabAllocator<NSlice, 128> NSlicePool;
+		detail::SlabAllocator<NMap, 512> NMapPool;
+		detail::SlabAllocator<NAcc, 512> NAccPool;
+
 		//密集节点转换临界点 原始版本是128，因为还用一个元素代表了存储的元素列表，这里直接把字符串本身当作元素
 		//但是因为字符串id本身也需要记录，所以还是128
 		constexpr static size_t NDenseThreshold = 128;
@@ -278,16 +300,12 @@ namespace PinInCpp {
 		const Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		detail::Accelerator acc;
-		
+
 		std::unique_ptr<PinIn::Ticket> ticket;
 		detail::UTF8StringPool strs;
 
-		std::unique_ptr<Node> root = nullptr;
+		detail::SlabUniqueObj<Node> root = nullptr;
 		std::deque<NAcc*> naccs;//观察者，不持有数据
-
-		detail::ObjectPtrPool<NDense> NDensePool;
-		detail::ObjectPtrPool<NSlice> NSlicePool;
-		detail::ObjectPtrPool<NMap> NMapPool;
 	};
 
 	/* NMapTemplate 实现(避免前面的声明过长) */
@@ -341,16 +359,16 @@ namespace PinInCpp {
 			uint32_t ch = p.strs.getcharFourCC(keyword);
 			auto it = children->find(ch);//查找
 			if (it == nullptr) {
-				std::unique_ptr<NDense> ndense = p.NDensePool.NewObj();
+				detail::SlabUniqueObj<NDense> ndense = detail::SlabUniqueObj<NDense>(p.NDensePool.NewObj());
 				Node* result = ndense->put(p, keyword + 1, id);//无虚函数调用开销
-				std::unique_ptr<Node> NewPtr = std::move(ndense);
+				detail::SlabUniqueObj<Node> NewPtr = detail::SlabUniqueObj<Node>(ndense.release());
 				if (result != NewPtr.get()) {
 					p.NodeOwnershipReset(NewPtr, result);
 				}
 				children->insert_or_assign(ch, std::move(NewPtr));
 			}
 			else {
-				std::unique_ptr<Node>& SmartSrc = *it;
+				detail::SlabUniqueObj<Node>& SmartSrc = *it;
 				Node* result = SmartSrc->put(p, keyword + 1, id);
 				if (result != SmartSrc.get()) {
 					p.NodeOwnershipReset(SmartSrc, result);
@@ -359,7 +377,7 @@ namespace PinInCpp {
 		}
 		if constexpr (CanUpgrade) {
 			if (children != nullptr && children->size() > NMapThreshold) {
-				return new NAcc(p, *this);
+				return p.NAccPool.NewObj(p, *this);
 			}
 			return this;
 		}
@@ -391,16 +409,10 @@ namespace PinInCpp {
 	}
 
 	template<bool CanUpgrade>
-	template<bool GetFromPool>
-	std::unique_ptr<TreeSearcher::NMapTemplate<CanUpgrade>> TreeSearcher::NMapTemplate<CanUpgrade>::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
+	detail::SlabUniqueObj<TreeSearcher::NMapTemplate<CanUpgrade>> TreeSearcher::NMapTemplate<CanUpgrade>::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		size_t leavesSize = reader.GetSizeTFromQW();
-		std::unique_ptr<NMapTemplate> result;
-		if constexpr (GetFromPool) {//给NAcc开个口，让他在反序列化的时候不需要重新反复申请新内存，而是复用已有的
-			result = p.NMapPool.NewObj();
-		}
-		else {
-			result = std::make_unique<NMapTemplate>();
-		}
+		detail::SlabUniqueObj<NMapTemplate> result = detail::SlabUniqueObj<NMapTemplate>(p.NMapPool.NewObj());
+
 		result->leaves = detail::AdaptiveSet<size_t, true>(leavesSize);
 		for (size_t i = 0; i < leavesSize; i++) {
 			result->leaves.DeserializationInsert(reader.GetSizeTFromQW());
@@ -409,7 +421,7 @@ namespace PinInCpp {
 		if (childrenSize == 0) {
 			return result;
 		}
-		result->children = std::make_unique<detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>>();
+		result->children = std::make_unique<detail::AdaptiveMap<uint32_t, detail::SlabUniqueObj<Node>>>();
 		for (size_t i = 0; i < childrenSize; i++) {
 			uint32_t fourCC = reader.GetDoubleWord();
 			result->children->insert_or_assign(fourCC, Node::Deserialize(p, reader));
@@ -435,16 +447,16 @@ namespace PinInCpp {
 			uint32_t ch = p.strs.getcharFourCC(i);
 			auto it = children->find(ch);//查找
 			if (it == nullptr) {
-				std::unique_ptr<NDense> ndense = p.NDensePool.NewObj();
+				detail::SlabUniqueObj<NDense> ndense = detail::SlabUniqueObj<NDense>(p.NDensePool.NewObj());
 				Node* result = ndense->put(p, i + 1, start);//无虚函数调用开销
-				std::unique_ptr<Node> NewPtr = std::move(ndense);
+				detail::SlabUniqueObj<Node> NewPtr = detail::SlabUniqueObj<Node>(ndense.release());
 				if (result != NewPtr.get()) {
 					p.NodeOwnershipReset(NewPtr, result);
 				}
 				children->insert_or_assign(ch, std::move(NewPtr));
 			}
 			else {
-				std::unique_ptr<Node>& SmartSrc = *it;
+				detail::SlabUniqueObj<Node>& SmartSrc = *it;
 				Node* result = SmartSrc->put(p, i + 1, start);
 				if (result != SmartSrc.get()) {
 					p.NodeOwnershipReset(SmartSrc, result);
@@ -453,7 +465,7 @@ namespace PinInCpp {
 		}
 		if constexpr (CanUpgrade) {
 			if (children != nullptr && children->size() > NMapThreshold) {
-				return new NAcc(p, *this);
+				return p.NAccPool.NewObj(p, *this);
 			}
 			return this;
 		}

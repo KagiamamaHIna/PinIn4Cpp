@@ -30,25 +30,25 @@ namespace PinInCpp {
 		return ret;
 	}
 
-	std::unique_ptr<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
+	detail::SlabUniqueObj<TreeSearcher::Node> TreeSearcher::Node::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		NodeType type = static_cast<NodeType>(reader.GetByte());
 
-		std::unique_ptr<Node> result;
+		detail::SlabUniqueObj<Node> result;
 		switch (type) {
 		case NodeType::NDenseType: {
-			result = NDense::Deserialize(reader);
+			result.reset(NDense::Deserialize(p, reader).release());
 			break;
 		}
 		case NodeType::NSliceType: {
-			result = NSlice::Deserialize(p, reader);
+			result.reset(NSlice::Deserialize(p, reader).release());
 			break;
 		}
 		case NodeType::NMapType: {
-			result = NMap::Deserialize(p, reader);
+			result.reset(NMap::Deserialize(p, reader).release());
 			break;
 		}
 		case NodeType::NAccType: {
-			result = NAcc::Deserialize(p, reader);
+			result.reset(NAcc::Deserialize(p, reader).release());
 			break;
 		}
 		}
@@ -80,7 +80,7 @@ namespace PinInCpp {
 	TreeSearcher::Node* TreeSearcher::NDense::put(TreeSearcher& p, size_t keyword, size_t id) {
 		if (data.size() >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
-			std::unique_ptr<Node> result = p.NSlicePool.NewObj(p, pattern, pattern + match(p));
+			detail::SlabUniqueObj<Node> result = detail::SlabUniqueObj<Node>(p.NSlicePool.NewObj(p, pattern, pattern + match(p)));
 			Node* other = result.get();
 			for (size_t j = 0; j < data.size(); j += 2) {
 				other = result->put(p, data[j], data[j + 1]);
@@ -106,7 +106,7 @@ namespace PinInCpp {
 		size_t NewSize = data.size() + end - start;
 		if (NewSize >= TreeSearcher::NDenseThreshold) {
 			size_t pattern = data[0];
-			std::unique_ptr<Node> result = p.NSlicePool.NewObj(p, pattern, pattern + match(p));
+			detail::SlabUniqueObj<Node> result = detail::SlabUniqueObj<Node>(p.NSlicePool.NewObj(p, pattern, pattern + match(p)));
 			Node* other = result.get();
 			for (size_t j = 0; j < data.size(); j += 2) {//数据转移
 				other = result->put(p, data[j], data[j + 1]);
@@ -138,10 +138,10 @@ namespace PinInCpp {
 		}
 	}
 
-	std::unique_ptr<TreeSearcher::NDense> TreeSearcher::NDense::Deserialize(detail::VecU8Reader& reader) {
+	detail::SlabUniqueObj<TreeSearcher::NDense> TreeSearcher::NDense::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		size_t dataSize = reader.GetSizeTFromQW();
 
-		std::unique_ptr<NDense> result = std::make_unique<NDense>();
+		detail::SlabUniqueObj<NDense> result = detail::SlabUniqueObj<NDense>(p.NDensePool.NewObj());
 
 		for (size_t i = 0; i < dataSize; i++) {
 			result->data.emplace_back(reader.GetSizeTFromQW());
@@ -180,7 +180,7 @@ namespace PinInCpp {
 			}
 			for (const auto& [k, v] : index_node) {
 				if (!k->match(p.acc.search(), offset, true).empty()) {
-					detail::AdaptiveMap<uint32_t, std::unique_ptr<Node>>& map = *NodeMap.children;
+					detail::AdaptiveMap<uint32_t, detail::SlabUniqueObj<Node>>& map = *NodeMap.children;
 					v.forEach([&](uint32_t c) {
 						detail::IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
 						for (uint32_t j = it.Next(); j != it.end(); j = it.Next()) {
@@ -265,11 +265,10 @@ namespace PinInCpp {
 		NodeMap.Serialize(data);
 	}
 
-	std::unique_ptr<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
-		std::unique_ptr<NMap> temp = NMap::Deserialize<true>(p, reader);
-		std::unique_ptr<NAcc> result = std::make_unique<NAcc>(p, *temp);
-		temp->FreeToPool(p);//释放到池里面，方便下一次的对象复用
-		temp.release();//解除所有权，避免被delete了
+	detail::SlabUniqueObj<TreeSearcher::NAcc> TreeSearcher::NAcc::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
+		detail::SlabUniqueObj<NMap> temp = NMap::Deserialize(p, reader);
+		detail::SlabUniqueObj<NAcc> result = detail::SlabUniqueObj<NAcc>(p.NAccPool.NewObj(p, *temp));
+		p.NMapPool.FreeObj(temp.release());
 
 		return result;
 	}
@@ -317,26 +316,26 @@ namespace PinInCpp {
 		exit_node->Serialize(data);
 	}
 
-	std::unique_ptr<TreeSearcher::NSlice> TreeSearcher::NSlice::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
+	detail::SlabUniqueObj<TreeSearcher::NSlice> TreeSearcher::NSlice::Deserialize(TreeSearcher& p, detail::VecU8Reader& reader) {
 		size_t start = reader.GetSizeTFromQW();
 		size_t end = reader.GetSizeTFromQW();
-		std::unique_ptr<NSlice> result = std::unique_ptr<NSlice>(new NSlice(start, end));
+		detail::SlabUniqueObj<NSlice> result = detail::SlabUniqueObj<NSlice>(p.NSlicePool.NewObj(start, end));
 		result->exit_node = Node::Deserialize(p, reader);
 
 		return result;
 	}
 
 	void TreeSearcher::NSlice::cut(TreeSearcher& p, size_t offset) {
-		std::unique_ptr<NMap> insert = p.NMapPool.NewObj();//保证异常安全
+		detail::SlabUniqueObj<NMap> insert = detail::SlabUniqueObj<NMap>(p.NMapPool.NewObj());//保证异常安全
 		if (offset + 1 == end) {//当前exit_node的所有权都会被转移
 			insert->putNode(p.strs.getcharFourCC(offset), std::move(exit_node));
 		}
 		else {
-			std::unique_ptr<NSlice> half = p.NSlicePool.NewObj(p, offset + 1, end);
+			detail::SlabUniqueObj<NSlice> half = detail::SlabUniqueObj<NSlice>(p.NSlicePool.NewObj(p, offset + 1, end));
 			half->exit_node = std::move(exit_node);
-			insert->putNode(p.strs.getcharFourCC(offset), std::move(half));
+			insert->putNode(p.strs.getcharFourCC(offset), detail::SlabUniqueObj<Node>(half.release()));
 		}
-		exit_node = std::move(insert);
+		exit_node = detail::SlabUniqueObj<Node>(insert.release());
 		end = offset;
 	}
 

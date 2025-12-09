@@ -119,6 +119,19 @@ namespace PinInCpp {
 			bool lastRenewUnfinished = false;
 		};
 
+		template<typename T>
+		struct OnlyDestruction {
+			constexpr OnlyDestruction() noexcept = default;
+
+			void operator()(T* ptr) const noexcept {//不会真的给你移除了
+				ptr->~T();//但是会调用析构函数
+			}
+		};
+
+		//仅调用析构函数的智能指针，可以用于slab分配器分配的对象管理
+		template<typename T>
+		using SlabUniqueObj = std::unique_ptr<T, OnlyDestruction<T>>;
+
 		//纯粹的内存分配器，不管理其中对象的生命周期，需要手动回收
 		template<typename UnitType, size_t ChunkSize>
 		class SlabAllocator {
