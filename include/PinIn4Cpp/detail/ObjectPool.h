@@ -136,6 +136,8 @@ namespace PinInCpp {
 		template<typename UnitType, size_t ChunkSize>
 		class SlabAllocator {
 		public:
+			static_assert(ChunkSize, "Chunk size cannot be 0");
+
 			SlabAllocator() = default;
 
 			SlabAllocator(const SlabAllocator&) = delete;//禁止复制

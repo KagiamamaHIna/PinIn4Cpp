@@ -296,7 +296,7 @@ namespace PinInCpp {
 		{"un", "jp"}, {"uo", "ji"}, {"v", "m"}, {"van", "m0"}, {"vang", "m;"},
 		{"ve", "m,"}, {"vn", "mp"}, {"w", "j"}, {"x", "v"}, {"y", "u"},
 		{"z", "y"}, {"zh", "5"},
-	});
+		});
 
 	const static std::map<std::string, std::string> XIAOHE_KEYS = std::map<std::string, std::string>({
 		{"ai", "d"}, {"an", "j"}, {"ang", "h"}, {"ao", "c"}, {"ch", "i"},
@@ -306,7 +306,7 @@ namespace PinInCpp {
 		{"ua", "x"}, {"uai", "k"}, {"uan", "r"}, {"uang", "l"}, {"ui", "v"},
 		{"un", "y"}, {"uo", "o"}, {"ve", "t"}, {"ue", "t"}, {"vn", "y"},
 		{"zh", "v"},
-	});
+		});
 
 	const static std::map<std::string, std::string> ZIRANMA_KEYS = std::map<std::string, std::string>({
 		{"ai", "l"}, {"an", "j"}, {"ang", "h"}, {"ao", "k"}, {"ch", "i"},
@@ -316,7 +316,7 @@ namespace PinInCpp {
 		{"ua", "w"}, {"uai", "y"}, {"uan", "r"}, {"uang", "d"}, {"ui", "v"},
 		{"un", "p"}, {"uo", "o"}, {"ve", "t"}, {"ue", "t"}, {"vn", "p"},
 		{"zh", "v"},
-	});
+		});
 
 	const static std::map<std::string, std::string> PHONETIC_LOCAL = std::map<std::string, std::string>({
 		{"yi", "i"}, {"you", "iu"}, {"yin", "in"}, {"ye", "ie"}, {"ying", "ing"},
@@ -325,7 +325,7 @@ namespace PinInCpp {
 		{"qu", "qv"}, {"que", "qve"}, {"quan", "qvan"}, {"qun", "qvn"}, {"xu", "xv"},
 		{"xue", "xve"}, {"xuan", "xvan"}, {"xun", "xvn"}, {"shi", "sh"}, {"si", "s"},
 		{"chi", "ch"}, {"ci", "c"}, {"zhi", "zh"}, {"zi", "z"}, {"ri", "r"},
-	});
+		});
 
 	const static std::map<std::string, std::string> SOUGOU_KEYS = std::map<std::string, std::string>({
 		{"ai", "l"}, {"an", "j"}, {"ang", "h"}, {"ao", "k"}, {"ch", "i"},
@@ -335,7 +335,7 @@ namespace PinInCpp {
 		{"ua", "w"}, {"uai", "y"}, {"uan", "r"}, {"uang", "d"}, {"ui", "v"},
 		{"un", "p"}, {"uo", "o"}, {"ve", "t"}, {"ue", "t"}, {"v", "y"},
 		{"zh", "v"}
-	});
+		});
 
 	const static std::map<std::string, std::string> ZHINENG_ABC_KEYS = std::map<std::string, std::string>({
 		{"ai", "l"}, {"an", "j"}, {"ang", "h"}, {"ao", "k"}, {"ch", "e"},
@@ -345,7 +345,7 @@ namespace PinInCpp {
 		{"sh", "v"}, {"ua", "d"}, {"uai", "c"}, {"uan", "p"}, {"uang", "t"},
 		{"ui", "m"}, {"un", "n"}, {"uo", "o"}, {"ve", "v"}, {"ue", "m"},
 		{"zh", "a"},
-	});
+		});
 
 	const static std::map<std::string, std::string> GUOBIAO_KEYS = std::map<std::string, std::string>({
 		{"ai", "k"}, {"an", "f"}, {"ang", "g"}, {"ao", "c"}, {"ch", "i"},
@@ -355,7 +355,7 @@ namespace PinInCpp {
 		{"sh", "u"}, {"ua", "q"}, {"uai", "y"}, {"uan", "w"}, {"uang", "n"},
 		{"ui", "v"}, {"un", "z"}, {"uo", "o"}, {"van", "w"}, {"ve", "x"},
 		{"vn", "z"}, {"zh", "v"},
-	});
+		});
 
 	const static std::map<std::string, std::string> MICROSOFT_KEYS = std::map<std::string, std::string>({
 		{"ai", "l"}, {"an", "j"}, {"ang", "h"}, {"ao", "k"}, {"ch", "i"},
@@ -365,7 +365,7 @@ namespace PinInCpp {
 		{"sh", "u"}, {"ua", "w"}, {"uai", "y"}, {"uan", "r"}, {"uang", "d"},
 		{"ui", "v"}, {"un", "p"}, {"uo", "o"}, {"ve", "v"}, {"ue", "t"},
 		{"v", "y"}, {"zh", "v"}
-	});
+		});
 
 	const static std::map<std::string, std::string> PINYINPP_KEYS = std::map<std::string, std::string>({
 		{"ai", "s"}, {"an", "f"}, {"ang", "g"}, {"ao", "d"}, {"ch", "u"},
@@ -374,7 +374,7 @@ namespace PinInCpp {
 		{"ing", "q"}, {"iong", "y"}, {"iu", "n"}, {"ong", "y"}, {"ou", "p"},
 		{"ua", "b"}, {"uai", "x"}, {"uan", "c"}, {"uang", "h"}, {"ue", "x"},
 		{"ui", "v"}, {"un", "z"}, {"uo", "o"}, {"sh", "i"}, {"zh", "v"}
-	});
+		});
 
 	const static std::map<std::string, std::string> ZIGUANG_KEYS = std::map<std::string, std::string>({
 		{"ai", "p"}, {"an", "r"}, {"ang", "s"}, {"ao", "q"}, {"ch", "a"},
@@ -383,7 +383,7 @@ namespace PinInCpp {
 		{"ing", ";"}, {"iong", "h"}, {"iu", "j"}, {"ong", "h"}, {"ou", "z"},
 		{"ua", "x"}, {"uan", "l"}, {"uai", "y"}, {"uang", "g"}, {"ue", "n"},
 		{"un", "m"}, {"uo", "o"}, {"ve", "n"}, {"sh", "i"}, {"zh", "u"},
-	});
+		});
 
 	const Keyboard Keyboard::QUANPIN = Keyboard(std::nullopt, std::nullopt, Keyboard::Standard, false, true);
 	const Keyboard Keyboard::DAQIAN = Keyboard(PHONETIC_LOCAL, DAQIAN_KEYS, Keyboard::Standard, false, false);

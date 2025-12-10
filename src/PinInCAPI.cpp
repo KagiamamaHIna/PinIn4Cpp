@@ -45,7 +45,7 @@ static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSerach
 		key = PinInCpp::Keyboard::ZIGUANG;
 		break;
 	}
-	case PinInCpp_NULLKeyboard:{
+	case PinInCpp_NULLKeyboard: {
 		break;
 	}
 	}
@@ -301,9 +301,9 @@ void PinInCpp_TreeSearcher_Refresh(PinInCpp_TreeSearcher tree) {
 	t->refresh();
 }
 
-void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree) {
-	PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
-	t->ClearFreeList();
+void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher) {
+	//PinInCpp::TreeSearcher* t = (PinInCpp::TreeSearcher*)tree;
+	//t->ClearFreeList();
 }
 
 void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree) {

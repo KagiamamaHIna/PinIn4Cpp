@@ -115,7 +115,8 @@ extern "C" {
 	//搜索树的其他控制接口
 	PININ4CPP_EXPORT void PinInCpp_TreeSearcher_StrPoolReserve(PinInCpp_TreeSearcher tree, size_t _Newcapacity);
 	PININ4CPP_EXPORT void PinInCpp_TreeSearcher_Refresh(PinInCpp_TreeSearcher tree);//手动尝试刷新
-	PININ4CPP_EXPORT void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree);
+	//It is no longer of use / 不再有用
+	PININ4CPP_EXPORT void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher);
 	PININ4CPP_EXPORT void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree);
 #ifdef __cplusplus
 }

@@ -480,7 +480,7 @@ function TreeSearcherFuncs:Refresh()
     PinInCpp.PinInCpp_TreeSearcher_Refresh(self.cdata)
 end
 
----清理空闲列表
+---已无效果
 function TreeSearcherFuncs:ClearFreeList()
     PinInCpp.PinInCpp_TreeSearcher_ClearFreeList(self.cdata)
 end

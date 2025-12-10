@@ -104,7 +104,7 @@ namespace PinInCpp {
 		std::shared_ptr<PinIn> GetPinInShared() noexcept {//返回这个对象的智能指针，让你可以共享到其他TreeSearcher
 			return context;
 		}
-		void ClearFreeList() {//手动清理对象池
+		[[deprecated("It is no longer of use")]] void ClearFreeList() {
 			/*NDensePool.ClearFreeList();
 			NSlicePool.ClearFreeList();
 			NMapPool.ClearFreeList();*/
@@ -272,7 +272,6 @@ namespace PinInCpp {
 			void reload(TreeSearcher& p);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static detail::SlabUniqueObj<NAcc> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
-			//你不需要，只需要一个空函数即可
 			virtual NodeType GetNodeType()const {
 				return NodeType::NAccType;
 			}

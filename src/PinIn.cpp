@@ -280,7 +280,7 @@ namespace PinInCpp {
 		}
 	}
 
-	PinIn::Config::Config(PinIn& ctx) : keyboard{ ctx.keyboard } ,ctx{ ctx }{
+	PinIn::Config::Config(PinIn& ctx) : keyboard{ ctx.keyboard }, ctx{ ctx } {
 		//剩下构造一些浅拷贝也无影响的
 		fZh2Z = ctx.fZh2Z;
 		fSh2S = ctx.fSh2S;

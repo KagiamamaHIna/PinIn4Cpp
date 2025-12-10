@@ -186,7 +186,7 @@ namespace PinInCpp {
 						for (uint32_t j = it.Next(); j != it.end(); j = it.Next()) {
 							map[c]->get(p, result, offset + j);
 						}
-					});
+						});
 				}
 			}
 		}
@@ -208,12 +208,12 @@ namespace PinInCpp {
 		if (p.context->IsCharCacheEnabled()) {
 			NodeMap.children->forEach([&](const auto& k, const auto&) {
 				indexUseCache(p, k);
-			});
+				});
 		}
 		else {
 			NodeMap.children->forEach([&](const auto& k, const auto&) {
 				indexNotUseCache(p, k);
-			});
+				});
 		}
 	}
 
