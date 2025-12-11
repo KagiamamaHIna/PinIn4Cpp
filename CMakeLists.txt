@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 include(GenerateExportHeader)
 
-project(PinIn4Cpp VERSION 1.5.0)
+project(PinIn4Cpp VERSION 1.5.1)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -69,6 +69,10 @@ if(PININ4CPP_BUILD_TESTS)
     )
 endif()
 
+option(PININ4CPP_INSTALL "Install headers and cmake config files" ON)
+
+if(PININ4CPP_INSTALL)
+
 # 安装相关
 include(GNUInstallDirs)
 
@@ -126,3 +130,5 @@ install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
     DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
 install(DIRECTORY licenses/ DESTINATION ${CMAKE_INSTALL_PREFIX}/licenses)
+
+endif()
