@@ -140,9 +140,6 @@ namespace PinInCpp {
 		}
 
 		void ClearFreeList() {
-			for (const auto& v : TreePool) {
-				v->ClearFreeList();
-			}
 		}
 
 		void ShrinkToFit() {

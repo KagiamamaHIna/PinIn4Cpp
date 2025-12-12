@@ -266,18 +266,17 @@ PinInCpp_SearchResult PinInCpp_TreeSearcher_ExecuteSearch(PinInCpp_TreeSearcher 
 		return result;
 	}
 
-	size_t* resultBuf = (size_t*)malloc(sizeof(size_t) * ResultSize);
-	if (resultBuf == NULL) {
-		result.ids = NULL;
+	result.ids = (size_t*)malloc(sizeof(size_t) * ResultSize);
+	if (result.ids == NULL) {
 		return result;
 	}
-	result.ids = resultBuf;
+	size_t* resultBuf = result.ids;
 
 	for (const size_t item : resultSet) {
 		*resultBuf = item;
 		resultBuf++;
 	}
-
+	
 	return result;
 }
 

@@ -108,7 +108,7 @@ ffi.cdef([[
 	void PinInCpp_TreeSearcher_ClearFreeList(PinInCpp_TreeSearcher tree);
 	void PinInCpp_TreeSearcher_ShrinkToFit(PinInCpp_TreeSearcher tree);
 ]])
-local PinInCpp = ffi.load("PinInCpp")
+local PinInCpp = ffi.load("PinIn4Cpp")
 
 local function FreePinIn(cdata)
     PinInCpp.PinInCpp_PinIn_Free(cdata)
@@ -132,7 +132,7 @@ local function CreatePinIn(pinin)
     if pinin == nil then
         return
     end
-    ffi.gc(pinin, FreePinIn)
+    pinin = ffi.gc(pinin, FreePinIn)
     return setmetatable({cdata = pinin}, {__index = PinInFuncs})
 end
 
@@ -367,7 +367,7 @@ local function CreateTreeSearcher(tree)
     if tree == nil then
         return
     end
-    ffi.gc(tree, FreeTreeSearcher)
+    tree = ffi.gc(tree, FreeTreeSearcher)
     return setmetatable({cdata = tree}, {__index = TreeSearcherFuncs})
 end
 
@@ -398,7 +398,7 @@ end
 ---@return integer[]
 function TreeSearcherFuncs:ExecuteSearchGetIds(str)
     local resultData = PinInCpp.PinInCpp_TreeSearcher_ExecuteSearch(self.cdata, str)
-    ffi.gc(resultData, FreeSearchResult)
+    resultData = ffi.gc(resultData, FreeSearchResult)
     local result = {}
     local resultSize = tonumber(resultData.size)
     if resultSize == 0 then
@@ -445,7 +445,7 @@ end
 ---@return string[]
 function TreeSearcherFuncs:ExecuteSearch(str)
     local resultData = PinInCpp.PinInCpp_TreeSearcher_ExecuteSearch(self.cdata, str)
-    ffi.gc(resultData, FreeSearchResult)
+    resultData = ffi.gc(resultData, FreeSearchResult)
     
     local bufSize = -1
     local buf
