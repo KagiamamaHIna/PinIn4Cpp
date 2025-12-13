@@ -1,6 +1,6 @@
 #include "PinIn4Cpp/PinInCAPI.h"
 #include "PinIn4Cpp/TreeSearcher.h"
-#include <malloc.h>
+#include <stdlib.h>
 
 static std::optional<PinInCpp::Keyboard> GetKeyboardFromEnum(PinInCpp_TreeSeracher_Keyboard keyboard) {
 	std::optional<PinInCpp::Keyboard> key;
