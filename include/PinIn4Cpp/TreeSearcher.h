@@ -145,7 +145,7 @@ namespace PinInCpp {
 			virtual void Serialize(std::vector<uint8_t>& data)const = 0;
 
 			//将自身载入对象池
-			virtual NodeType GetNodeType()const = 0;
+			virtual NodeType GetNodeType()const noexcept = 0;
 			static detail::SlabUniqueObj<Node> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 		};
 		//将Node*的所有权通过FreeToPool转移到对象池中，随后放弃其所有权并重设为新指针
@@ -180,7 +180,7 @@ namespace PinInCpp {
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static detail::SlabUniqueObj<NDense> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
-			virtual NodeType GetNodeType()const {
+			virtual NodeType GetNodeType()const noexcept {
 				return NodeType::NDenseType;
 			}
 		private:
@@ -204,7 +204,7 @@ namespace PinInCpp {
 			virtual Node* putRange(TreeSearcher& p, size_t start, size_t end);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static detail::SlabUniqueObj<NSlice> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
-			virtual NodeType GetNodeType()const {
+			virtual NodeType GetNodeType()const noexcept {
 				return NodeType::NSliceType;
 			}
 			NSlice(size_t start, size_t end) :start{ start }, end{ end } {}
@@ -229,7 +229,7 @@ namespace PinInCpp {
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static detail::SlabUniqueObj<NMapTemplate> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
 
-			virtual NodeType GetNodeType()const {
+			virtual NodeType GetNodeType()const noexcept {
 				return NodeType::NMapType;
 			}
 		private:
@@ -272,7 +272,7 @@ namespace PinInCpp {
 			void reload(TreeSearcher& p);
 			virtual void Serialize(std::vector<uint8_t>& data)const;
 			static detail::SlabUniqueObj<NAcc> Deserialize(TreeSearcher& p, detail::VecU8Reader& reader);
-			virtual NodeType GetNodeType()const {
+			virtual NodeType GetNodeType()const noexcept {
 				return NodeType::NAccType;
 			}
 		private:

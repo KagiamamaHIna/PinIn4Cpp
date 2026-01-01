@@ -242,7 +242,7 @@ namespace PinInCpp {
 			//AdaptiveSet转换临界点
 			constexpr static size_t ContainerThreshold = 128;
 
-			static constexpr uint8_t SVONum = sizeof(std::vector<value>) / sizeof(value);//计算一个合适的长度
+			static constexpr uint8_t SVONum = (sizeof(std::vector<value>) - sizeof(size_t)) / sizeof(value);//计算一个合适的长度
 			static constexpr bool isSVO = SVONum > 0;//计算是否可以无损SVO优化
 			using ObjVector = std::conditional_t<isSVO, SVOArray<value, SVONum>, std::vector<value>>;
 
@@ -405,7 +405,7 @@ namespace PinInCpp {
 			using KVPair = std::pair<const k, v>;
 			//AdaptiveSet转换临界点
 			constexpr static size_t ContainerThreshold = 128;
-			static constexpr uint8_t SVONum = sizeof(std::vector<KVPair>) / sizeof(KVPair);//计算一个合适的长度
+			static constexpr uint8_t SVONum = (sizeof(std::vector<KVPair>) - sizeof(size_t)) / sizeof(KVPair);//计算一个合适的长度
 			static constexpr bool isSVO = SVONum > 0;//计算是否可以无损SVO优化
 			using ObjVector = std::conditional_t<isSVO, SVOArray<KVPair, SVONum>, std::vector<KVPair>>;
 
