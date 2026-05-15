@@ -344,7 +344,7 @@ namespace PinInCpp {
 		{"ing", "j"}, {"iong", "s"}, {"iu", "y"}, {"ong", "s"}, {"ou", "p"},
 		{"sh", "u"}, {"ua", "q"}, {"uai", "y"}, {"uan", "w"}, {"uang", "n"},
 		{"ui", "v"}, {"un", "z"}, {"uo", "o"}, {"van", "w"}, {"ve", "x"},
-		{"vn", "z"}, {"zh", "v"},
+		{"ue", "x"}, {"vn", "z"}, {"zh", "v"},
 		});
 
 	const static std::map<std::string, std::string> MICROSOFT_KEYS = std::map<std::string, std::string>({
