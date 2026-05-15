@@ -244,16 +244,6 @@ namespace PinInCpp {
 		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
 			std::string_view finale = ss[0];//取字符串第一个元素
 			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
-			ss.emplace_back(finale);//因为职责改变，去除了声调在这里，所以只有一个音素的情况下，直接最后追加即可
-		}
-		return ss;
-	}
-
-	std::vector<std::string_view> Keyboard::ZeroZiranmaOrXiaohe(std::string_view s) {
-		std::vector<std::string_view> ss = Standard(s);
-		if (ss.size() == 1) {//因为职责改变，所以是1，没有声调
-			std::string_view finale = ss[0];//取字符串第一个元素
-			ss[0] = finale.substr(0, 1);//覆写第一个元素为其字符串开头的字符
 			if (finale.size() == 2) {
 				ss.emplace_back(finale.substr(1, 1));//第二个字符，长度1
 			}
@@ -387,8 +377,8 @@ namespace PinInCpp {
 
 	const Keyboard Keyboard::QUANPIN = Keyboard(std::nullopt, std::nullopt, Keyboard::Standard, false, true);
 	const Keyboard Keyboard::DAQIAN = Keyboard(PHONETIC_LOCAL, DAQIAN_KEYS, Keyboard::Standard, false, false);
-	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
-	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::ZeroZiranmaOrXiaohe, true, false);
+	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::Zero, true, false);
+	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::Zero, true, false);
 	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::ZeroOInitial, true, false);
 	const Keyboard Keyboard::ZHINENG_ABC = Keyboard(std::nullopt, ZHINENG_ABC_KEYS, Keyboard::ZeroOInitial, true, false);
 	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::ZeroAInitial, true, false);
