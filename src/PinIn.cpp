@@ -589,11 +589,13 @@ namespace PinInCpp {
 
 	void PinIn::Phoneme::reload() {
 		strs.clear();//应该前置，因为是在重载，非法的话就当然置空了
+		ustrs.clear();
 		if (src.empty()) {//没数据？非法的吧！，不过就直接结束了也算一种处理了
 			return;
 		}
 		if (src.size() == 1 && src[0] >= '0' && src[0] <= '4') {
 			strs.emplace_back(src); //声调就是它自己，直接处理完毕返回！
+			ustrs.emplace_back(src);
 			return;
 		}
 		if (ctx.keyboard.GetHasFuuzyLocal()) {
@@ -602,7 +604,6 @@ namespace PinInCpp {
 		else {
 			reloadNoMap();//标准音素，纯逻辑实现
 		}
-		ustrs.clear();
 		for (const auto& v : strs) {
 			ustrs.emplace_back(v);
 		}
