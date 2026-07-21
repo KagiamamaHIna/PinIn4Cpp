@@ -476,7 +476,7 @@ namespace PinInCpp {
 		if (empty()) {
 			return result;
 		}
-		for (const auto& str : strs) {
+		for (const auto& str : ustrs) {
 			size_t size = StrCmp(source, str, start);
 			if (size == 0) {
 				continue;
@@ -601,6 +601,10 @@ namespace PinInCpp {
 		}
 		else {
 			reloadNoMap();//标准音素，纯逻辑实现
+		}
+		ustrs.clear();
+		for (const auto& v : strs) {
+			ustrs.emplace_back(v);
 		}
 	}
 

@@ -14,6 +14,7 @@ namespace PinInCpp {
 
 	std::vector<std::string> TreeSearcher::ExecuteSearch(std::string_view s) {
 		std::unordered_set<size_t> ret;
+		ret.reserve(ResultSetPreSize);
 		CommonSearch(s, ret);
 
 		std::vector<std::string> result;
@@ -26,6 +27,7 @@ namespace PinInCpp {
 
 	std::unordered_set<size_t> TreeSearcher::ExecuteSearchGetSet(std::string_view s) {
 		std::unordered_set<size_t> ret;
+		ret.reserve(ResultSetPreSize);
 		CommonSearch(s, ret);
 		return ret;
 	}
@@ -58,7 +60,7 @@ namespace PinInCpp {
 
 	void TreeSearcher::NDense::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
 		bool full = p.logic == Logic::EQUAL;
-		if (!full && p.acc.search().size() == offset) {
+		if (!full && p.acc.GetSearchStr().size() == offset) {
 			get(p, ret);
 		}
 		else {
@@ -165,7 +167,7 @@ namespace PinInCpp {
 	}
 
 	void TreeSearcher::NAcc::get(TreeSearcher& p, std::unordered_set<size_t>& result, size_t offset) {
-		if (p.acc.search().size() == offset) {
+		if (p.acc.GetSearchStr().size() == offset) {
 			if (p.logic == Logic::EQUAL) {
 				NodeMap.leaves.AddToSTLSet(result);
 			}
@@ -174,12 +176,12 @@ namespace PinInCpp {
 			}
 		}
 		else {
-			auto it = NodeMap.children->find(p.acc.searchU32FourCC(offset));
+			auto it = NodeMap.children->find(p.acc.GetSearchU32FourCC(offset));
 			if (it != nullptr) {
 				it->get()->get(p, result, offset + 1);
 			}
 			for (const auto& [k, v] : index_node) {
-				if (!k->match(p.acc.search(), offset, true).empty()) {
+				if (!k->match(p.acc.GetSearchStr(), offset, true).empty()) {
 					detail::AdaptiveMap<uint32_t, detail::SlabUniqueObj<Node>>& map = *NodeMap.children;
 					v.forEach([&](uint32_t c) {
 						detail::IndexSet::IndexSetIterObj it = p.acc.get(c, offset).GetIterObj();
@@ -343,7 +345,7 @@ namespace PinInCpp {
 		if (this->start + start == end) {
 			exit_node->get(p, ret, offset);
 		}
-		else if (offset == p.acc.search().size()) {
+		else if (offset == p.acc.GetSearchStr().size()) {
 			if (p.logic != Logic::EQUAL) {
 				exit_node->get(p, ret);
 			}

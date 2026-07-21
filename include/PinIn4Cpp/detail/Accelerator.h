@@ -8,18 +8,19 @@ namespace PinInCpp {
 		public:
 			Accelerator(PinIn& p) : ctx{ p } {
 			}
-			const Utf8StringView& search() {
+			const Utf8StringView& GetSearchStr() {
 				return searchStr;
 			}
-			uint32_t searchU32FourCC(size_t i) {
+			uint32_t GetSearchU32FourCC(size_t i) {
 				return u32strVec[i];
 			}
-			void search(std::string_view s) {
+			void SetSearchStr(std::string_view s) {
 				if (s != searchSrcStr) {
 					searchSrcStr = s;
 					searchStr.reset(searchSrcStr);
 					if (cache.size() < searchStr.size()) {
 						cache.resize(searchStr.size());
+						pinyinCache.resize(searchStr.size());
 					}
 
 					u32strVec.clear();
@@ -33,9 +34,12 @@ namespace PinInCpp {
 				for (auto& v : cache) {
 					v.clear();//仅清空map容器，避免map对象再构造
 				}
+				for (auto& v : pinyinCache) {
+					v.clear();
+				}
 			}
 			//接收一个外部的、长生命周期的provider，不拥有
-			void setProvider(UTF8StringPool* provider_ptr) {
+			void SetProvider(UTF8StringPool* provider_ptr) {
 				provider = provider_ptr;
 			}
 			void ShrinkToFit() {
@@ -45,7 +49,6 @@ namespace PinInCpp {
 				cache.shrink_to_fit();
 			}
 
-			IndexSet get(const PinIn::Pinyin& p, size_t offset);
 			IndexSet get(const uint32_t ch, size_t offset);
 			size_t common(size_t s1, size_t s2, size_t max);
 			bool check(size_t offset, size_t start);
@@ -56,10 +59,12 @@ namespace PinInCpp {
 				return searchStr;
 			}
 		private:
+			IndexSet get(const PinIn::Pinyin& p, size_t offset);
 			UTF8StringPool* provider = nullptr;     //观察者指针，不拥有
 
 			PinIn& ctx;
-			std::vector<IndexSet::Storage> cache;
+			std::vector<std::unordered_map<uint32_t, IndexSet>> cache;
+			std::vector<IndexSet::Storage> pinyinCache;
 			Utf8StringView searchStr;
 			std::string searchSrcStr;
 			std::vector<uint32_t> u32strVec;

@@ -3,7 +3,7 @@
 namespace PinInCpp {
 	namespace detail {
 		IndexSet Accelerator::get(const PinIn::Pinyin& p, size_t offset) {
-			IndexSet::Storage& data = cache[offset];
+			IndexSet::Storage& data = pinyinCache[offset];
 			IndexSet ret = data.get(p.id);
 			if (ret == IndexSet::NONE) {
 				ret = p.match(searchStr, offset, partial);
@@ -14,6 +14,10 @@ namespace PinInCpp {
 		}
 
 		IndexSet Accelerator::get(const uint32_t ch, size_t offset) {
+			auto it = cache[offset].find(ch);
+			if (it != cache[offset].end()) {
+				return it->second;
+			}
 			PinIn::Character* c = ctx.GetCharCachePtr(ch);
 			if (c == nullptr) {
 				PinIn::Character c = ctx.GetChar(ch);
@@ -21,6 +25,7 @@ namespace PinInCpp {
 				for (const PinIn::Pinyin* p : c.GetPinyins()) {
 					ret.merge(get(*p, offset));
 				}
+				cache[offset].insert_or_assign(ch, ret);
 				return ret;
 			}
 			else {
@@ -28,6 +33,7 @@ namespace PinInCpp {
 				for (const PinIn::Pinyin* p : c->GetPinyins()) {
 					ret.merge(get(*p, offset));
 				}
+				cache[offset].insert_or_assign(ch, ret);
 				return ret;
 			}
 		}

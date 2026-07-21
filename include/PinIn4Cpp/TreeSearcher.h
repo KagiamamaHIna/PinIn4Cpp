@@ -116,7 +116,7 @@ namespace PinInCpp {
 	private:
 		void init() {
 			root = detail::SlabUniqueObj<Node>(NDensePool.NewObj());
-			acc.setProvider(&strs);
+			acc.SetProvider(&strs);
 			ticket = context->ticket([this]() {
 				for (const auto& i : this->naccs) {
 					i->reload(*this);
@@ -126,7 +126,7 @@ namespace PinInCpp {
 		}
 		void CommonSearch(std::string_view s, std::unordered_set<size_t>& ret) {
 			ticket->renew();
-			acc.search(s);
+			acc.SetSearchStr(s);
 			root->get(*this, ret, 0);
 		}
 		enum class NodeType : uint8_t {
@@ -296,6 +296,9 @@ namespace PinInCpp {
 		constexpr static size_t NDenseThreshold = 128;
 		//表节点转换临界点
 		constexpr static size_t NMapThreshold = 32;
+		//预分配多少元素给搜索的结果集，这将影响搜索性能
+		//	由于通用内存分配器很慢，而size_t足够廉价，调大点对内存影响不是很大但是对大的搜索集的构建来讲会快
+		constexpr static size_t ResultSetPreSize = 10000;
 		const Logic logic;
 		std::shared_ptr<PinIn> context = nullptr;//PinIn
 		detail::Accelerator acc;
@@ -310,7 +313,7 @@ namespace PinInCpp {
 	/* NMapTemplate 实现(避免前面的声明过长) */
 	template<bool CanUpgrade>
 	void TreeSearcher::NMapTemplate<CanUpgrade>::get(TreeSearcher& p, std::unordered_set<size_t>& ret, size_t offset) {
-		if (p.acc.search().size() == offset) {
+		if (p.acc.GetSearchStr().size() == offset) {
 			if (p.logic == Logic::EQUAL) {
 				leaves.AddToSTLSet(ret);
 			}

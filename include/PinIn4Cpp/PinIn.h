@@ -247,6 +247,7 @@ namespace PinInCpp {
 			PinIn& ctx;//直接绑定拼音上下文，方便reload
 			const std::string_view src;
 			std::vector<std::string_view> strs;//真正用于处理的数据
+			std::vector<detail::Utf8StringView> ustrs;
 		};
 		class Pinyin : public Element {
 		public:
