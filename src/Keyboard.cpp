@@ -311,8 +311,8 @@ namespace PinInCpp {
 		});
 
 	const static std::map<std::string, std::string> PHONETIC_LOCAL = std::map<std::string, std::string>({
-		{"yi", "i"}, {"you", "iu"}, {"yin", "in"}, {"ye", "ie"}, {"ying", "ing"},
-		{"wu", "u"}, {"wen", "un"}, {"yu", "v"}, {"yue", "ve"}, {"yuan", "van"},
+		{"yi", "i"}, {"you", "iu"}, {"yin", "in"}, {"ye", "ie"}, {"ying", "ing"}, {"yong", "iong"},
+		{"wu", "u" }, {"wen", "un"}, {"yu", "v"}, {"yue", "ve"}, {"yuan", "van"},
 		{"yun", "vn"}, {"ju", "jv"}, {"jue", "jve"}, {"juan", "jvan"}, {"jun", "jvn"},
 		{"qu", "qv"}, {"que", "qve"}, {"quan", "qvan"}, {"qun", "qvn"}, {"xu", "xv"},
 		{"xue", "xve"}, {"xuan", "xvan"}, {"xun", "xvn"}, {"shi", "sh"}, {"si", "s"},
