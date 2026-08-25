@@ -170,14 +170,15 @@ namespace PinInCpp {
 			}
 		}
 		else {//防止多重赋值的问题，下面也是
-			MapKeys = std::nullopt;
+			MapLocalFuzzy = std::nullopt;
 		}
+
 		if (src.MapKeys.has_value()) {
 			MapKeys = std::map<std::string_view, std::string_view>();
 			ViewDeepCopy(src.pool, src.MapKeys.value(), MapKeys.value());
 		}
 		else {
-			MapLocalFuzzy = std::nullopt;
+			MapKeys = std::nullopt;
 		}
 		if (src.MapLocal.has_value()) {
 			MapLocal = std::map<std::string_view, std::string_view>();
