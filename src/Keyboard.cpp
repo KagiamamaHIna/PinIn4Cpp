@@ -1,5 +1,5 @@
 #include "PinIn4Cpp/Keyboard.h"
-
+#include <iostream>
 namespace PinInCpp {
 	namespace detail {
 		bool hasInitial(std::string_view s) {//判断是否有声母
@@ -98,6 +98,8 @@ namespace PinInCpp {
 
 			size_t valueOffset = value.data() - srcpoolptr;
 			size_t valueSize = value.size();
+			std::cout << KeyOffset << '\n';
+			std::cout << valueOffset << '\n';
 			Target.insert_or_assign(std::string_view(poolptr + KeyOffset, keySize), std::string_view(poolptr + valueOffset, valueSize));
 		}
 	}
