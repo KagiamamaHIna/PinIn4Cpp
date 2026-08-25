@@ -89,15 +89,16 @@ namespace PinInCpp {
 			Target.insert_or_assign(key, value);
 		}
 	}
-	void Keyboard::ViewDeepCopy(const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target) {
+	void Keyboard::ViewDeepCopy(const StrPool& srcPool, const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target) {
 		char* poolptr = pool.data();
+		const char* srcpoolptr = srcPool.data();
 		for (const auto& [key, value] : srcMap) {
+			size_t KeyOffset = key.data() - srcpoolptr;
 			size_t keySize = key.size();
-			size_t keyStart = pool.put(key);
 
+			size_t valueOffset = value.data() - srcpoolptr;
 			size_t valueSize = value.size();
-			size_t valueStart = pool.put(value);
-			Target.insert_or_assign(std::string_view(poolptr + keyStart, keySize), std::string_view(poolptr + valueStart, valueSize));
+			Target.insert_or_assign(std::string_view(poolptr + KeyOffset, keySize), std::string_view(poolptr + valueOffset, valueSize));
 		}
 	}
 	Keyboard::Keyboard(const OptionalStrMap& MapLocalArg, const OptionalStrMap& MapKeysArg, CutterFn cutter, bool duo, bool sequence)
@@ -145,36 +146,36 @@ namespace PinInCpp {
 		duo = src.duo;
 		sequence = src.sequence;
 		cutter = src.cutter;
-
 		copy(src);
 		return *this;
 	}
 
 	void Keyboard::copy(const Keyboard& src) {
-		pool.reserve(src.pool.size() * 2);//预分配合适大小，避免数据重分配造成视图失效，我懒得解决Local模糊音导致的额外长度问题了，直接x2是不会失效了
+		pool = src.pool;
 		//重建视图
 		if (src.MapLocalFuzzy.has_value()) {
 			MapLocalFuzzy = std::map<std::string_view, std::vector<std::string_view>>();
 			char* poolptr = pool.data();
+			const char* srcpoolptr = src.pool.data();
 			auto& Target = MapLocalFuzzy.value();
 
 			for (const auto& [key, vec] : src.MapLocalFuzzy.value()) {
-				size_t keyStart = pool.put(key);
+				size_t offset = key.data() - srcpoolptr;
 
-				std::string_view keyView(poolptr + keyStart, key.size());//构造键
+				std::string_view keyView(poolptr + offset, key.size());//构造键
 				for (const auto& v : vec) {
-					size_t valueStart = pool.put(v);
-					Target[keyView].emplace_back(std::string_view(poolptr + valueStart, v.size()));
+					size_t offset = v.data() - srcpoolptr;
+					Target[keyView].emplace_back(std::string_view(poolptr + offset, v.size()));
 				}
 			}
 		}
 		if (src.MapKeys.has_value()) {
 			MapKeys = std::map<std::string_view, std::string_view>();
-			ViewDeepCopy(src.MapKeys.value(), MapKeys.value());
+			ViewDeepCopy(src.pool, src.MapKeys.value(), MapKeys.value());
 		}
 		if (src.MapLocal.has_value()) {
 			MapLocal = std::map<std::string_view, std::string_view>();
-			ViewDeepCopy(src.MapLocal.value(), MapLocal.value());
+			ViewDeepCopy(src.pool, src.MapLocal.value(), MapLocal.value());
 		}
 	}
 
@@ -309,8 +310,8 @@ namespace PinInCpp {
 		});
 
 	const static std::map<std::string, std::string> PHONETIC_LOCAL = std::map<std::string, std::string>({
-		{"yi", "i"}, {"you", "iu"}, {"yin", "in"}, {"ye", "ie"}, {"ying", "ing"},
-		{"wu", "u"}, {"wen", "un"}, {"yu", "v"}, {"yue", "ve"}, {"yuan", "van"},
+		{"yi", "i"}, {"you", "iu"}, {"yin", "in"}, {"ye", "ie"}, {"ying", "ing"}, {"yong", "iong"},
+		{"wu", "u" }, {"wen", "un"}, {"yu", "v"}, {"yue", "ve"}, {"yuan", "van"},
 		{"yun", "vn"}, {"ju", "jv"}, {"jue", "jve"}, {"juan", "jvan"}, {"jun", "jvn"},
 		{"qu", "qv"}, {"que", "qve"}, {"quan", "qvan"}, {"qun", "qvn"}, {"xu", "xv"},
 		{"xue", "xve"}, {"xuan", "xvan"}, {"xun", "xvn"}, {"shi", "sh"}, {"si", "s"},
