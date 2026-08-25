@@ -147,7 +147,7 @@ void PinInCpp_PinIn_ConfigCommit(PinInCpp_PinIn pinin, PinInCpp_Config cfg) {
 	PinInCpp::PinIn::Config result = p->get()->config();
 	std::optional<PinInCpp::Keyboard> keyboard = GetKeyboardFromEnum(cfg.keyboard);
 	if (keyboard.has_value()) {
-		result.keyboard = keyboard.value();
+		result.keyboard = std::move(keyboard.value());
 	}
 	result.fZh2Z = cfg.fZh2Z;
 	result.fSh2S = cfg.fSh2S;
