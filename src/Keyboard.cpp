@@ -1,5 +1,5 @@
 #include "PinIn4Cpp/Keyboard.h"
-#include <iostream>
+
 namespace PinInCpp {
 	namespace detail {
 		bool hasInitial(std::string_view s) {//判断是否有声母
@@ -93,10 +93,10 @@ namespace PinInCpp {
 		char* poolptr = pool.data();
 		const char* srcpoolptr = srcPool.data();
 		for (const auto& [key, value] : srcMap) {
-			int KeyOffset = key.data() - srcpoolptr;
+			size_t KeyOffset = key.data() - srcpoolptr;
 			size_t keySize = key.size();
 
-			int valueOffset = value.data() - srcpoolptr;
+			size_t valueOffset = value.data() - srcpoolptr;
 			size_t valueSize = value.size();
 			Target.insert_or_assign(std::string_view(poolptr + KeyOffset, keySize), std::string_view(poolptr + valueOffset, valueSize));
 		}
@@ -146,7 +146,6 @@ namespace PinInCpp {
 		duo = src.duo;
 		sequence = src.sequence;
 		cutter = src.cutter;
-
 		copy(src);
 		return *this;
 	}
@@ -161,11 +160,11 @@ namespace PinInCpp {
 			auto& Target = MapLocalFuzzy.value();
 
 			for (const auto& [key, vec] : src.MapLocalFuzzy.value()) {
-				int offset = key.data() - srcpoolptr;
+				size_t offset = key.data() - srcpoolptr;
 
 				std::string_view keyView(poolptr + offset, key.size());//构造键
 				for (const auto& v : vec) {
-					int offset = v.data() - srcpoolptr;
+					size_t offset = v.data() - srcpoolptr;
 					Target[keyView].emplace_back(std::string_view(poolptr + offset, v.size()));
 				}
 			}

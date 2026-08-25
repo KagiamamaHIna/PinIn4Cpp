@@ -100,6 +100,9 @@ namespace PinInCpp {
 		public: //作为字符串视图的数据源，他不需要终止符
 			StrPool() = default;
 			StrPool(const StrPool&) = default;
+			StrPool& operator=(const StrPool& src) = default;
+			StrPool(StrPool&&) noexcept = default;
+			StrPool& operator=(StrPool&&) noexcept = default;
 			size_t put(std::string_view str) {
 				size_t result = strs.size();
 				strs.insert(strs.end(), str.begin(), str.end());
