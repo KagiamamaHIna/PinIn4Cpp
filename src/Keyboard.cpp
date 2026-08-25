@@ -387,12 +387,12 @@ namespace PinInCpp {
 
 	const Keyboard Keyboard::QUANPIN = Keyboard(std::nullopt, std::nullopt, Keyboard::Standard, false, true);
 	const Keyboard Keyboard::DAQIAN = Keyboard(PHONETIC_LOCAL, DAQIAN_KEYS, Keyboard::Standard, false, false);
-	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::Zero, true, false);
-	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::Zero, true, false);
-	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::ZeroOInitial, true, false);
-	const Keyboard Keyboard::ZHINENG_ABC = Keyboard(std::nullopt, ZHINENG_ABC_KEYS, Keyboard::ZeroOInitial, true, false);
-	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::ZeroAInitial, true, false);
-	const Keyboard Keyboard::MICROSOFT = Keyboard(std::nullopt, MICROSOFT_KEYS, Keyboard::ZeroOInitial, true, false);
-	const Keyboard Keyboard::PINYINPP = Keyboard(std::nullopt, PINYINPP_KEYS, Keyboard::Zero, true, false);
-	const Keyboard Keyboard::ZIGUANG = Keyboard(std::nullopt, ZIGUANG_KEYS, Keyboard::ZeroOInitial, true, false);
+	const Keyboard Keyboard::XIAOHE = Keyboard(std::nullopt, XIAOHE_KEYS, Keyboard::Zero, false, false);
+	const Keyboard Keyboard::ZIRANMA = Keyboard(std::nullopt, ZIRANMA_KEYS, Keyboard::Zero, false, false);
+	const Keyboard Keyboard::SOUGOU = Keyboard(std::nullopt, SOUGOU_KEYS, Keyboard::ZeroOInitial, false, false);
+	const Keyboard Keyboard::ZHINENG_ABC = Keyboard(std::nullopt, ZHINENG_ABC_KEYS, Keyboard::ZeroOInitial, false, false);
+	const Keyboard Keyboard::GUOBIAO = Keyboard(std::nullopt, GUOBIAO_KEYS, Keyboard::ZeroAInitial, false, false);
+	const Keyboard Keyboard::MICROSOFT = Keyboard(std::nullopt, MICROSOFT_KEYS, Keyboard::ZeroOInitial, false, false);
+	const Keyboard Keyboard::PINYINPP = Keyboard(std::nullopt, PINYINPP_KEYS, Keyboard::Zero, false, false);
+	const Keyboard Keyboard::ZIGUANG = Keyboard(std::nullopt, ZIGUANG_KEYS, Keyboard::ZeroOInitial, false, false);
 }
