@@ -93,7 +93,7 @@ namespace PinInCpp {
 		void CreateViewOnMap(std::map<std::string_view, std::string_view>& Target, const std::vector<InsertStrData>& data);
 		void copy(const Keyboard& src);
 		class StrPool;
-		void ViewDeepCopy(const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target);
+		void ViewDeepCopy(const StrPool& srcPool, const std::map<std::string_view, std::string_view>& srcMap, std::map<std::string_view, std::string_view>& Target);
 
 		//不是StringPoolBase的派生类，是用于Keyboard持有字符串生命周期的内存池
 		class StrPool {
