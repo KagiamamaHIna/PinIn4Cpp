@@ -144,15 +144,13 @@ namespace PinInCpp {
 			SlabAllocator& operator=(const SlabAllocator&) = delete;
 
 			SlabAllocator(SlabAllocator&& src)noexcept {
-				std::swap(data, src.data);//Move-and-Swap
+				std::swap(data, src.data);//Move-and-Swap，由于自身现在是空的，所以相当于把src置空了
 				std::swap(head, src.head);
 			}
 			SlabAllocator& operator=(SlabAllocator&& src)noexcept {
-				if (this == &src) {
-					return *this;
-				}
-				std::swap(data, src.data);
-				std::swap(head, src.head);
+				SlabAllocator tmp(std::move(src));//临时变量退出作用域自动析构
+				std::swap(data, tmp.data);
+				std::swap(head, tmp.head);
 				return *this;
 			}
 
