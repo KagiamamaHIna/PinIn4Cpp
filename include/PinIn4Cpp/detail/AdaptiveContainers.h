@@ -199,6 +199,7 @@ namespace PinInCpp {
 					if (dataSize > SVOsize) {
 						::operator delete (data.longData.data, HeapAlign);
 					}
+					dataSize = 0;//返回小向量模式，避免二次析构出问题
 					throw;
 				}
 			}
