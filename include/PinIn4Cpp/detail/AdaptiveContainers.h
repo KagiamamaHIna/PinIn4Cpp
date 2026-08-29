@@ -31,6 +31,7 @@ namespace PinInCpp {
 				if (this == &src) {
 					return *this;
 				}
+				TrueClear();//如果覆盖的是一个原本就有的数组，那么这个会检查并清理旧数据
 				copy(src);
 				return *this;
 			}
@@ -38,6 +39,7 @@ namespace PinInCpp {
 				if (this == &src) {
 					return *this;
 				}
+				TrueClear();//如果覆盖的是一个原本就有的数组，那么这个会检查并清理旧数据
 				move(std::forward<SVOArray&&>(src));//确保类型绝对正确
 				return *this;
 			}
