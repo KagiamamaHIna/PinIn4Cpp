@@ -144,19 +144,15 @@ namespace PinInCpp {
 			SlabAllocator& operator=(const SlabAllocator&) = delete;
 
 			SlabAllocator(SlabAllocator&& src)noexcept {
-				data = src.data;
-				head = src.head;
-				src.data = nullptr;
-				src.head = nullptr;
+				std::swap(data, src.data);//Move-and-Swap
+				std::swap(head, src.head);
 			}
 			SlabAllocator& operator=(SlabAllocator&& src)noexcept {
 				if (this == &src) {
 					return *this;
 				}
-				data = src.data;
-				head = src.head;
-				src.data = nullptr;
-				src.head = nullptr;
+				std::swap(data, src.data);
+				std::swap(head, src.head);
 				return *this;
 			}
 
