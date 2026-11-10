@@ -22,7 +22,7 @@ namespace PinInCpp {
 			ObjectPtrPool& operator=(const ObjectPtrPool&) = delete;
 
 			ObjectPtrPool(ObjectPtrPool&&)noexcept = default;//允许移动
-			ObjectPtrPool& operator=(ObjectPtrPool&)noexcept = default;
+			ObjectPtrPool& operator=(ObjectPtrPool&&)noexcept = default;
 
 			~ObjectPtrPool() {
 				ClearFreeList();
